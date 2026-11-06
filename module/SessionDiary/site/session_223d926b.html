@@ -1,126 +1,0 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>[Agent: 10-hour grind: H3 kit + kittenTTS + reverify + sweeps + audits] # MEGA-S — session diary</title>
-<link rel="stylesheet" href="custom.css">
-
-</head>
-<body data-page="session">
-<header class="masthead">
-  <div class="kicker"><a href="read_dir_indexer.html">← all sessions</a> · 223d926b · built 2026-08-13 03:07</div>
-  <h1>[Agent: 10-hour grind: H3 kit + kittenTTS + reverify + sweeps + audits] # MEGA-S</h1>
-  <div class="tags"><span class="tag src">desktop</span><span class="tag">Qwen3.6-35B-A3B-UD-IQ3_S (1).gguf</span><span class="tag">default</span><span class="tag">ended: startup_orphan_reap</span></div>
-</header>
-
-<section class="panel">
-  <h2>What was done</h2>
-  <div class="diary-prose empty-prose">
-      <p><span class="dim">No prose diary yet — the card below is the deterministic digest (free, instant, written for every session).</span></p>
-    </div>
-    <div class="diary-actions">
-      <button class="action" id="write-diary">Write the diary <span class="dim">— deepseek reads the session</span></button>
-      <span class="hint" id="diary-status"></span>
-    </div>
-</section>
-
-<section class="panel twocol">
-  <div>
-    <h2>The ask</h2>
-    <p class="quote">[Agent: 10-hour grind: H3 kit + kittenTTS + reverify + sweeps + audits] # MEGA-STACK BRIEF 2026-08-13 â€” 10-HOUR GRIND (replaces 10-min batch jobs) # You are the LONG-RUN worker on 123 (DESKTOP-QUCA6R5). This is a ~10 hour run. # Work through ALL items IN ORDER. Do NOT stop after one item. This is the new model: # ONE dispatch = ONE long visible session, grinding the whole stack. # After EACH item append a checkpoint line to C:\Users\User\fleet\mega-progress.md # (format: &quot;## &lt;time&gt; item N &lt;name&gt;: DONE|BLOCKED|PARTIAL - one-line result&quot;). # Every 30 minutes also append a one-line health probe (8080/8081/8642). # Only finish when the stack is exhausted or a HARD blocker stops you (report it…</p>
-  </div>
-  <div>
-    <h2>Where it ended</h2>
-    <p class="quote"><span class="dim">no assistant turn recorded</span></p>
-  </div>
-</section>
-
-<section class="panel">
-  <h2>Shortcuts</h2>
-  <div class="shortcut">
-    <span class="s-label">restart</span>
-    <code class="s-cmd">hermes --resume 20260813_030505_3bc6a3</code>
-    <button class="copy" data-copy="hermes --resume 20260813_030505_3bc6a3" title="copy">copy</button>
-  </div>
-  <div class="shortcut">
-    <span class="s-label">by title</span>
-    <code class="s-cmd">hermes -c &quot;[Agent: 10-hour grind: H3 kit + kittenTTS + reverify + sweeps + audits] # MEGA-S&quot;</code>
-    <button class="copy" data-copy="hermes -c &quot;[Agent: 10-hour grind: H3 kit + kittenTTS + reverify + sweeps + audits] # MEGA-S&quot;" title="copy">copy</button>
-  </div>
-  <div class="shortcut">
-    <span class="s-label">export markdown</span>
-    <code class="s-cmd">hermes sessions export --session-id 20260813_030505_3bc6a3 --format md C:/Users/User/AppData/Local/hermes/session-exports/</code>
-    <button class="copy" data-copy="hermes sessions export --session-id 20260813_030505_3bc6a3 --format md C:/Users/User/AppData/Local/hermes/session-exports/" title="copy">copy</button>
-  </div>
-  <div class="shortcut">
-    <span class="s-label">export html</span>
-    <code class="s-cmd">hermes sessions export --session-id 20260813_030505_3bc6a3 --format html</code>
-    <button class="copy" data-copy="hermes sessions export --session-id 20260813_030505_3bc6a3 --format html" title="copy">copy</button>
-  </div>
-  <div class="shortcut">
-    <span class="s-label">ask (api)</span>
-    <code class="s-cmd">curl -s -X POST http://0.0.0.0:8134/api/ask -H &quot;content-type: application/json&quot; -d &quot;{\&quot;session_id\&quot;:\&quot;20260813_030505_3bc6a3\&quot;,\&quot;question\&quot;:\&quot;what did we decide?\&quot;}&quot;</code>
-    <button class="copy" data-copy="curl -s -X POST http://0.0.0.0:8134/api/ask -H &quot;content-type: application/json&quot; -d &quot;{\&quot;session_id\&quot;:\&quot;20260813_030505_3bc6a3\&quot;,\&quot;question\&quot;:\&quot;what did we decide?\&quot;}&quot;" title="copy">copy</button>
-  </div>
-  <div class="shortcut">
-    <span class="s-label">fork (api)</span>
-    <code class="s-cmd">curl -s -X POST http://0.0.0.0:8134/api/fork/20260813_030505_3bc6a3</code>
-    <button class="copy" data-copy="curl -s -X POST http://0.0.0.0:8134/api/fork/20260813_030505_3bc6a3" title="copy">copy</button>
-  </div>
-</section>
-
-<section class="panel">
-  <h2>Talk to the dead</h2>
-  <p class="dim small">The question goes to the deepseek agent, which reads this session with its own tools and answers. The answer is filed here.</p>
-  <form id="ask-form">
-    <input id="ask-input" type="text" placeholder="ask this session something…" autocomplete="off">
-    <button class="action" type="submit">Ask</button>
-    <button class="action ghost" type="button" id="fork-session">Fork this session</button>
-    <button class="action ghost" type="button" id="restart-session">Restart (new terminal)</button>
-  </form>
-  <div id="ask-status" class="hint"></div>
-  <div id="seances"><p class="dim small">No questions asked yet.</p></div>
-</section>
-
-<section class="panel">
-  <h2>Evidence</h2>
-  <div class="statgrid">
-    <div><span class="k">started</span><span class="v">2026-08-13 03:05</span></div>
-    <div><span class="k">ended</span><span class="v">2026-08-24 18:22</span></div>
-    <div><span class="k">duration</span><span class="v">279h 17m</span></div>
-    <div><span class="k">turns</span><span class="v">1</span></div>
-    <div><span class="k">messages</span><span class="v">1</span></div>
-    <div><span class="k">tool calls</span><span class="v">0</span></div>
-    <div><span class="k">tokens in / out</span><span class="v">0 / 0</span></div>
-    <div><span class="k">cost</span><span class="v">—</span></div>
-  </div>
-  <div class="evidence-grid">
-    <div>
-      <h3>Files touched</h3>
-      <ul class="files"><li class="dim">no paths seen in tool arguments</li></ul>
-    </div>
-    <div>
-      <h3>Commands run</h3>
-      <ul class="files"><li class="dim">no shell commands</li></ul>
-    </div>
-  </div>
-  <h3>Tools</h3>
-  <div class="toolchips"><span class="dim">none</span></div>
-  <h3>Where</h3>
-  <p class="small"><code>C:\Users\User</code> · lineage <span class="dim">no parent</span></p>
-</section>
-
-<section class="panel">
-  <h2>Transcript <span class="dim small">1 turns · tool output trimmed</span></h2>
-  <div class="turns"><div class="turn user"><div class="who">you</div><div class="text">[Agent: 10-hour grind: H3 kit + kittenTTS + reverify + sweeps + audits] # MEGA-STACK BRIEF 2026-08-13 â€” 10-HOUR GRIND (replaces 10-min batch jobs)<br># You are the LONG-RUN worker on 123 (DESKTOP-QUCA6R5). This is a ~10 hour run.<br># Work through ALL items IN ORDER. Do NOT stop after one item. This is the new model:<br># ONE dispatch = ONE long visible session, grinding the whole stack.<br># After EACH item append a checkpoint line to C:\Users\User\fleet\mega-progress.md<br># (format: &quot;## &lt;time&gt; item N &lt;name&gt;: DONE|BLOCKED|PARTIAL - one-line result&quot;).<br># Every 30 minutes also append a one-line health probe (8080/8081/8642).<br># Only finish when the stack is exhausted or a HARD blocker stops you (report it).<br><br>## GUARDRAILS (operator rules, non-negotiable)<br># - 123-local operations ONLY. NO Main repo edits, NO client boots, NO remote<br>#   settings/door actions, NO hydra-session-watchdog creation, NO model deletion<br>#   without gate-check, NO paid-API use - reason with your LOCAL llama-server<br>#   (:8080, 128K ctx) and keep token use frugal.<br># - Downloads MUST be resumable (curl -C - or equivalent). SHA-256 verify EVERY<br>#   downloaded model before trusting it. Pure ASCII paths/commands on 123.<br># - Never edit the queue JSON. Checkpoint file only. Final reply = your report.<br><br>## ITEM 1 (EMERGENCY) h3-disk-clear<br># The h3-readiness audit found C: 100% FULL (70MB free). Find the dead Q4_K_XL<br># quant GGUF (look under C:\Users\User\Desktop\llms\ and C:\Users\User\models\,<br># name contains Q4_K_XL - it is tombstoned: dies at &quot;fitting params to device<br># memory&quot;). Confirm it is the tombstoned quant (qwen3.6-35b-q4xl), then delete it<br># to free ~21GB. Re-audit disk: report exact free GB. Do NOT delete anything else.<br><br>## ITEM 2 g27 H3 kit disk math<br># H3 kit needs ~35GB. After item 1 you should have ~21GB free, still short ~14GB.<br># Candidate: move Muse-Glimmer GGUF to free space (the transfers module,<br># docs/transfers-direct.md, node-to-node) OR archive. Check what the kit needs,<br># compute the gap, report the plan. Do not start a move that risks the running<br># :8080 server (it may BE Muse-Glimmer) - if the model file is in use, say so.<br><br>## ITEM 3 g27 H3 kit download marathon (the long pole, ~hours)<br># Download the H3 kit for sd-cli on 123: 2 GGUFs + 2 VAEs (ref-image/video/audio<br># modes). Sources: the sd-cli fleet ops / hydra-image-generation skill knowledge<br># on Main, and any URLs recorded in the h3-readiness audit or docs/muse-glimmer.md<br># on 123 or the shared drive. Use resumable downloads, sha256-verify each file as<br># it lands, and append a results table (file, size, sha256, mode) to the<br># checkpoint file. If URLs are missing, probe the sd-cli service docs and the<br># Hydra share (\\192.168.1.100\Receive) for the kit manifest; report what you find<br># rather than guessing URLs.<br><br>## ITEM 4 g21 kittenTTS kit round 2<br># Round 1 failed (404/401). API-search huggingface for kitten-tts-mini ONNX<br># (~80MB) - try alternate repos/URLs, download, sha256 pin it, report the exact<br># URL that worked and the hash. If every candidate 404s, report the full attempt<br># list (URL, status) so Main can pick the right source.<br><br>## ITEM 5 sha256-reverify-3 (full output table)<br># Verify these pins against the files under C:\Users\User\Desktop\llms\:<br>#   Qwen3.6 GGUF ab639a7f... / gemma 49bfb8a0cf4a35b74acd30bd1c9867061ccd4bd25336834e46bc608641ec8111<br>#   Qwen2.5-VL zip 49a97f1b79b8fc9689f07bbdec1d576dbee19bf460de06425f7f9d709fe5429b<br># Output a full table: file, expected pin, actual sha256, PASS/FAIL per row.<br><br>## ITEM 6 fleet-sweep-2 (self-heal within 123 scope)<br># Probe 8080/8081/8642. If 8081 (VisionLLM) is down, restart via its own<br># scheduled task (Start-ScheduledTask -TaskName VisionLLM) - that is 123&#39;s own<br># service, in scope. If 8080 is down, check the hydra-llm-visible task. Gateway<br># 8642: probe only, report (never restart the gateway without Main).<br><br>## ITEM 7 service library audit (offload program A)<br># Check the Hydra service l<br><br>[…1912 chars trimmed — full text: hermes sessions export --session-id &lt;id&gt; --format md]</div></div></div>
-</section>
-
-<footer class="foot">
-  <span class="mono small">20260813_030505_3bc6a3</span>
-  <span class="small"><a href="session_223d926b.html">permalink</a> · <span class="dim">497 forked entries share the index</span></span>
-</footer>
-<script>window.SD_API="http://0.0.0.0:8134";window.SD_SESSION={"id":"20260813_030505_3bc6a3","ref":"223d926b","title":"[Agent: 10-hour grind: H3 kit + kittenTTS + reverify + sweeps + audits] # MEGA-S","seances":[]};</script>
-<script src="custom.js"></script>
-</body>
-</html>

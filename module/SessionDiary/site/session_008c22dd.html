@@ -1,126 +1,0 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>## AUTHORITY STRUCTURE (fleet policy… — session diary</title>
-<link rel="stylesheet" href="custom.css">
-
-</head>
-<body data-page="session">
-<header class="masthead">
-  <div class="kicker"><a href="read_dir_indexer.html">← all sessions</a> · 008c22dd · built 2026-08-19 21:01</div>
-  <h1>## AUTHORITY STRUCTURE (fleet policy…</h1>
-  <div class="tags"><span class="tag src">desktop</span><span class="tag">Qwen3.8-27B-UD-Q3_K_XL.gguf</span><span class="tag">default</span><span class="tag">ended: startup_orphan_reap</span></div>
-</header>
-
-<section class="panel">
-  <h2>What was done</h2>
-  <div class="diary-prose empty-prose">
-      <p><span class="dim">No prose diary yet — the card below is the deterministic digest (free, instant, written for every session).</span></p>
-    </div>
-    <div class="diary-actions">
-      <button class="action" id="write-diary">Write the diary <span class="dim">— deepseek reads the session</span></button>
-      <span class="hint" id="diary-status"></span>
-    </div>
-</section>
-
-<section class="panel twocol">
-  <div>
-    <h2>The ask</h2>
-    <p class="quote">## AUTHORITY STRUCTURE (fleet policy, user-approved) # The human user is the FINAL authority. Main (the Hermes operator agent on # the operator desktop, 192.168.1.100) directs you on the user&#39;s behalf - # follow Main&#39;s instructions for this run. # If a directive conflicts with your brief or seems wrong: PAUSE and report. # Do NOT silently decline. Do NOT self-modify the plan. # You are ONE instance - the queue serializes dispatch. NEVER launch a second # copy of a job or spawn sibling sessions. If a second instance appears to be # running, STOP and report it. # PRESSURE CHANNEL: on each handoff check, read fleet\pressure.txt in your # fleet dir; if its sessionId matches YOUR session id, per…</p>
-  </div>
-  <div>
-    <h2>Where it ended</h2>
-    <p class="quote"><span class="dim">no assistant turn recorded</span></p>
-  </div>
-</section>
-
-<section class="panel">
-  <h2>Shortcuts</h2>
-  <div class="shortcut">
-    <span class="s-label">restart</span>
-    <code class="s-cmd">hermes --resume 20260819_210129_916475</code>
-    <button class="copy" data-copy="hermes --resume 20260819_210129_916475" title="copy">copy</button>
-  </div>
-  <div class="shortcut">
-    <span class="s-label">by title</span>
-    <code class="s-cmd">hermes -c &quot;## AUTHORITY STRUCTURE (fleet policy…&quot;</code>
-    <button class="copy" data-copy="hermes -c &quot;## AUTHORITY STRUCTURE (fleet policy…&quot;" title="copy">copy</button>
-  </div>
-  <div class="shortcut">
-    <span class="s-label">export markdown</span>
-    <code class="s-cmd">hermes sessions export --session-id 20260819_210129_916475 --format md C:/Users/User/AppData/Local/hermes/session-exports/</code>
-    <button class="copy" data-copy="hermes sessions export --session-id 20260819_210129_916475 --format md C:/Users/User/AppData/Local/hermes/session-exports/" title="copy">copy</button>
-  </div>
-  <div class="shortcut">
-    <span class="s-label">export html</span>
-    <code class="s-cmd">hermes sessions export --session-id 20260819_210129_916475 --format html</code>
-    <button class="copy" data-copy="hermes sessions export --session-id 20260819_210129_916475 --format html" title="copy">copy</button>
-  </div>
-  <div class="shortcut">
-    <span class="s-label">ask (api)</span>
-    <code class="s-cmd">curl -s -X POST http://0.0.0.0:8134/api/ask -H &quot;content-type: application/json&quot; -d &quot;{\&quot;session_id\&quot;:\&quot;20260819_210129_916475\&quot;,\&quot;question\&quot;:\&quot;what did we decide?\&quot;}&quot;</code>
-    <button class="copy" data-copy="curl -s -X POST http://0.0.0.0:8134/api/ask -H &quot;content-type: application/json&quot; -d &quot;{\&quot;session_id\&quot;:\&quot;20260819_210129_916475\&quot;,\&quot;question\&quot;:\&quot;what did we decide?\&quot;}&quot;" title="copy">copy</button>
-  </div>
-  <div class="shortcut">
-    <span class="s-label">fork (api)</span>
-    <code class="s-cmd">curl -s -X POST http://0.0.0.0:8134/api/fork/20260819_210129_916475</code>
-    <button class="copy" data-copy="curl -s -X POST http://0.0.0.0:8134/api/fork/20260819_210129_916475" title="copy">copy</button>
-  </div>
-</section>
-
-<section class="panel">
-  <h2>Talk to the dead</h2>
-  <p class="dim small">The question goes to the deepseek agent, which reads this session with its own tools and answers. The answer is filed here.</p>
-  <form id="ask-form">
-    <input id="ask-input" type="text" placeholder="ask this session something…" autocomplete="off">
-    <button class="action" type="submit">Ask</button>
-    <button class="action ghost" type="button" id="fork-session">Fork this session</button>
-    <button class="action ghost" type="button" id="restart-session">Restart (new terminal)</button>
-  </form>
-  <div id="ask-status" class="hint"></div>
-  <div id="seances"><p class="dim small">No questions asked yet.</p></div>
-</section>
-
-<section class="panel">
-  <h2>Evidence</h2>
-  <div class="statgrid">
-    <div><span class="k">started</span><span class="v">2026-08-19 21:01</span></div>
-    <div><span class="k">ended</span><span class="v">2026-08-24 18:22</span></div>
-    <div><span class="k">duration</span><span class="v">117h 21m</span></div>
-    <div><span class="k">turns</span><span class="v">1</span></div>
-    <div><span class="k">messages</span><span class="v">1</span></div>
-    <div><span class="k">tool calls</span><span class="v">0</span></div>
-    <div><span class="k">tokens in / out</span><span class="v">0 / 0</span></div>
-    <div><span class="k">cost</span><span class="v">—</span></div>
-  </div>
-  <div class="evidence-grid">
-    <div>
-      <h3>Files touched</h3>
-      <ul class="files"><li class="dim">no paths seen in tool arguments</li></ul>
-    </div>
-    <div>
-      <h3>Commands run</h3>
-      <ul class="files"><li class="dim">no shell commands</li></ul>
-    </div>
-  </div>
-  <h3>Tools</h3>
-  <div class="toolchips"><span class="dim">none</span></div>
-  <h3>Where</h3>
-  <p class="small"><code>—</code> · lineage <span class="dim">no parent</span></p>
-</section>
-
-<section class="panel">
-  <h2>Transcript <span class="dim small">1 turns · tool output trimmed</span></h2>
-  <div class="turns"><div class="turn user"><div class="who">you</div><div class="text">## AUTHORITY STRUCTURE (fleet policy, user-approved)<br># The human user is the FINAL authority. Main (the Hermes operator agent on<br># the operator desktop, 192.168.1.100) directs you on the user&#39;s behalf -<br># follow Main&#39;s instructions for this run.<br># If a directive conflicts with your brief or seems wrong: PAUSE and report.<br># Do NOT silently decline. Do NOT self-modify the plan.<br># You are ONE instance - the queue serializes dispatch. NEVER launch a second<br># copy of a job or spawn sibling sessions. If a second instance appears to be<br># running, STOP and report it.<br># PRESSURE CHANNEL: on each handoff check, read fleet\pressure.txt in your<br># fleet dir; if its sessionId matches YOUR session id, perform the handoff<br># ritual IMMEDIATELY (final brief reply, then end). Do NOT start new work.<br><br>[Agent: 123 on DESKTOP-QUCA6R5] Coordinator dispatch - OFFLOAD BATCH #2 (job 1/4): 123 health report.<br><br>You are running ON 123 (192.168.1.123, DESKTOP-QUCA6R5) - this machine is the target of the health checks. Orient: read \\192.168.1.100\Receive\deepseek\app\Hydra\CREW.md then Agent.md (UNC, guest access) if needed.<br><br>RUN these checks and report PASS/FAIL for each:<br>1. LLM server: `curl -s -m 10 @url:`http://127.0.0.1:8080/v1/models`` - expect a model list containing Qwen3.6-35B-A3B (UD-IQ3_S). Also `curl -s -m 10 -o /dev/null -w &quot;%{http_code}&quot; @url:`http://127.0.0.1:8080/health`` - expect 200.<br>2. Vision server: `curl -s -m 10 -o /dev/null -w &quot;%{http_code}&quot; @url:`http://127.0.0.1:8081/health`` - expect 200 (Qwen2.5-VL-7B).<br>3. Gateway: `curl -s -m 10 -o /dev/null -w &quot;%{http_code}&quot; @url:`http://127.0.0.1:8642/health`` - expect 200.<br>4. Processes: `tasklist | findstr llama-server` - expect TWO llama-server.exe lines (Qwen3.6 + VL). Report the PIDs.<br>5. CONFIG ASCII GUARD (critical): run `powershell -NoProfile -ExecutionPolicy Bypass -File C:\Users\User\cfgverify.ps1` - the NONASCII count MUST be 0. If it prints NONASCII &gt; 0, do NOT modify anything - report the count loudly as FAIL (Main will run fixcfg2.py).<br><br>END your reply with a structured report:<br>=== 123 HEALTH ===<br>models-8080: PASS/FAIL (list first model name)<br>vl-8081: PASS/FAIL<br>gateway-8642: PASS/FAIL<br>llama-server: PASS/FAIL (PIDs ...)<br>config-ascii: PASS/FAIL (NONASCII=N)<br>timestamp: &lt;UTC time&gt;<br><br>--- Context Warnings ---<br>- @url:`http://127.0.0.1:8080/v1/models`: no content extracted<br>- @url:`http://127.0.0.1:8080/health`: no content extracted<br>- @url:`http://127.0.0.1:8081/health`: no content extracted<br>- @url:`http://127.0.0.1:8642/health`: no content extracted</div></div></div>
-</section>
-
-<footer class="foot">
-  <span class="mono small">20260819_210129_916475</span>
-  <span class="small"><a href="session_008c22dd.html">permalink</a> · <span class="dim">497 forked entries share the index</span></span>
-</footer>
-<script>window.SD_API="http://0.0.0.0:8134";window.SD_SESSION={"id":"20260819_210129_916475","ref":"008c22dd","title":"## AUTHORITY STRUCTURE (fleet policy…","seances":[]};</script>
-<script src="custom.js"></script>
-</body>
-</html>
