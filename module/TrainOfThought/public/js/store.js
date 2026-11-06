@@ -20,10 +20,13 @@ class ThoughtStore {
   file;
   data;
   clock;
+  lastMtime = 0;
+  lastCheck = 0;
   constructor(options) {
     this.file = options.file;
     this.clock = options.now ?? (() => Date.now());
     this.data = this.read();
+    this.lastMtime = this.mtime();
   }
   get now() {
     return this.clock();
@@ -40,6 +43,29 @@ class ThoughtStore {
   /** Reload from disk — the file is hand-editable, so a long-lived door must re-read before writing. */
   reload() {
     this.data = this.read();
+    this.lastMtime = this.mtime();
+  }
+  mtime() {
+    try {
+      return fs.statSync(this.file).mtimeMs;
+    } catch {
+      return 0;
+    }
+  }
+  /**
+   * The file is the source of truth, not this process's copy of it. A door that caches the store until restart
+   * makes editing the file — or another tool filing a thought — invisible, and the tree then shows yesterday's asks.
+   * Stat at most four times a second, so a busy page cannot turn reads into disk churn.
+   */
+  refreshIfChanged() {
+    const now = Date.now();
+    if (now - this.lastCheck < 250) return;
+    this.lastCheck = now;
+    const m = this.mtime();
+    if (m !== this.lastMtime) {
+      this.lastMtime = m;
+      this.data = this.read();
+    }
   }
   save() {
     fs.mkdirSync(path.dirname(this.file), { recursive: true });
@@ -49,6 +75,7 @@ class ThoughtStore {
     writeFrontierFiles(path.dirname(this.file), this.data.nodes, path.basename(this.file));
   }
   get nodes() {
+    this.refreshIfChanged();
     return this.data.nodes;
   }
   find(ref) {

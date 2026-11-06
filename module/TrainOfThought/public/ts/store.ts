@@ -47,11 +47,14 @@ export class ThoughtStore {
   readonly file: string;
   data: StoreShape;
   private readonly clock: () => number;
+  private lastMtime = 0;
+  private lastCheck = 0;
 
   constructor(options: StoreOptions) {
     this.file = options.file;
     this.clock = options.now ?? (() => Date.now());
     this.data = this.read();
+    this.lastMtime = this.mtime();
   }
 
   get now(): number {
@@ -71,6 +74,31 @@ export class ThoughtStore {
   /** Reload from disk — the file is hand-editable, so a long-lived door must re-read before writing. */
   reload(): void {
     this.data = this.read();
+    this.lastMtime = this.mtime();
+  }
+
+  private mtime(): number {
+    try {
+      return fs.statSync(this.file).mtimeMs;
+    } catch {
+      return 0;
+    }
+  }
+
+  /**
+   * The file is the source of truth, not this process's copy of it. A door that caches the store until restart
+   * makes editing the file — or another tool filing a thought — invisible, and the tree then shows yesterday's asks.
+   * Stat at most four times a second, so a busy page cannot turn reads into disk churn.
+   */
+  private refreshIfChanged(): void {
+    const now = Date.now();
+    if (now - this.lastCheck < 250) return;
+    this.lastCheck = now;
+    const m = this.mtime();
+    if (m !== this.lastMtime) {
+      this.lastMtime = m;
+      this.data = this.read();
+    }
   }
 
   save(): void {
@@ -85,6 +113,7 @@ export class ThoughtStore {
   }
 
   get nodes(): ThoughtNode[] {
+    this.refreshIfChanged();
     return this.data.nodes;
   }
 
