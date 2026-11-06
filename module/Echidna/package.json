@@ -1,0 +1,25 @@
+{
+  "name": "echidna",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Echidna - the agent's face on this LAN, a Hydra V2 door on 8138. A talk pane that is an honest clone of the agent's side, an Easy Mode pane beside it (never instead of it), optional speech in and out from LAN services. The Menu displays this page in its golden layout.",
+  "type": "module",
+  "main": "public/js/main.js",
+  "exports": {
+    ".": "./public/js/main.js"
+  },
+  "engines": {
+    "node": ">=22.5"
+  },
+  "scripts": {
+    "build": "esbuild public/ts/*.ts --outdir=public/js --format=esm --platform=node --target=node22 --sourcemap",
+    "typecheck": "tsc --noEmit",
+    "selftest": "node public/js/selftest.js",
+    "start": "node public/js/main.js"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "esbuild": "^0.25.0",
+    "typescript": "^5.7.0"
+  }
+}

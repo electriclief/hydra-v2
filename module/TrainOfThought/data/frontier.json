@@ -1,11 +1,11 @@
 {
-  "generatedAt": "2026-11-06T16:06:43.780Z",
+  "generatedAt": "2026-11-06T23:51:29.831Z",
   "store": "thoughts.json",
   "counts": {
-    "total": 20,
-    "active": 17,
+    "total": 23,
+    "active": 20,
     "blocked": 1,
-    "parked": 1,
+    "parked": 0,
     "done": 1
   },
   "takeUp": [
@@ -190,6 +190,85 @@
       "depsDone": 0,
       "depsTotal": 0,
       "tags": []
+    },
+    {
+      "ref": "8ff46a1b",
+      "title": "Offload to local agents: every node has llama.cpp, so Hydra should hand work to its own fleet",
+      "intent": "Every node runs llama.cpp. Instead of winging it, agents become a declared Hydra capability that Echidna can call over MCP: keep help html current, babysit services declared to run on N nodes, and any job a local model can do. Offload is a job like any other, not a parallel universe.",
+      "next": [
+        "declare an 'agent' block per node: model, context size, allowed tools (none by default), concurrency, and what it may touch",
+        "an MCP-easy verb: ask_agent(node, prompt, tools, context) so Echidna hands work to another node's model instead of doing it in one context",
+        "the offload job is the SAME shape as a scheduler job - one book, so the countdown and the preemption already work",
+        "typed refusal: a node without the model, the VRAM or the slot refuses with a reason the caller can read - never a timeout",
+        "docs agent: reads a module's help.html + code, proposes the diff, files it as a job; runs on whichever node is cheapest",
+        "service babysitter: a declaration says service X should run on N nodes; the module reconciles start/stop/adopt through ProcessWrapper and reports drift",
+        "drift is state, not an event: node.<ref>.services.<name> says declared vs actual, and the LAN row shows it",
+        "the offload record carries who asked, what was given, what came back, tokens, duration - visible on the LAN row, not buried in a log",
+        "agents get no shell by default; tools allowed per node are declared, and a call that needs what a node does not offer is refused at the door",
+        "one Echidna per LAN still: the fleet's agents are workers, not a second brain",
+        "what an agent may write is declared too (docs? state? nothing) - a worker that can edit the book is a second scheduler"
+      ],
+      "depsDone": 0,
+      "depsTotal": 0,
+      "tags": [
+        "agents",
+        "mcp",
+        "offload",
+        "modules"
+      ]
+    },
+    {
+      "ref": "daa96bc0",
+      "title": "Phoenix Cycle: a 10-minute beat that triggers a declared action list, and can Tell Mom",
+      "intent": "The heartbeat of a node. For now it is an X-minute loop (start with 10) that fires an action list which is empty until we fill it, and it must be able to 'Tell Mom' - the notify/report protocol for when a cycle has something to say. It grows by adding actions, not by changing the beat. Its own module and door, displayed in the Menu beside Echidna; the cycle number the LAN rows show comes from it, not from Core.",
+      "next": [
+        "module/PhoenixCycle: its own door, owning the beat - interval in minutes, default 10, declared in node.json not in code",
+        "the cycle publishes node.<ref>.cycle with count, interval, since, uptime - and Core stops writing that branch (it becomes a reader)",
+        "an actions list that is empty by default and declared in data/actions.json: each action has name, when (every N cycles), what (http|command|event), and whether it needs a human",
+        "runnable by hand: POST /api/tick fires the list once without waiting, so an action can be tested before the beat is trusted",
+        "Tell Mom: the notify protocol - a cycle that has something to say raises one message to a declared channel (the operator first), with severity, what happened and what it wants",
+        "Tell Mom is a declaration too: channel, quiet hours, dedupe, and never more than one message per cycle",
+        "a cycle that fails an action reports it as a cycle outcome, not a silent skip - the operator sees a red beat in the LAN row",
+        "the beat survives a restart with its count intact (file, not memory), because a counter that resets every launch tells the operator nothing",
+        "displayed in the Menu: a small beat card beside Echidna - count, interval, next beat in, last outcome"
+      ],
+      "depsDone": 0,
+      "depsTotal": 0,
+      "tags": [
+        "phoenix",
+        "module",
+        "heartbeat",
+        "tell-mom"
+      ]
+    },
+    {
+      "ref": "cdb81fd3",
+      "title": "Talk to Echidna: the Menu's mark becomes the conversation, the interface sits beside it",
+      "intent": "Most people will never read five pages of agent output. The Menu's golden-layout div that holds the SVG logo becomes 'Talk to Echidna'; the right pane is an Easy Mode surface where the same work is buttons, pictures and one big question at a time. HTML is ADDITIONAL, never instead of the transcript.",
+      "next": [
+        "Menu: the div holding the SVG mark becomes the Echidna conversation; the mark stays small as the identity, the pane becomes the talk",
+        "the right pane is our interface: Easy Mode lives BESIDE the transcript, never instead of it - one page, two panes",
+        "transcript pane is an honest clone of a real Hermes session (turns, tool lines, timestamps) read from the session store, not a re-imagining",
+        "send path: one door shells 'hermes -z <prompt> --continue' against a named session (hydra-talk) and streams the reply into the transcript",
+        "cold start per message first; a long-lived agent process later - the door should not care which",
+        "Easy Mode buttons: a declared action list (data/actions.json: name, icon, url|command, risk) so 'launch what we talked about' is one tap - never an invented action",
+        "media: images, audio and video render inline at full width, one item big at a time with a strip of recent ones",
+        "questions: the agent asks ONE at a time, big type (>= 24px), options as rows to tap, free text as fallback - never a wall of text",
+        "optional STT: push-to-talk against a declared LAN whisper service; when none is declared the mic is absent, not broken",
+        "optional TTS: Echidna speaks through a declared LAN piper service, off by default, one speaker toggle; absent speaker when absent service",
+        "Easy Mode states what is missing ('no speech service declared on this LAN') rather than hiding the capability",
+        "the thread survives a restart (file on disk, not memory) because the operator closes the app between sessions",
+        "usable at 1024x600 with big hit targets - the old GPUs and 1050 laptops are the audience",
+        "karma and the queue are visible in the pane without leaving it: what was asked, what is running, what it cost"
+      ],
+      "depsDone": 0,
+      "depsTotal": 0,
+      "tags": [
+        "menu",
+        "echidna",
+        "ui",
+        "easy-mode"
+      ]
     }
   ],
   "alsoReady": [
@@ -202,7 +281,10 @@
     "8793886c",
     "e093f426",
     "44ff5033",
-    "49e30c7a"
+    "49e30c7a",
+    "8ff46a1b",
+    "daa96bc0",
+    "cdb81fd3"
   ],
   "stuck": [
     {
@@ -215,8 +297,8 @@
     {
       "ref": "db39b286",
       "title": "Idle Service: the Scheduler decides when a node is idle",
-      "state": "parked",
-      "reason": "parked on purpose",
+      "state": "open",
+      "reason": "no next action recorded",
       "missing": 0
     },
     {
@@ -267,6 +349,6 @@
     "notActive": 2,
     "noAction": 0,
     "waitingOnDeps": 6,
-    "ready": 11
+    "ready": 14
   }
 }

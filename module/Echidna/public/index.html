@@ -1,0 +1,312 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Echidna</title>
+<style>
+  :root {
+    --bg: #0f1115;
+    --panel: #191c23;
+    --panel-2: #20242d;
+    --line: #2a2f3a;
+    --text: #e6e8ef;
+    --muted: #8b93a7;
+    --gold: #e7c84b;
+    --green: #63bd58;
+    --red: #e32636;
+    --radius: 12px;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font: 15px/1.55 "Segoe UI", system-ui, -apple-system, sans-serif;
+    overflow: hidden;
+  }
+  #app { display: grid; grid-template-columns: minmax(0, 1fr) minmax(320px, 400px); height: 100vh; }
+
+  /* ---------- the conversation ---------- */
+  .talk { display: flex; flex-direction: column; min-width: 0; border-right: 1px solid var(--line); }
+  .talk-head {
+    display: flex; align-items: center; gap: 10px;
+    padding: 12px 18px; border-bottom: 1px solid var(--line); background: var(--panel);
+  }
+  .talk-head h1 { margin: 0; font-size: 15px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; }
+  .chip { font-size: 11px; padding: 3px 8px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); }
+  .chip.ok { color: var(--green); border-color: #29402a; }
+  .chip.bad { color: var(--red); border-color: #4a1f24; }
+  .spacer { flex: 1; }
+  .talk-head button { background: none; border: 1px solid var(--line); color: var(--muted); border-radius: 8px; padding: 5px 10px; cursor: pointer; font-size: 12px; }
+  .talk-head button:hover { color: var(--text); border-color: #3a4150; }
+
+  .thread { flex: 1; overflow-y: auto; padding: 22px 22px 8px; scroll-behavior: smooth; }
+  .turn { max-width: 46em; margin: 0 0 18px; }
+  .turn .who { font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin-bottom: 5px; }
+  .turn .body { white-space: pre-wrap; word-wrap: break-word; }
+  .turn.you { margin-left: auto; }
+  .turn.you .who { text-align: right; color: var(--gold); }
+  .turn.you .body { background: var(--panel-2); border-radius: var(--radius); padding: 12px 14px; }
+  .turn.echidna .who { color: var(--green); }
+  .turn.system .who { color: var(--red); }
+  .turn.system .body { border-left: 2px solid var(--red); padding-left: 12px; color: #f0c9cd; }
+  .turn .meta { font-size: 11px; color: var(--muted); margin-top: 6px; }
+  .empty { color: var(--muted); max-width: 40em; }
+  .empty b { color: var(--text); font-weight: 600; }
+
+  .composer { border-top: 1px solid var(--line); background: var(--panel); padding: 12px 18px 16px; }
+  .composer textarea {
+    width: 100%; min-height: 54px; max-height: 220px; resize: vertical;
+    background: var(--bg); color: var(--text); border: 1px solid var(--line); border-radius: 10px;
+    padding: 11px 12px; font: inherit;
+  }
+  .composer textarea:focus { outline: none; border-color: #3f4a5e; }
+  .composer-row { display: flex; align-items: center; gap: 10px; margin-top: 9px; }
+  .composer-row .hint { font-size: 11px; color: var(--muted); }
+  .send {
+    margin-left: auto; background: var(--gold); color: #14161b; border: 0; border-radius: 9px;
+    padding: 9px 18px; font-weight: 700; cursor: pointer; font-size: 14px;
+  }
+  .send:disabled { opacity: .5; cursor: default; }
+  .mic { background: none; border: 1px solid var(--line); color: var(--text); border-radius: 9px; padding: 8px 12px; cursor: pointer; }
+  .mic.rec { border-color: var(--red); color: var(--red); }
+
+  /* ---------- easy mode ---------- */
+  .easy { overflow-y: auto; padding: 18px; background: var(--panel); }
+  .easy h2 { font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); margin: 22px 0 10px; }
+  .easy h2:first-child { margin-top: 0; }
+  .q { background: var(--panel-2); border: 1px solid var(--line); border-radius: var(--radius); padding: 18px; }
+  .q .qtext { font-size: 26px; line-height: 1.25; font-weight: 600; margin-bottom: 14px; }
+  .opt {
+    display: block; width: 100%; text-align: left; margin: 8px 0; padding: 14px 16px;
+    background: var(--bg); color: var(--text); border: 1px solid var(--line); border-radius: 10px;
+    font: inherit; font-size: 16px; cursor: pointer;
+  }
+  .opt:hover { border-color: var(--gold); color: #fff; }
+  .acts { display: grid; gap: 9px; }
+  .act {
+    display: flex; align-items: center; gap: 12px; padding: 13px 14px; text-decoration: none;
+    color: var(--text); background: var(--bg); border: 1px solid var(--line); border-radius: 10px; font-size: 15px;
+  }
+  .act:hover { border-color: #3f4a5e; }
+  .act .ico { width: 22px; text-align: center; color: var(--gold); }
+  .act .risk { margin-left: auto; font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
+  .media img, .media video { width: 100%; border-radius: 10px; display: block; }
+  .media audio { width: 100%; }
+  .media figcaption { font-size: 12px; color: var(--muted); margin-top: 6px; }
+  .none { color: var(--muted); font-size: 13px; border-left: 2px solid var(--line); padding-left: 10px; }
+  .warn { color: var(--red); font-size: 13px; }
+  .speech { font-size: 13px; color: var(--muted); }
+
+  /* The stage in the Menu is ~700px wide, so the side-by-side layout has to survive that: Easy Mode narrows,
+     it does not disappear below the conversation. Below 720px it stacks, because two 340px columns is worse. */
+  @media (max-width: 980px) {
+    #app { grid-template-columns: minmax(0, 1fr) 300px; }
+    .q .qtext { font-size: 22px; }
+    .act { font-size: 14px; padding: 11px 12px; }
+  }
+  @media (max-width: 720px) {
+    #app { grid-template-columns: 1fr; grid-template-rows: 1fr auto; }
+    .talk { border-right: 0; border-bottom: 1px solid var(--line); }
+    .easy { max-height: 46vh; }
+  }
+  @media (prefers-reduced-motion: reduce) { .thread { scroll-behavior: auto; } }
+</style>
+</head>
+<body>
+<div id="app">
+  <section class="talk">
+    <header class="talk-head">
+      <h1>Talk to Echidna</h1>
+      <span class="chip" id="agent-chip">checking…</span>
+      <span class="spacer"></span>
+      <button type="button" id="clear">clear thread</button>
+    </header>
+    <div class="thread" id="thread"><p class="empty">reading the thread…</p></div>
+    <div class="composer">
+      <textarea id="say" placeholder="Say what you want. Enter sends, Shift+Enter adds a line." rows="2"></textarea>
+      <div class="composer-row">
+        <button type="button" class="mic" id="mic" hidden title="push to talk">🎤 hold to talk</button>
+        <span class="hint" id="hint">one ask at a time · the answer is the real agent, not a summary</span>
+        <button type="button" class="send" id="send">Send</button>
+      </div>
+    </div>
+  </section>
+
+  <aside class="easy" id="easy">
+    <p class="empty">reading easy mode…</p>
+  </aside>
+</div>
+
+<script>
+(function () {
+  'use strict';
+  var threadEl = document.getElementById('thread');
+  var easyEl = document.getElementById('easy');
+  var sayEl = document.getElementById('say');
+  var sendEl = document.getElementById('send');
+  var micEl = document.getElementById('mic');
+  var hintEl = document.getElementById('hint');
+  var chipEl = document.getElementById('agent-chip');
+  var clearEl = document.getElementById('clear');
+
+  var state = { thread: [], easy: {}, agent: {}, busy: false, easyError: null };
+  var thinkingSince = 0;
+
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+  function when(iso) {
+    var d = new Date(iso);
+    if (isNaN(d)) return '';
+    return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  }
+
+  function renderThread() {
+    if (!state.thread.length) {
+      threadEl.innerHTML = '<div class="empty"><p><b>This is the conversation.</b> It is the same agent you would meet in a terminal — same tools, same book of jobs, same state — with the answers written down instead of scrolling past.</p><p>Type below, or tap something in Easy Mode on the right. One question at a time.</p></div>';
+      return;
+    }
+    var html = state.thread.map(function (t) {
+      var cls = t.role === 'you' ? 'you' : (t.role === 'echidna' ? 'echidna' : 'system');
+      var who = cls === 'you' ? 'you' : (cls === 'echidna' ? 'echidna' : 'echidna · could not answer');
+      var meta = [];
+      if (cls === 'echidna' && t.ms) meta.push((t.ms / 1000).toFixed(1) + 's');
+      if (t.sessionId) meta.push('session ' + esc(t.sessionId));
+      meta.push(when(t.at));
+      return '<article class="turn ' + cls + '"><div class="who">' + who + '</div>' +
+        '<div class="body">' + esc(t.text) + '</div>' +
+        '<div class="meta">' + meta.join(' · ') + '</div></article>';
+    }).join('');
+    if (state.busy) {
+      var s = Math.max(0, Math.round((Date.now() - thinkingSince) / 1000));
+      html += '<article class="turn echidna"><div class="who">echidna · thinking</div><div class="body">' + s + 's…</div></article>';
+    }
+    threadEl.innerHTML = html;
+    threadEl.scrollTop = threadEl.scrollHeight;
+  }
+
+  function renderEasy() {
+    var easy = state.easy || {};
+    var out = '';
+    if (state.easyError) out += '<p class="warn">' + esc(state.easyError) + '</p>';
+
+    if (easy.question && easy.question.text) {
+      out += '<h2>one question</h2><div class="q"><div class="qtext">' + esc(easy.question.text) + '</div>';
+      (easy.question.options || []).forEach(function (o) {
+        out += '<button type="button" class="opt" data-answer="' + esc(o) + '">' + esc(o) + '</button>';
+      });
+      out += '</div>';
+    }
+
+    var actions = easy.actions || [];
+    out += '<h2>launch</h2>';
+    if (actions.length) {
+      out += '<div class="acts">';
+      actions.forEach(function (a) {
+        if (a.url) {
+          out += '<a class="act" href="' + esc(a.url) + '" target="_blank" rel="noreferrer"><span class="ico">' + esc(a.icon || '▸') +
+            '</span><span>' + esc(a.name) + '</span><span class="risk">' + esc(a.risk || '') + '</span></a>';
+        } else {
+          out += '<span class="act"><span class="ico">' + esc(a.icon || '▸') + '</span><span>' + esc(a.name) +
+            '</span><span class="risk">not wired</span></span>';
+        }
+      });
+      out += '</div>';
+    } else {
+      out += '<p class="none">Nothing declared yet. Actions are written in <code>data/easy.json</code> before they appear — the pane never invents one.</p>';
+    }
+
+    var media = easy.media || [];
+    if (media.length) {
+      out += '<h2>what we made</h2><div class="media">';
+      media.slice(0, 4).forEach(function (m) {
+        var cap = m.caption ? '<figcaption>' + esc(m.caption) + '</figcaption>' : '';
+        if (m.type === 'audio') out += '<figure style="margin:0 0 12px">' + '<audio controls src="' + esc(m.src) + '"></audio>' + cap + '</figure>';
+        else if (m.type === 'video') out += '<figure style="margin:0 0 12px">' + '<video controls src="' + esc(m.src) + '"></video>' + cap + '</figure>';
+        else out += '<figure style="margin:0 0 12px">' + '<img alt="' + esc(m.caption || '') + '" src="' + esc(m.src) + '">' + cap + '</figure>';
+      });
+      out += '</div>';
+    }
+
+    var sp = easy.speech || {};
+    out += '<h2>speech</h2><div class="speech">';
+    out += sp.tts ? 'out loud: ' + esc(sp.tts.label || sp.tts.url) : 'no speech service declared on this LAN (text only)';
+    out += '<br>';
+    out += sp.stt ? 'listening: ' + esc(sp.stt.label || sp.stt.url) : 'no listening service declared on this LAN';
+    out += '</div>';
+
+    easyEl.innerHTML = out;
+
+    var hasStt = !!(easy.speech && easy.speech.stt && easy.speech.stt.url);
+    micEl.hidden = !hasStt;
+  }
+
+  function renderChip() {
+    var a = state.agent || {};
+    if (state.busy) { chipEl.className = 'chip'; chipEl.textContent = 'answering…'; return; }
+    if (a.present === false) { chipEl.className = 'chip bad'; chipEl.textContent = 'no agent binary'; return; }
+    chipEl.className = 'chip ok';
+    chipEl.textContent = a.session ? 'agent ready · continuing a session' : 'agent ready';
+  }
+
+  function render() { renderThread(); renderEasy(); renderChip(); }
+
+  function load() {
+    return fetch('api/state', { cache: 'no-store' })
+      .then(function (r) { return r.json(); })
+      .then(function (s) { state = s; render(); })
+      .catch(function (e) {
+        chipEl.className = 'chip bad';
+        chipEl.textContent = 'door unreachable';
+        hintEl.textContent = String(e.message || e);
+      });
+  }
+
+  function send() {
+    var text = sayEl.value.trim();
+    if (!text || state.busy) return;
+    state.busy = true;
+    thinkingSince = Date.now();
+    sayEl.value = '';
+    render();
+    hintEl.textContent = 'asking the real agent — this can take a while';
+    fetch('api/say', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ text: text })
+    })
+      .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); })
+      .then(function (res) {
+        if (!res.ok) hintEl.textContent = res.j && res.j.error ? res.j.error : 'the ask failed';
+        else hintEl.textContent = 'done · one ask at a time';
+      })
+      .catch(function (e) { hintEl.textContent = 'send failed: ' + String(e.message || e); })
+      .then(function () { state.busy = false; return load(); });
+  }
+
+  sendEl.addEventListener('click', send);
+  sayEl.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); }
+  });
+  easyEl.addEventListener('click', function (e) {
+    var btn = e.target.closest('[data-answer]');
+    if (!btn) return;
+    sayEl.value = btn.getAttribute('data-answer');
+    sayEl.focus();
+  });
+  clearEl.addEventListener('click', function () {
+    if (!confirm('Empty the thread? The turns are gone; the file stays empty.')) return;
+    fetch('api/clear', { method: 'POST' }).then(load);
+  });
+
+  load();
+  setInterval(function () { if (!state.busy) load(); else renderThread(); }, 5000);
+})();
+</script>
+</body>
+</html>

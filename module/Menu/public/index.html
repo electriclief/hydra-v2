@@ -53,6 +53,9 @@
     padding: 2px 8px 12px;
   }
   .brand svg { display: block; width: 236px; height: auto; }
+  button.brand { display: block; background: none; border: 0; padding: 0; margin: 0; cursor: pointer; text-align: left; }
+  button.brand:hover svg, button.brand:focus-visible svg { filter: drop-shadow(0 0 10px rgba(231,200,75,.35)); outline: none; }
+  button.brand:focus-visible { outline: 2px solid var(--gold); outline-offset: 6px; border-radius: 8px; }
 
   .tree-heading {
     margin: 0 0 10px;
@@ -433,7 +436,7 @@
 
 <div class="wrap">
   <aside class="panel">
-<div class="brand">
+<button class="brand" id="brand" type="button" title="Talk to Echidna">
   <svg class="hydra-mark" viewBox="14 2 574 484" role="img" aria-label="Hydra Network">
 
 
@@ -454,7 +457,7 @@
 <g id="eyes"><ellipse class="hm-eye" cx="352.9" cy="78" rx="7.2" ry="4.2"/><circle class="hm-shine" cx="350.9" cy="76.8" r="0.9"/><ellipse class="hm-eye" cx="50.3" cy="255.4" rx="2.8" ry="5.4"/><circle class="hm-shine" cx="49.4" cy="253.5" r="0.9"/><ellipse class="hm-eye" cx="531.5" cy="255.4" rx="3" ry="5.6"/><circle class="hm-shine" cx="530.6" cy="253.4" r="0.9"/></g>
 
   </svg>
-</div>
+</button>
     <h1 class="tree-heading">Local AI <b>menu</b></h1>
     <p class="hint">Hover or ↑ ↓ to read an advert · <b>click</b> to open its inputs · <b>arrow</b> opens the models</p>
     <div class="scroll" id="scroll">
@@ -480,7 +483,7 @@
       <a class="full" id="pane-full" href="#" hidden>full page ↗</a>
     </div>
     <div class="model-pane" id="model-pane" hidden></div>
-    <iframe id="pane" title="the selected service" sandbox="allow-same-origin allow-forms allow-scripts"></iframe>
+    <iframe id="pane" title="the selected service" sandbox="allow-same-origin allow-forms allow-scripts allow-popups"></iframe>
   </main>
 </div>
 
@@ -632,12 +635,15 @@
 
     if (service.ok) {
       link.addEventListener('pointerenter', function () {
-        // a committed inputs page is not stolen by a passing pointer
+        // a committed inputs page is not stolen by a passing pointer, and neither is the conversation: reading a
+        // catalog row is a hover, entering a service is a click
         if (state.name === service.name && state.mode === 'inputs') return;
+        if (state.mode === 'talk') return;
         show(service.name, 'advert', row);
       });
       link.addEventListener('focus', function () {
         if (state.name === service.name && state.mode === 'inputs') return;
+        if (state.mode === 'talk') return;
         show(service.name, 'advert', row);
       });
       link.addEventListener('click', function (e) {
@@ -658,7 +664,7 @@
         if (next === null) return;
         e.preventDefault();
         var target = rows[Math.max(0, Math.min(rows.length - 1, next))];
-        if (target.ok) { target.link.focus(); show(target.name, 'advert', target); }
+        if (target.ok) { target.link.focus(); if (state.mode !== 'talk') show(target.name, 'advert', target); }
         else { target.link.scrollIntoView({ block: 'nearest' }); }
       });
     }
@@ -865,6 +871,30 @@
     });
   }
 
+  // THE MARK IS THE DOOR TO THE AGENT. Echidna is its own door (:8138) and this is a display of it, not a copy:
+  // the thread lives there, so closing the Menu does not end the conversation.
+  var ECHIDNA = 'http://127.0.0.1:8138/?embed=1';
+  function talk() {
+    state.name = 'echidna';
+    state.mode = 'talk';
+    state.model = null;
+    modelPane.hidden = true;
+    pane.hidden = false;
+    pane.src = ECHIDNA;
+    paneName.textContent = 'Echidna';
+    paneMeta.textContent = 'the agent · same tools, written down';
+    paneFull.href = 'http://127.0.0.1:8138/';
+    paneFull.hidden = false;
+    tabAdvert.setAttribute('aria-pressed', 'false');
+    tabInputs.setAttribute('aria-pressed', 'false');
+    rows.forEach(function (r) { r.link.classList.remove('sel'); });
+  }
+
+  document.getElementById('brand').addEventListener('click', talk);
+
+  // the conversation first: most people never need the catalog, and the mark is how they get back to it
+  talk();
+
   function openModel(service, model, btn) {
     state.name = service.name;
     state.mode = 'model';
@@ -931,7 +961,9 @@
       }
       data.services.forEach(function (service) { tree.appendChild(build(service)); });
       var first = rows.filter(function (r) { return r.ok; })[0];
-      if (first) show(first.name, 'advert', first);
+      // ...unless something is already on the stage: the conversation is the default, and a catalog arriving late
+      // must not yank the operator out of it.
+      if (first && !state.name) show(first.name, 'advert', first);
     })
     .catch(function (err) {
       tree.innerHTML = '<li class="node"><span class="notice"><b>this door is up, but the catalog call failed.</b><br>' + esc(err) + '</span></li>';

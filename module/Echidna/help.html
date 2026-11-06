@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Echidna — the agent's face on this LAN</title>
+<style>
+  body { margin: 0; background: #0f1115; color: #e6e8ef; font: 16px/1.6 "Segoe UI", system-ui, sans-serif; }
+  main { max-width: 46em; margin: 0 auto; padding: 48px 24px 96px; }
+  h1 { font-size: 32px; margin: 0 0 6px; }
+  h2 { font-size: 14px; letter-spacing: .1em; text-transform: uppercase; color: #8b93a7; margin: 38px 0 10px; }
+  p, li { color: #cfd4e0; }
+  code { background: #191c23; border: 1px solid #2a2f3a; border-radius: 5px; padding: 1px 5px; font-size: 14px; }
+  .lead { color: #e6e8ef; font-size: 19px; }
+  .muted { color: #8b93a7; }
+  table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid #2a2f3a; font-size: 15px; }
+  th { color: #8b93a7; font-weight: 500; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; }
+  .banner { border-left: 3px solid #e7c84b; padding: 10px 14px; background: #15181e; margin: 24px 0; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Echidna</h1>
+  <p class="lead">The agent's face on this LAN. Not a chatbot bolted onto the Menu — the same agent you would meet in a
+  terminal, written down, with Easy Mode beside it.</p>
+
+  <div class="banner">
+    <strong>Same agent, both audiences.</strong> An experienced operator keeps a terminal session open and will never
+    open this page. A new operator will never open a terminal and will only see this. Both must reach the same tools,
+    the same book of jobs and the same state — so this page grows by adding panels, never by capping what it can do.
+  </div>
+
+  <h2>What it is</h2>
+  <p>A Hydra V2 door on <code>:8138</code>. Its own module, because the conversation outlives the Menu window: the Menu
+  displays it, it does not contain it.</p>
+  <table>
+    <tr><th>Pane</th><th>What it does</th></tr>
+    <tr><td>Talk</td><td>The thread, oldest first: what you said, what it answered, how long it took, which agent
+    session answered it. Failed asks are turns too, marked as failures.</td></tr>
+    <tr><td>Easy Mode</td><td>One big question with tappable answers; a declared list of launch buttons; media
+    (image, audio, video) from what we made; and the honest state of speech.</td></tr>
+  </table>
+
+  <h2>How it answers</h2>
+  <p>It shells out to the real agent — <code>hermes chat --query-file … --oneshot -Q</code> — with a timeout it cannot
+  hang past, and keeps the session id so the next ask continues the same conversation. The binary it will run is
+  reported in the pane's status chip before you ask, so a missing agent is visible rather than discovered as silence.</p>
+  <p class="muted">One ask at a time. A second ask while one is running is refused with a reason, not queued behind a
+  spinner.</p>
+
+  <h2>Easy Mode is a declaration</h2>
+  <p>Everything tappable is written in <code>data/easy.json</code> first: the question, its options, the launch
+  actions, the media, and which LAN speech services exist. The pane never invents an action, and it says what is
+  missing ("no speech service declared on this LAN") instead of hiding the capability.</p>
+
+  <h2>Speech is optional, never mandatory</h2>
+  <p>Speech-to-text and text-to-speech are declared services elsewhere on the LAN. With a listening service declared,
+  a push-to-talk button appears. Without one, there is no microphone — not a broken one. Text always works.</p>
+
+  <h2>Personality</h2>
+  <p>Echidna follows the Prime Directive and will not take on a malicious project. A request to harm, deceive or extract
+  from someone is refused in the conversation, not quietly obeyed.</p>
+
+  <h2>Files and endpoints</h2>
+  <table>
+    <tr><th>Path</th><th>What</th></tr>
+    <tr><td><code>data/thread.jsonl</code></td><td>The conversation, append-only. The only durable thing here.</td></tr>
+    <tr><td><code>data/easy.json</code></td><td>The Easy Mode declaration.</td></tr>
+    <tr><td><code>data/agent.json</code></td><td>The agent session being continued.</td></tr>
+    <tr><td><code>data/prompts/</code></td><td>One file per ask, kept as evidence of what was actually sent.</td></tr>
+    <tr><td><code>GET /api/state</code></td><td>Thread, Easy Mode, agent status.</td></tr>
+    <tr><td><code>POST /api/say</code></td><td><code>{"text":"…"}</code> → asks once, returns the two turns it wrote.</td></tr>
+  </table>
+
+  <h2>Honest limits today</h2>
+  <ul>
+    <li>The talk pane asks a fresh agent process per message. It continues the same session, but it is not a
+    long-lived process yet.</li>
+    <li>Speech is declared and displayed, not wired: no STT or TTS service is declared on this LAN yet.</li>
+    <li>Launch buttons open pages; a button that would run a command is shown as <em>not wired</em> until the
+    action runner exists.</li>
+  </ul>
+</main>
+</body>
+</html>

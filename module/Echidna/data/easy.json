@@ -1,0 +1,44 @@
+{
+  "note": "Easy Mode is a declaration, not a guess: everything the operator can tap is written here first. The agent adds rows to this file when it offers something; the pane never invents an action.",
+  "question": {
+    "id": "q-001",
+    "text": "What should I build next?",
+    "options": [
+      "Finish the Talk pane",
+      "Phoenix Cycle module",
+      "Offload agents"
+    ],
+    "allowText": true
+  },
+  "actions": [
+    {
+      "name": "Open the Menu",
+      "icon": "\u25a4",
+      "url": "http://127.0.0.1:8133/",
+      "risk": "safe"
+    },
+    {
+      "name": "The book of jobs",
+      "icon": "\u25a6",
+      "url": "http://127.0.0.1:8132/",
+      "risk": "safe"
+    },
+    {
+      "name": "Processes",
+      "icon": "\u2699",
+      "url": "http://127.0.0.1:8125/",
+      "risk": "safe"
+    },
+    {
+      "name": "Train of Thought",
+      "icon": "\u2443",
+      "url": "http://127.0.0.1:8135/",
+      "risk": "safe"
+    }
+  ],
+  "media": [],
+  "speech": {
+    "stt": null,
+    "tts": null
+  }
+}
