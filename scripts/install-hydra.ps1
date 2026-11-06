@@ -67,7 +67,10 @@ else {
     note       = 'The instance layer. Paths live here, never in a service file, so the same service can run on another node unchanged.'
     modelsDirs = @{}
   }
-  ($nodeJson | ConvertTo-Json -Depth 5) | Set-Content -LiteralPath $nodeFile -Encoding utf8
+  # UTF-8 WITHOUT a BOM: PowerShell 5.1's Set-Content -Encoding utf8 writes one, and JSON.parse on the node
+  # rejects a BOM-prefixed file. This is the one file where that failure would look like a broken module.
+  $json = ($nodeJson | ConvertTo-Json -Depth 5)
+  [System.IO.File]::WriteAllText($nodeFile, $json, (New-Object System.Text.UTF8Encoding($false)))
   Say ("wrote " + $nodeFile + "  (ref " + $Ref + ")")
 }
 
@@ -129,8 +132,8 @@ if (-not $SkipGates) {
 Say 'done. Nothing was started.'
 Write-Host ''
 Write-Host "  next:   cd $Dest\module\Basic_App"
-Write-Host "          node electron/main.cjs          # the shell: raises doors, guard and tabs"
-Write-Host "  help:   http://127.0.0.1:8199           # every door explains itself"
+Write-Host "          <electron.exe> electron/main.cjs    # the shell: raises doors, guard and tabs"
+Write-Host "  help:   http://127.0.0.1:8199               # every door explains itself"
 Write-Host "  status: curl http://127.0.0.1:8132/api/statusline"
 Write-Host ''
 Write-Host "  Hydra V2 does not work as a product. Expect breakage; the README says so."
