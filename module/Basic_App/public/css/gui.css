@@ -1,0 +1,183 @@
+/* Basic_App — the shelf's own face. Dark, quiet, and the run stays in view. */
+
+:root {
+  --bg: #0d1117;
+  --panel: #11161f;
+  --ink: #d7dde6;
+  --dim: #7d8794;
+  --line: #1f2733;
+  --accent: #6ee7b7;
+  --warn: #fbbf24;
+  --bad: #f87171;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  height: 100%;
+  background: var(--bg);
+  color: var(--ink);
+  font: 14px/1.45 "Segoe UI", system-ui, sans-serif;
+}
+
+header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--line);
+  background: var(--panel);
+}
+
+.brand { font-weight: 600; letter-spacing: .02em; }
+.brand .dot { color: var(--accent); margin: 0 6px; }
+.dim { color: var(--dim); }
+
+#busy-strip {
+  display: none;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 12px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+}
+
+.lamp {
+  width: 9px; height: 9px; border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 8px var(--accent);
+  animation: pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes pulse { 50% { opacity: .35; } }
+
+main {
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  height: calc(100% - 46px);
+}
+
+aside {
+  border-right: 1px solid var(--line);
+  overflow-y: auto;
+  padding: 8px;
+}
+
+.item {
+  padding: 10px 12px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  cursor: pointer;
+  outline: none;
+}
+
+.item:hover, .item:focus, .item.on {
+  border-color: var(--line);
+  background: var(--panel);
+}
+
+.item.on { border-color: var(--accent); }
+
+.item-name { font-weight: 600; }
+.item-what { color: var(--ink); opacity: .85; font-size: 13px; margin-top: 2px; }
+.item-side { color: var(--dim); font-size: 12px; margin-top: 4px; display: flex; gap: 8px; }
+
+.karma { color: var(--accent); }
+.badge { font-size: 11px; padding: 1px 6px; border-radius: 999px; border: 1px solid var(--line); }
+.badge.warn { color: var(--warn); border-color: var(--warn); }
+
+section#viewer {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding: 12px;
+  gap: 10px;
+}
+
+.welcome { margin: 10vh auto; max-width: 520px; text-align: center; }
+
+iframe {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  width: 100%;
+  flex: 1 1 55%;
+  background: #fff;
+}
+
+#inputs-frame { flex: 1 1 42%; }
+
+.form {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px 16px;
+  overflow-y: auto;
+  padding: 4px 2px;
+}
+
+.field { display: flex; flex-direction: column; gap: 4px; }
+.field.full { grid-column: 1 / -1; }
+.field.muted label span { color: var(--dim); }
+
+.flabel { font-size: 13px; color: var(--ink); }
+.fhelp { font-size: 12px; color: var(--dim); }
+.req { color: var(--warn); }
+
+input, textarea, select {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--ink);
+  padding: 7px 9px;
+  font: inherit;
+}
+
+input:focus, textarea:focus, select:focus { border-color: var(--accent); outline: none; }
+
+.foot {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+button {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  color: var(--ink);
+  padding: 8px 14px;
+  font: inherit;
+  cursor: pointer;
+}
+
+button:hover:not(:disabled) { border-color: var(--accent); }
+
+/* the busy rule: harmful buttons go INACTIVE — never hidden */
+button:disabled {
+  opacity: .35;
+  cursor: not-allowed;
+}
+
+#btn-run {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #08120d;
+  font-weight: 600;
+}
+
+#btn-stop { border-color: var(--bad); color: var(--bad); }
+
+.runhead { padding: 4px 2px; }
+.runhead b { color: var(--accent); }
+
+#run-log {
+  flex: 1 1 auto;
+  overflow: auto;
+  margin: 0;
+  padding: 12px;
+  background: #05080c;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  font: 12px/1.5 Consolas, "Cascadia Mono", monospace;
+  white-space: pre-wrap;
+}

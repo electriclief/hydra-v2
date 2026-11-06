@@ -1,0 +1,878 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Services — module docs</title>
+<link rel="stylesheet" href="./index.css">
+</head>
+<body>
+<header><h1>Services</h1><p class="dim">generated 2026-09-25T01:04:45.385Z — re-run <code>npm run docs</code> after any change; never hand-edit</p></header>
+<main>
+<section class="purpose"><h2>Purpose</h2><p>Services — the definitions of a run. ONE tiny .js data file per service: the elaborate object (advert · provider · variables init/input/files · modes — each with its models, needs, karma weight and INSTALL, where the version dance for older GPU cards lives (pinned python·cuda·torch combos, per-sm_XX build notes) · needs · output · children · update · pages (ad + inputs). The folder IS the catalog: scan → load as DATA (never executed) → validate → serve. This box RUNS nothing — scheduling and running are the Scheduler module's business, later.</p></section>
+<section class="entry"><h2>Services_module.js <span class="dim">— the embed entry</span></h2><p class="dim">Declared surface: <code>// the catalog — the folder IS the catalog
+  createServiceCatalog</code> · <code>// the client + the page
+  createServicesClient</code> · <code>// the faces
+  createMcpServer</code> · <code>// the object itself
+  validateService</code> · <code>CODE_TOKENS</code> · <code>DATA</code> · <code>GUI_IDS</code> · <code>ServicesError</code> · <code>ToolRefusal</code> · <code>a registry (Api_Root will mount the SAME object)
+  buildTools</code> · <code>contentTypeFor</code> · <code>createApiServer</code> · <code>createModule</code> · <code>createServiceMcpRegistry</code> · <code>findRefusedValue</code> · <code>loadServiceText</code> · <code>mountGui</code> · <code>never executed
+  loadServiceFile</code> · <code>resolveInside</code> · <code>serveStatic</code> · <code>startApiServer</code> · <code>startModule</code> · <code>summarizeService</code></p><pre>/**
+ * @module Services_module
+ * @description THE ONE FILE another code thread loads — the embed entry. It re-exports the
+ *              whole public surface and adds the two host hands: createModule() (the
+ *              pieces, in the host thread, no port) and startModule() (this module's own
+ *              little door on a port; port 0 = OS-assigned). Keep it thin — never a
+ *              second implementation.
+ * @intent House standard (2026-09-16, folder dialect): folder `Services` →
+ *         `Services_module.js`. A host (Api_Root, later) loads THIS file; `npm start`
+ *         (main.js) stands the module up as its own local thread instead. NOT re-exported:
+ *         main() — it attaches signal handlers to whoever calls it.
+ */
+
+import path from 'node:path';
+import { pathToFileURL, fileURLToPath } from 'node:url';
+import { createServiceCatalog } from './public/js/serviceCatalog.js';
+import { loadServiceFile, loadServiceText, findRefusedValue, CODE_TOKENS } from './public/js/serviceFile.js';
+import { validateService, summarizeService } from './public/js/serviceSchema.js';
+import { buildTools, createServiceMcpRegistry, ToolRefusal } from './public/js/mcpTools.js';
+import { createMcpServer } from './public/js/mcpServer.js';
+import { createApiServer, startApiServer } from './public/js/apiServer.js';
+import { serveStatic, contentTypeFor, resolveInside } from './public/js/staticFiles.js';
+import { createServicesClient, ServicesError } from './public/js/client.js';
+import { mount as mountGui, GUI_IDS } from './public/js/browser/gui.js';
+
+export {
+  // the object itself
+  validateService,
+  summarizeService,
+  // reading one service file — as DATA, never executed
+  loadServiceFile,
+  loadServiceText,
+  findRefusedValue,
+  CODE_TOKENS,
+  // the catalog — the folder IS the catalog
+  createServiceCatalog,
+  // the agent face as a registry (Api_Root will mount the SAME object)
+  buildTools,
+  createServiceMcpRegistry,
+  ToolRefusal,
+  // the faces
+  createMcpServer,
+  createApiServer,
+  startApiServer,
+  serveStatic,
+  contentTypeFor,
+  resolveInside,
+  // the client + the page
+  createServicesClient,
+  ServicesError,
+  mountGui,
+  GUI_IDS,
+};
+
+/** The pieces, in a host thread — no port, no banner. */
+export function createModule(options = {}) {
+  const dir = path.resolve(options.dir ?? './services');
+  const catalog = createServiceCatalog({ dir });
+  return { catalog, registry: createServiceMcpRegistry(catalog), dir };
+}
+
+/** This module's own little door on a port (port 0 = OS-assigned). */
+export async function startModule(options = {}) {
+  const dir = path.resolve(options.dir ?? './services');
+  const catalog = createServiceCatalog({ dir });
+  const api = await startApiServer({
+    catalog,
+    port: options.port ?? 8128,
+    host: options.host ?? '127.0.0.1',
+    token: options.token ?? null,
+    publicDir: options.publicDir ?? path.join(path.dirname(fileURLToPath(import.meta.url)), 'public'),
+  });
+  return {
+    catalog,
+    registry: createServiceMcpRegistry(catalog),
+    api,
+    url: api.url,
+    port: api.port,
+    dir,
+    stop: () =&gt; api.stop(),
+  };
+}
+
+// --- Direct-run self-check: node Services_module.js ---
+// Drives the REAL thing — a real service file, a real port — and sets process.exitCode
+// (never process.exit). Same spirit as every module's runTests, at the entry level.
+
+async function selfCheck() {
+  const fs = await import('node:fs');
+  const os = await import('node:os');
+  let failures = 0;
+  const check = (label, cond) =&gt; {
+    console.log(`${cond ? 'pass' : 'FAIL'} ${label}`);
+    if (!cond) failures++;
+  };
+
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'svc-entry-'));
+  fs.writeFileSync(
+    path.join(dir, 'demo.js'),
+    'module.exports = { name: "demo", advert: { what: "a demo", karma: 1 }, provider: { name: "demo app" }, modes: [{ name: "cpu", install: { steps: ["do it"] } }], pages: { ad: "&lt;h1&gt;the demo page&lt;/h1&gt;", inputs: "&lt;h1&gt;in&lt;/h1&gt;" } };'
+  );
+
+  const pieces = createModule({ dir });
+  check('createModule: the catalog lists the file', pieces.catalog.list().length === 1 &amp;&amp; pieces.catalog.get('demo') !== null);
+  check('createModule: the registry advertises six tools', pieces.registry.list().length === 6);
+
+  const running = await startModule({ dir, port: 0 });
+  const health = await (await fetch(running.url + '/health')).json();
+  check('startModule: health answers', health.ok === true &amp;&amp; health.services === 1);
+  const listing = await (await fetch(running.url + '/api/services')).json();
+  check('startModule: the listing answers', Array.isArray(listing.services) &amp;&amp; listing.services[0].name === 'demo');
+  const ad = await (await fetch(running.url + '/api/services/demo/ad')).text();
+  check('startModule: the ad page answers', ad.includes('the demo page'));
+  const inPage = await (await fetch(running.url + '/api/services/demo/inputs')).text();
+  check('startModule: the inputs page answers', inPage.includes('&lt;h1&gt;in&lt;/h1&gt;'));
+  const init = await (
+    await fetch(running.url + '/mcp', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'initialize', params: {} }),
+    })
+  ).json();
+  check('startModule: the agent door answers', init.result?.serverInfo?.name === 'services');
+  await running.stop();
+  let closed = false;
+  try {
+    await fetch(running.url + '/health');
+  } catch {
+    closed = true;
+  }
+  check('stop closes the door', closed);
+
+  console.log(failures === 0 ? '[Services_module] self-check GREEN' : `[Services_module] ${failures} FAILED`);
+  process.exitCode = failures === 0 ? 0 : 1;
+}
+
+if (process.argv[1] &amp;&amp; import.meta.url === pathToFileURL(process.argv[1]).href) {
+  void selfCheck();
+}
+</pre></section>
+<section class="source"><h2>public/ts/apiServer.ts</h2><pre class="header">/**
+ * @module apiServer
+ * @description The HTTP face: /health · /api/services (the listing) · /api/services/:name
+ *              (the whole definition) · /api/services/:name/ad and /:name/inputs (the
+ *              maker's two pages as text/html) · POST /api/services/reload · /api/services/validate · the static
+ *              GUI at /, and the MCP mount at /mcp. Dependency-free (node:http); an optional
+ *              shared token guards /api/* and /mcp.
+ * @intent One implementation, three faces (page · API · agent). Errors are always
+ *         {error:{code,message}} with a real code; static files are not actions and are
+ *         served without the token. Reserved words under /api/services/: "reload"
+ *         (POST) and "validate" — a service cannot shadow them.
+ */</pre><pre class="contract">/**
+ * @module apiServer
+ * @description The HTTP face: /health · /api/services (the listing) · /api/services/:name
+ *              (the whole definition) · /api/services/:name/ad and /:name/inputs (the
+ *              maker's two pages as text/html) · POST /api/services/reload · /api/services/validate · the static
+ *              GUI at /, and the MCP mount at /mcp. Dependency-free (node:http); an optional
+ *              shared token guards /api/* and /mcp.
+ * @intent One implementation, three faces (page · API · agent). Errors are always
+ *         {error:{code,message}} with a real code; static files are not actions and are
+ *         served without the token. Reserved words under /api/services/: "reload"
+ *         (POST) and "validate" — a service cannot shadow them.
+ */
+import http from 'node:http';
+import type { ServiceCatalog } from './serviceCatalog.js';
+export interface ApiServerOptions {
+    catalog: ServiceCatalog;
+    /** Port to listen on (default 8128; 0 asks the OS). */
+    port?: number;
+    /** Bind interface (default 127.0.0.1 — local unless said otherwise). */
+    host?: string;
+    /** Shared secret; when set, /api/* and /mcp need `x-services-token` or `?token=`. */
+    token?: string | null;
+    /** Folder served at the root — the GUI (default: &lt;cwd&gt;/public). */
+    publicDir?: string;
+    /** Serve the MCP endpoint at /mcp (default true). */
+    enableMcp?: boolean;
+}
+export interface ApiServer {
+    server: http.Server;
+    /** The real bound URL (port resolved when 0 was asked for). */
+    url: string;
+    port: number;
+    close(): Promise&lt;void&gt;;
+}
+export declare function createApiServer(options: ApiServerOptions): ApiServer;
+/** createApiServer + listen, resolving once the port is really bound. */
+export declare function startApiServer(options: ApiServerOptions): Promise&lt;ApiServer &amp; {
+    stop(): Promise&lt;void&gt;;
+}&gt;;
+export declare function runTests(): Promise&lt;void&gt;;
+</pre></section>
+<section class="source"><h2>public/ts/browser/gui.ts</h2><pre class="header">/**
+ * @module gui (browser)
+ * @description The page: the catalog as a table (name · provider · modes · karma ·
+ *              sound or refused), a detail pane (the whole definition as JSON, plus the
+ *              links that open the maker's two pages — ad · inputs), a filter and a reload. Pure renderers
+ *              (self-checked by the gate) + mount() for the DOM wiring.
+ * @intent The page imports the SAME client the tests use. A page that imports a module
+ *         and gets a dead UI is the classic failure — the gate proves every id it wires
+ *         exists in the real index.html, and that a page missing one fails loudly.
+ */</pre><pre class="contract">/**
+ * @module gui (browser)
+ * @description The page: the catalog as a table (name · provider · modes · karma ·
+ *              sound or refused), a detail pane (the whole definition as JSON, plus the
+ *              links that open the maker's two pages — ad · inputs), a filter and a reload. Pure renderers
+ *              (self-checked by the gate) + mount() for the DOM wiring.
+ * @intent The page imports the SAME client the tests use. A page that imports a module
+ *         and gets a dead UI is the classic failure — the gate proves every id it wires
+ *         exists in the real index.html, and that a page missing one fails loudly.
+ */
+import type { ServiceEntryView } from '../client.js';
+import type { ServiceSummary } from '../serviceSchema.js';
+/** Every element id the page wires — the gate cross-checks this list against index.html. */
+export declare const GUI_IDS: string[];
+export interface GuiHandle {
+    stop(): void;
+}
+export declare function escapeHtml(value: unknown): string;
+/** One catalog row: the service, its provider, its modes, its karma, and how to peek deeper. */
+export declare function renderServiceRow(summary: ServiceSummary): string;
+/** The whole definition, the way it reads: the JSON, its warnings, and the page links. */
+export declare function renderDetail(entry: ServiceEntryView): string;
+/** A refusal, shown where the detail would land. */
+export declare function renderRefused(name: string, message: string): string;
+export declare function renderStatus(data: {
+    ok?: boolean;
+    services?: number;
+    refused?: number;
+    dir?: string;
+} | null): string;
+/** Wire the page. Returns null when a needed element is missing (fail loudly, never half-work). */
+export declare function mount(doc?: Document): GuiHandle | null;
+export declare function runTests(): Promise&lt;void&gt;;
+</pre></section>
+<section class="source"><h2>public/ts/client.ts</h2><pre class="header">/**
+ * @module client
+ * @description The ES-module client for the API — fetch in Node or the browser, API
+ *              errors thrown as ServicesError carrying the server's own code. One
+ *              implementation for both, so the page and the tests cannot drift.
+ * @intent The page imports the SAME client the tests use — one implementation, no drift.
+ */</pre><pre class="contract">/**
+ * @module client
+ * @description The ES-module client for the API — fetch in Node or the browser, API
+ *              errors thrown as ServicesError carrying the server's own code. One
+ *              implementation for both, so the page and the tests cannot drift.
+ * @intent The page imports the SAME client the tests use — one implementation, no drift.
+ */
+import type { ServiceSummary, ValidationIssue } from './serviceSchema.js';
+export interface ServicesClientOptions {
+    baseUrl?: string;
+    token?: string | null;
+}
+export interface ServicesListing {
+    ok: boolean;
+    dir: string;
+    services: ServiceSummary[];
+}
+export interface ServiceEntryView {
+    ok: boolean;
+    name: string;
+    file: string;
+    warnings: ValidationIssue[];
+    service: Record&lt;string, unknown&gt;;
+}
+export interface ReloadReport {
+    ok: boolean;
+    count: number;
+    refused: Array&lt;{
+        name: string;
+        file: string;
+        errors: ValidationIssue[];
+    }&gt;;
+}
+export interface ValidateReport {
+    ok: boolean;
+    reports: Array&lt;{
+        name: string;
+        file: string;
+        ok: boolean;
+        errors: ValidationIssue[];
+        warnings: ValidationIssue[];
+    }&gt;;
+}
+export interface ServicesClient {
+    health(): Promise&lt;Record&lt;string, unknown&gt;&gt;;
+    list(filter?: string): Promise&lt;ServicesListing&gt;;
+    get(name: string): Promise&lt;ServiceEntryView&gt;;
+    /** The AD page (the sell sheet), as text/html. */
+    ad(name: string): Promise&lt;string&gt;;
+    /** The INPUTS page (the way in), as text/html. */
+    inputs(name: string): Promise&lt;string&gt;;
+    /** URLs a browser can open (token included when one is set). */
+    adUrl(name: string): string;
+    inputsUrl(name: string): string;
+    reload(): Promise&lt;ReloadReport&gt;;
+    validate(name?: string): Promise&lt;ValidateReport&gt;;
+}
+export declare class ServicesError extends Error {
+    code: string;
+    status: number;
+    constructor(message: string, code: string, status: number);
+}
+export declare function createServicesClient(options?: ServicesClientOptions): ServicesClient;
+export declare function runTests(): Promise&lt;void&gt;;
+</pre></section>
+<section class="source"><h2>public/ts/main.ts</h2><pre class="header">/**
+ * @module main
+ * @description Boot: the services door on 8128 — the catalog (THE FOLDER IS THE CATALOG)
+ *              + the HTTP face (GUI · API · MCP) on one port. Flags &gt; environment
+ *              (SERVICES_*) &gt; defaults; `--help` prints what this box is.
+ * @intent The module runs the moment it starts — `node public/js/main.js`. The banner
+ *         names every door and the folder; nothing runs invisibly. Nothing here runs a
+ *         service: this box serves DEFINITIONS — the Scheduler's business comes later.
+ */</pre><pre class="contract">/**
+ * @module main
+ * @description Boot: the services door on 8128 — the catalog (THE FOLDER IS THE CATALOG)
+ *              + the HTTP face (GUI · API · MCP) on one port. Flags &gt; environment
+ *              (SERVICES_*) &gt; defaults; `--help` prints what this box is.
+ * @intent The module runs the moment it starts — `node public/js/main.js`. The banner
+ *         names every door and the folder; nothing runs invisibly. Nothing here runs a
+ *         service: this box serves DEFINITIONS — the Scheduler's business comes later.
+ */
+import { type ServiceCatalog } from './serviceCatalog.js';
+import { startApiServer } from './apiServer.js';
+export interface MainOptions {
+    port: number;
+    host: string;
+    token: string | null;
+    /** The folder that IS the catalog (default ./services). */
+    dir: string;
+    quiet: boolean;
+}
+export interface RunningServices {
+    catalog: ServiceCatalog;
+    /** The bound API (url carries the real port). */
+    api: Awaited&lt;ReturnType&lt;typeof startApiServer&gt;&gt;;
+    options: MainOptions;
+    stop(): Promise&lt;void&gt;;
+}
+export declare const DEFAULTS: MainOptions;
+export declare function parseArgs(argv: string[], env?: NodeJS.ProcessEnv): {
+    options: MainOptions;
+    help: boolean;
+};
+export declare function printHelp(): void;
+export declare function startServices(overrides?: Partial&lt;MainOptions&gt;): Promise&lt;RunningServices&gt;;
+export declare function runTests(): Promise&lt;void&gt;;
+</pre></section>
+<section class="source"><h2>public/ts/mcpServer.ts</h2><pre class="header">/**
+ * @module mcpServer
+ * @description The MCP-over-HTTP face — streamable HTTP, JSON-RPC, sessions. It serves
+ *              whatever REGISTRY it is handed (list + call): this module's own registry
+ *              today, other registries later (Api_Root mounts them the same way). One
+ *              implementation, many faces.
+ * @intent House conventions (from ProcessWrapper, kept here): plain JSON or SSE-framed
+ *         replies, `initialize` carries instructions that say how to pick a tool,
+ *         notifications answer 202 with no body, an unknown method is -32601, an unknown
+ *         tool/params is -32602, and a refused tool argument comes back as `isError: true`
+ *         with a message that says what to do.
+ */</pre><pre class="contract">/**
+ * @module mcpServer
+ * @description The MCP-over-HTTP face — streamable HTTP, JSON-RPC, sessions. It serves
+ *              whatever REGISTRY it is handed (list + call): this module's own registry
+ *              today, other registries later (Api_Root mounts them the same way). One
+ *              implementation, many faces.
+ * @intent House conventions (from ProcessWrapper, kept here): plain JSON or SSE-framed
+ *         replies, `initialize` carries instructions that say how to pick a tool,
+ *         notifications answer 202 with no body, an unknown method is -32601, an unknown
+ *         tool/params is -32602, and a refused tool argument comes back as `isError: true`
+ *         with a message that says what to do.
+ */
+import type { IncomingMessage, ServerResponse } from 'node:http';
+import type { McpRegistry } from './mcpTools.js';
+export interface McpServerOptions {
+    registry: McpRegistry;
+    /** Sent in the initialize reply — say what this box is and how to pick a tool. */
+    instructions?: string;
+    /** Protocol revisions spoken, newest first (the first is the default). */
+    protocolVersions?: string[];
+}
+export interface McpServer {
+    /** Route POST/GET/DELETE /mcp here from the HTTP layer. */
+    handle(req: IncomingMessage, res: ServerResponse): Promise&lt;void&gt;;
+}
+export declare function createMcpServer(options: McpServerOptions): McpServer;
+export declare function runTests(): Promise&lt;void&gt;;
+</pre></section>
+<section class="source"><h2>public/ts/mcpTools.ts</h2><pre class="header">/**
+ * @module mcpTools
+ * @description The AGENT face as a REGISTRY — the module hands its tool set over as an
+ *              object with its call hand (list + call, MCP-shaped). The module's own /mcp
+ *              mounts it today; Api_Root will mount the SAME registry later — they cannot
+ *              drift, because it is literally the same object.
+ * @intent Operator ruling (2026-09-16): every module ships an mcp registry ready for
+ *         Api_Root. The point of Services is exactly this: let an LLM (Echidna) agent see
+ *         everything a service declares — advert, provider, variables, modes, the install
+ *         face with the version dance for older cards — and nothing here runs.
+ */</pre><pre class="contract">/**
+ * @module mcpTools
+ * @description The AGENT face as a REGISTRY — the module hands its tool set over as an
+ *              object with its call hand (list + call, MCP-shaped). The module's own /mcp
+ *              mounts it today; Api_Root will mount the SAME registry later — they cannot
+ *              drift, because it is literally the same object.
+ * @intent Operator ruling (2026-09-16): every module ships an mcp registry ready for
+ *         Api_Root. The point of Services is exactly this: let an LLM (Echidna) agent see
+ *         everything a service declares — advert, provider, variables, modes, the install
+ *         face with the version dance for older cards — and nothing here runs.
+ */
+import type { ServiceCatalog } from './serviceCatalog.js';
+export interface McpToolResult {
+    content: Array&lt;{
+        type: 'text';
+        text: string;
+    }&gt;;
+    isError?: boolean;
+}
+export interface McpToolProperty {
+    type: string;
+    description: string;
+    enum?: string[];
+}
+export interface McpToolSchema {
+    type: 'object';
+    properties: Record&lt;string, McpToolProperty&gt;;
+    required?: string[];
+}
+export interface McpTool {
+    name: string;
+    description: string;
+    inputSchema: McpToolSchema;
+    run: (args: Record&lt;string, unknown&gt;) =&gt; Promise&lt;McpToolResult&gt;;
+}
+/** THE REGISTRY — list + call, MCP-shaped. Same object on the module's /mcp and on Api_Root. */
+export interface McpRegistry {
+    module: string;
+    /** The advertised tools (no run hand). */
+    list(): Array&lt;Omit&lt;McpTool, 'run'&gt;&gt;;
+    /** The call hand. Throws ToolRefusal for arguments that can be answered better. */
+    call(name: string, args: Record&lt;string, unknown&gt;): Promise&lt;McpToolResult&gt;;
+}
+/** A refusal the caller can act on — travels as `isError: true`, never a protocol error. */
+export declare class ToolRefusal extends Error {
+}
+export declare function buildTools(catalog: ServiceCatalog): McpTool[];
+export declare function createServiceMcpRegistry(catalog: ServiceCatalog): McpRegistry;
+export declare function runTests(): Promise&lt;void&gt;;
+</pre></section>
+<section class="source"><h2>public/ts/selftest.ts</h2><pre class="header">/**
+ * @module selftest
+ * @description THE GATE — every module's own self-check, one after another, in one
+ *              process: serviceSchema · serviceFile · serviceCatalog · mcpTools ·
+ *              mcpServer · staticFiles · apiServer · client · browser/gui · main.
+ *              `npm run selftest` is the single command. console.assert failures are
+ *              COUNTED (a failed assertion, not only a thrown error, fails the gate),
+ *              and main goes last — it binds a real port — so the gate ends the way a
+ *              run starts.
+ * @intent THE MODULAR LAW (operator): every module carries its own self-check — a module
+ *         that cannot prove itself on demand does not ship.
+ */</pre><pre class="contract">/**
+ * @module selftest
+ * @description THE GATE — every module's own self-check, one after another, in one
+ *              process: serviceSchema · serviceFile · serviceCatalog · mcpTools ·
+ *              mcpServer · staticFiles · apiServer · client · browser/gui · main.
+ *              `npm run selftest` is the single command. console.assert failures are
+ *              COUNTED (a failed assertion, not only a thrown error, fails the gate),
+ *              and main goes last — it binds a real port — so the gate ends the way a
+ *              run starts.
+ * @intent THE MODULAR LAW (operator): every module carries its own self-check — a module
+ *         that cannot prove itself on demand does not ship.
+ */
+export interface GateResult {
+    module: string;
+    status: 'pass' | 'fail' | 'skip';
+    detail: string;
+}
+/** Every module this gate walks, in order. main last (it binds a real port). */
+export declare const DEFAULT_MODULES: string[];
+/** Run one module's own tests with assertion counting. Never throws. */
+export declare function runGate(modules?: string[], log?: (line: string) =&gt; void): Promise&lt;{
+    ok: boolean;
+    results: GateResult[];
+}&gt;;
+export declare function main(): Promise&lt;void&gt;;
+</pre></section>
+<section class="source"><h2>public/ts/serviceCatalog.ts</h2><pre class="header">/**
+ * @module serviceCatalog
+ * @description The catalog — THE FOLDER IS THE CATALOG: scan it, load every `.js` service
+ *              file as DATA (never executed), validate, and serve: list (shapes only — the
+ *              pages never ride a listing), get (the whole definition), ad + inputs (the
+ *              maker's two pages), reload (re-scan), refusals (every bad file with its reason).
+ * @intent A bad file never breaks the catalog: it rides as a refusal. Duplicate names are
+ *         refused on BOTH sides. Nothing runs here — the definitions are the whole job;
+ *         scheduling and running are the Scheduler module's business, later.
+ */</pre><pre class="contract">/**
+ * @module serviceCatalog
+ * @description The catalog — THE FOLDER IS THE CATALOG: scan it, load every `.js` service
+ *              file as DATA (never executed), validate, and serve: list (shapes only — the
+ *              pages never ride a listing), get (the whole definition), ad + inputs (the
+ *              maker's two pages), reload (re-scan), refusals (every bad file with its reason).
+ * @intent A bad file never breaks the catalog: it rides as a refusal. Duplicate names are
+ *         refused on BOTH sides. Nothing runs here — the definitions are the whole job;
+ *         scheduling and running are the Scheduler module's business, later.
+ */
+import { type ServiceDefinition, type ServiceSummary, type ValidationIssue } from './serviceSchema.js';
+export interface ServiceEntry {
+    /** The definition's own name; falls back to the file stem when it never validated. */
+    name: string;
+    /** Absolute path of the file it came from. */
+    file: string;
+    ok: boolean;
+    definition: ServiceDefinition | null;
+    errors: ValidationIssue[];
+    warnings: ValidationIssue[];
+    loadedAt: string;
+}
+export interface ServiceCatalog {
+    /** The folder this catalog serves (the folder IS the catalog). */
+    dir: string;
+    /** Re-scan the folder; answers the fresh entries. */
+    reload(): ServiceEntry[];
+    /** The listing — shapes only. An optional filter matches name · provider · mode · what. */
+    list(query?: string): ServiceSummary[];
+    /** One entry by exact name — null when unknown or refused. */
+    get(name: string): ServiceEntry | null;
+    /** The AD page (the sell sheet) of one service — null when unknown or refused. */
+    ad(name: string): string | null;
+    /** The INPUTS page (the way in) of one service — null when unknown or refused. */
+    inputs(name: string): string | null;
+    /** Every entry, good or refused. */
+    entries(): ServiceEntry[];
+    /** Only the refused ones. */
+    refusals(): ServiceEntry[];
+}
+export interface CatalogOptions {
+    dir: string;
+}
+export declare function createServiceCatalog(options: CatalogOptions): ServiceCatalog;
+export declare function runTests(): Promise&lt;void&gt;;
+</pre></section>
+<section class="source"><h2>public/ts/serviceFile.ts</h2><pre class="header">/**
+ * @module serviceFile
+ * @description Read ONE service file — a `.js` file that assigns a literal object to
+ *              `module.exports` — as DATA. It is never imported, never executed in the
+ *              host: the text is gated (leading comments welcome, then exactly ONE
+ *              `module.exports = &lt;literal&gt;`; no code tokens), run in an EMPTY vm sandbox
+ *              (no require, no process, no filesystem, no network, code generation off,
+ *              2 s timeout), scanned deep for function values, and then validated against
+ *              the schema. A file that fails any rung is refused with a reason — the
+ *              catalog carries the refusal, nothing crashes.
+ * @intent Operator ruling (2026-09-23): "`.js` is best I think too" — one .js file per
+ *         service; and the tie (2026-09-23): "a shared service file must not execute on
+ *         receipt — load it as DATA." Heavy items travel by LINK, never inside the file;
+ *         small images inline as base64; the pages ride as strings (write page scripts
+ *         with string concatenation — a literal `${` is refused, and nested backticks end
+ *         the literal). Honest limits: the token gate refuses the obvious, the sandbox is
+ *         the real door — even a file that slipped past every gate would be running in an
+ *         empty 2-second room with no doors, and its result must still be pure data.
+ */</pre><pre class="contract">/**
+ * @module serviceFile
+ * @description Read ONE service file — a `.js` file that assigns a literal object to
+ *              `module.exports` — as DATA. It is never imported, never executed in the
+ *              host: the text is gated (leading comments welcome, then exactly ONE
+ *              `module.exports = &lt;literal&gt;`; no code tokens), run in an EMPTY vm sandbox
+ *              (no require, no process, no filesystem, no network, code generation off,
+ *              2 s timeout), scanned deep for function values, and then validated against
+ *              the schema. A file that fails any rung is refused with a reason — the
+ *              catalog carries the refusal, nothing crashes.
+ * @intent Operator ruling (2026-09-23): "`.js` is best I think too" — one .js file per
+ *         service; and the tie (2026-09-23): "a shared service file must not execute on
+ *         receipt — load it as DATA." Heavy items travel by LINK, never inside the file;
+ *         small images inline as base64; the pages ride as strings (write page scripts
+ *         with string concatenation — a literal `${` is refused, and nested backticks end
+ *         the literal). Honest limits: the token gate refuses the obvious, the sandbox is
+ *         the real door — even a file that slipped past every gate would be running in an
+ *         empty 2-second room with no doors, and its result must still be pure data.
+ */
+import { type ServiceDefinition, type ValidationReport } from './serviceSchema.js';
+export interface ServiceFileResult {
+    /** The file that was read. */
+    file: string;
+    /** The loaded definition (present only when everything passed). */
+    definition: ServiceDefinition | null;
+    /** The schema report (errors/warnings) — present even when refused early. */
+    report: ValidationReport;
+    /** The refusal reason, when the file never became data. */
+    error: string | null;
+}
+/** Tokens that are code, not data — refused anywhere in the text. */
+export declare const CODE_TOKENS: string[];
+/** Walk the loaded value: functions, symbols, bigints and cycles are refused with a path. */
+export declare function findRefusedValue(value: unknown, pathStr?: string, seen?: Set&lt;unknown&gt;, depth?: number): string | null;
+/** The whole rung-ladder over TEXT (no fs) — the testable heart. */
+export declare function loadServiceText(text: string): {
+    value: unknown;
+    error: string | null;
+};
+/** Read one file from disk and carry it through every rung. */
+export declare function loadServiceFile(filePath: string): ServiceFileResult;
+export declare function runTests(): Promise&lt;void&gt;;
+</pre></section>
+<section class="source"><h2>public/ts/serviceSchema.ts</h2><pre class="header">/**
+ * @module serviceSchema
+ * @description THE SERVICE OBJECT — the shape of one service definition (the elaborate
+ *              object as the talk settled it): advert (what · expected time · karma weight)
+ *              · provider (the app that runs it, with install/update/launch/probe) ·
+ *              variables (init · input · files — a file slot plugs a file OR a service that
+ *              produces it) · modes (one service, several fits — each with its own models,
+ *              needs, karma weight and INSTALL, where the version dance lives: pinned
+ *              python·cuda·torch combos and per-sm_XX build notes for older cards) · needs
+ *              (what the Resource Manager books) · output · children (declared, wired by
+ *              their outputs) · update (a declared command) · pages (the TWO the service
+ *              PRODUCES: ad — the sell sheet; inputs — the way in, which gathers the
+ *              required inputs and carries progress during the run) · progress (the
+ *              declared how-to — the INSTANCE tracks and shows it) · gui (the service's own
+ *              gui, when it has one — a button follows it). v0.2: the core is checked hard,
+ *              everything else passes through untouched — nothing frozen; the object stays
+ *              liquid.
+ * @intent "Services is just an elaborate object" (operator). Services declares; nothing here
+ *         runs. A service file is DATA — validated, never executed.
+ */</pre><pre class="contract">/**
+ * @module serviceSchema
+ * @description THE SERVICE OBJECT — the shape of one service definition (the elaborate
+ *              object as the talk settled it): advert (what · expected time · karma weight)
+ *              · provider (the app that runs it, with install/update/launch/probe) ·
+ *              variables (init · input · files — a file slot plugs a file OR a service that
+ *              produces it) · modes (one service, several fits — each with its own models,
+ *              needs, karma weight and INSTALL, where the version dance lives: pinned
+ *              python·cuda·torch combos and per-sm_XX build notes for older cards) · needs
+ *              (what the Resource Manager books) · output · children (declared, wired by
+ *              their outputs) · update (a declared command) · pages (the TWO the service
+ *              PRODUCES: ad — the sell sheet; inputs — the way in, which gathers the
+ *              required inputs and carries progress during the run) · progress (the
+ *              declared how-to — the INSTANCE tracks and shows it) · gui (the service's own
+ *              gui, when it has one — a button follows it). v0.2: the core is checked hard,
+ *              everything else passes through untouched — nothing frozen; the object stays
+ *              liquid.
+ * @intent "Services is just an elaborate object" (operator). Services declares; nothing here
+ *         runs. A service file is DATA — validated, never executed.
+ */
+export interface ServiceVariable {
+    name: string;
+    label?: string;
+    type?: 'text' | 'textarea' | 'number' | 'select' | 'boolean' | 'range';
+    default?: unknown;
+    required?: boolean;
+    min?: number;
+    max?: number;
+    step?: number;
+    options?: string[];
+    help?: string;
+    full?: boolean;
+    muted?: boolean;
+    /** 'output' marks the output path among the inputs — give it a default; the instance keeps filenames fresh (never the same name twice when the user is lazy). */
+    role?: string;
+    [extra: string]: unknown;
+}
+/** A required FILE — per request (a run's input file), or per install (a node's file). */
+export interface ServiceFileSlot {
+    name: string;
+    path?: string;
+    kind?: string;
+    note?: string;
+    /** The slot may plug a FILE, or a SERVICE that produces it. */
+    service?: string;
+    [extra: string]: unknown;
+}
+/** A LINK — everything heavy travels by link, never inside the file. */
+export interface ServiceLink {
+    path?: string;
+    url?: string;
+    sha256?: string;
+    source?: {
+        magnet?: string;
+        peer?: string;
+        [extra: string]: unknown;
+    };
+    note?: string;
+    [extra: string]: unknown;
+}
+/** THE INSTALL FACE — where the version dance lives (older GPU cards are first-class). */
+export interface ServiceInstall {
+    /** Pinned toolchain combos that still exist and fit: { python: '3.11', cuda: '11.8', torch: '2.5.1+cu118' }. */
+    pins?: Record&lt;string, string&gt;;
+    /** The card's compute, when a build is per-architecture: e.g. '52' → an sm_52 build. */
+    sm?: string;
+    arch?: string;
+    /** How it is installed, in words/steps the installer can follow. */
+    steps?: string[];
+    /** Where the payload comes from when the network cannot serve it (paths, urls). */
+    fallback?: string[];
+    note?: string;
+    [extra: string]: unknown;
+}
+/** THE TWO PAGES a service produces — the sell sheet and the way in. */
+export interface ServicePages {
+    /** The AD page — the sell sheet (the listing): what it does in the maker's own voice · images (small ones inline as base64) · whatever sells it. */
+    ad: string;
+    /** The INPUTS page — the way in: gathers the required inputs before the run; during the run the progress rides on it. Intentionally vague and custom — made with the user. */
+    inputs: string;
+}
+/** HOW PROGRESS IS SEEN — declared here; the INSTANCE (Basic_App) tracks and shows it. */
+export interface ServiceProgress {
+    /** In words: how can anyone tell how far along a run is (tokens stream · "step N of M" lines · silent until the end). */
+    how: string;
+    /** Where it reads from when known: stdout · file · http · none. */
+    source?: string;
+    /** A pattern or key to look for, when there is one. */
+    pattern?: string;
+    note?: string;
+    [extra: string]: unknown;
+}
+/** THE SERVICE'S OWN GUI, when it has one — Basic_App shows a button that follows it. */
+export interface ServiceGui {
+    /** How to reach it: url (a web face it serves) · exe (an app that opens) · command · other. */
+    kind?: string;
+    /** The url, path or command. */
+    value?: string;
+    note?: string;
+    [extra: string]: unknown;
+}
+/** ONE MODE — the fit between the service and a machine: a smaller mode is how a service reaches smaller nodes. */
+export interface ServiceMode {
+    name: string;
+    /** What this mode fits: { vramGbMin: '6', sm: '&lt;=52', note: '…' }. */
+    fits?: Record&lt;string, string&gt;;
+    models?: ServiceLink[];
+    needs?: ServiceNeeds;
+    /** Karma weight for this mode — the service's own number; the ledger lives elsewhere. */
+    karma?: number;
+    install?: ServiceInstall;
+    [extra: string]: unknown;
+}
+/** What the Resource Manager will book for a run. */
+export interface ServiceNeeds {
+    gpu?: boolean;
+    vramGb?: number;
+    ramMb?: number;
+    cores?: number;
+    diskGb?: number;
+    services?: string[];
+    [extra: string]: unknown;
+}
+export interface ServiceDefinition {
+    /** Unique in the catalog (the folder IS the catalog). */
+    name: string;
+    version?: string;
+    /** what it does · expected time (HISTORY: average or last runs — unknown is unknown) · karma weight. */
+    advert: {
+        what: string;
+        time?: string;
+        karma?: number;
+        note?: string;
+        [extra: string]: unknown;
+    };
+    /** THE APP THAT RUNS IT — the provider lives INSIDE the service definition. */
+    provider: {
+        name: string;
+        repo?: string;
+        launch?: string;
+        probe?: string;
+        update?: string;
+        note?: string;
+        [extra: string]: unknown;
+    };
+    /** init = install-time facts · input = per-request values · files = per-request required files. */
+    variables?: {
+        init?: ServiceVariable[];
+        input?: ServiceVariable[];
+        files?: ServiceFileSlot[];
+        [extra: string]: unknown;
+    };
+    modes?: ServiceMode[];
+    needs?: ServiceNeeds;
+    output?: {
+        kind?: string;
+        location?: string;
+        description?: string;
+        [extra: string]: unknown;
+    };
+    /** Child services, declared by name — their outputs wire into this service's file slots. */
+    children?: string[];
+    /** Default install when a mode carries none. */
+    install?: ServiceInstall;
+    /** The declared update: HOW (a command); WHEN is future wisdom. */
+    update?: {
+        command?: string;
+        note?: string;
+        [extra: string]: unknown;
+    };
+    /** THE TWO PAGES a service produces: pages.ad (the sell sheet) · pages.inputs (the way in — gathers the required inputs; carries progress during the run). Both are the maker's, carried as strings. */
+    pages: ServicePages;
+    /** HOW PROGRESS IS SEEN for a run — declared here; the INSTANCE (Basic_App) tracks and shows it. Absent = unknown (the instance falls back honestly). */
+    progress?: ServiceProgress;
+    /** THE SERVICE'S OWN GUI, when it has one — a button follows it. Absent = no gui of its own. */
+    gui?: ServiceGui;
+    [extra: string]: unknown;
+}
+export interface ValidationIssue {
+    level: 'error' | 'warning';
+    field: string;
+    message: string;
+}
+export interface ValidationReport {
+    ok: boolean;
+    errors: ValidationIssue[];
+    warnings: ValidationIssue[];
+}
+/** The SHAPE that a listing carries — contents only ever answer a get. */
+export interface ServiceSummary {
+    name: string;
+    what: string;
+    provider: string;
+    modes: string[];
+    karma: number | null;
+    output: string | null;
+    children: number;
+    ok: boolean;
+    file: string;
+}
+/** Check one service definition. Errors refuse it; warnings ride along. */
+export declare function validateService(value: unknown): ValidationReport;
+/** The listing shape of one definition — names and counts only, never the page. */
+export declare function summarizeService(def: ServiceDefinition, file: string, ok: boolean): ServiceSummary;
+export declare function runTests(): Promise&lt;void&gt;;
+</pre></section>
+<section class="source"><h2>public/ts/staticFiles.ts</h2><pre class="header">/**
+ * @module staticFiles
+ * @description Serves public/ on the same port — the GUI, its CSS, its compiled script.
+ *              MIME map, index fallback, a traversal guard that resolves inside the root,
+ *              and a 404 that names the API routes.
+ * @intent Static files are not actions: the page is served WITHOUT the shared token so an
+ *         operator can load it and type one in; only /api/* and /mcp are guarded.
+ */</pre><pre class="contract">/**
+ * @module staticFiles
+ * @description Serves public/ on the same port — the GUI, its CSS, its compiled script.
+ *              MIME map, index fallback, a traversal guard that resolves inside the root,
+ *              and a 404 that names the API routes.
+ * @intent Static files are not actions: the page is served WITHOUT the shared token so an
+ *         operator can load it and type one in; only /api/* and /mcp are guarded.
+ */
+import type { IncomingMessage, ServerResponse } from 'node:http';
+export interface StaticOptions {
+    /** Folder served at the root (default: &lt;cwd&gt;/public). */
+    root?: string;
+}
+export interface StaticResult {
+    status: number;
+    file: string | null;
+}
+export declare function contentTypeFor(file: string): string;
+/** Resolve a URL path INSIDE root, or null when it tries to escape. */
+export declare function resolveInside(root: string, urlPath: string): string | null;
+/** Serve one request from the static root. Returns what happened. */
+export declare function serveStatic(req: IncomingMessage, res: ServerResponse, options?: StaticOptions): StaticResult;
+export declare function runTests(): Promise&lt;void&gt;;
+</pre></section>
+</main>
+</body>
+</html>

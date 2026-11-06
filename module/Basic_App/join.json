@@ -1,0 +1,8 @@
+{
+  "name": "Basic_App",
+  "kind": "door",
+  "port": 8130,
+  "start": "\"%LOCALAPPDATA%\\hermes\\node\\node.exe\" public/js/main.js",
+  "wiredAtBoot": false,
+  "what": "The service shelf instance — lists the available services, prepares one, runs one at a time."
+}

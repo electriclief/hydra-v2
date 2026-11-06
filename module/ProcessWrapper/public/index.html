@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ProcessWrapper</title>
+<link rel="stylesheet" href="/css/gui.css">
+</head>
+<body>
+
+<header class="topbar">
+  <h1>ProcessWrapper</h1>
+  <span id="health" class="badge">…</span>
+  <span class="grow"></span>
+  <label class="tok">token <input id="token" type="password" placeholder="(none)" autocomplete="off"></label>
+  <span class="links">
+    API <code id="api-url">/</code> ·
+    MCP <code id="mcp-url">/mcp</code>
+  </span>
+</header>
+
+<p id="error" class="error hidden"></p>
+
+<section class="panel">
+  <form id="launch-form" autocomplete="off">
+    <div class="row">
+      <label class="field saved-field">
+        <span>saved command</span>
+        <select id="saved-select"><option value="">— raw command —</option></select>
+      </label>
+      <label class="field grow">
+        <span>command</span>
+        <input id="command" placeholder='python bar.py   ·   "C:\Program Files\nodejs\node.exe" -e "console.log(1)"' required>
+      </label>
+      <button id="start" class="primary" type="submit">start</button>
+    </div>
+    <details class="options">
+      <summary>options — name, tag, cwd, env, shell</summary>
+      <div class="row wrap">
+        <label class="field"><span>name</span><input id="opt-name" placeholder="(the command)"></label>
+        <label class="field"><span>tag</span><input id="opt-tag" placeholder="(none)"></label>
+        <label class="field grow"><span>cwd</span><input id="opt-cwd" placeholder="(this folder)"></label>
+        <label class="field grow"><span>env — JSON or KEY=VALUE per line</span><textarea id="opt-env" rows="3" placeholder='{"HF_HOME":"C:/models"}'></textarea></label>
+        <label class="check"><input id="opt-shell" type="checkbox"> run through a shell (needed for pipes, &gt;, &amp;&amp;)</label>
+      </div>
+    </details>
+  </form>
+</section>
+
+<main class="split">
+  <section class="panel half">
+    <h2>
+      processes
+      <button id="refresh" class="small">refresh</button>
+      <label class="check small"><input id="autorefresh" type="checkbox" checked> auto</label>
+    </h2>
+    <div class="scroll">
+      <table class="procs">
+        <thead>
+          <tr><th>id</th><th>name</th><th>pid</th><th>life</th><th>chars</th><th>uptime</th><th>exit</th><th></th></tr>
+        </thead>
+        <tbody id="procs-body">
+          <tr class="empty"><td colspan="8">loading…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="panel half">
+    <h2>stream <span id="stream-meta" class="muted small"></span></h2>
+    <div id="stream-header" class="mono muted small">pick a process</div>
+    <div class="row wrap">
+      <label class="check"><input id="follow" type="checkbox"> follow live</label>
+      <label class="field inline">
+        <span>channel</span>
+        <select id="channel"><option value="both">both</option><option value="stdout">stdout</option><option value="stderr">stderr</option></select>
+      </label>
+      <button id="reload" class="small">load whole</button>
+      <button id="clear" class="small">clear view</button>
+    </div>
+    <pre id="stream" class="stream"></pre>
+    <div class="row">
+      <input id="stdin" placeholder="stdin — type text and press Enter to send it to the process">
+      <button id="send" class="small">send</button>
+    </div>
+  </section>
+</main>
+
+<section class="panel">
+  <h2>saved commands <span class="muted small">data.yaml — launch one by name, or save the current line</span></h2>
+  <ul id="commands" class="commands"><li class="empty">loading…</li></ul>
+  <form id="save-form" class="row" autocomplete="off">
+    <label class="field"><span>name</span><input id="save-name" placeholder="probe" required></label>
+    <label class="field grow"><span>command</span><input id="save-cmd" placeholder="ping -n 3 127.0.0.1" required></label>
+    <label class="field grow"><span>description</span><input id="save-desc" placeholder="what it is for"></label>
+    <button type="submit">save</button>
+  </form>
+</section>
+
+<footer class="muted small">
+  one life = one file · every life keeps its own append-only text file under <code>data/streams/</code> ·
+  <code>GET /api/processes/&lt;id&gt;/output</code> (a copy) · <code>GET /api/processes/&lt;id&gt;/stream</code> (live, SSE) ·
+  agents: <code>POST /mcp</code>
+</footer>
+
+<script type="module" src="/js/browser/gui.js"></script>
+</body>
+</html>

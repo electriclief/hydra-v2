@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Services — the catalog of what can be asked for</title>
+<style>
+  :root { color-scheme: dark; --bg:#111318; --panel:#191c23; --border:#303541; --text:#e5e7eb; --muted:#a1a8b7; --accent:#8ab4f8; }
+  * { box-sizing: border-box; }
+  body { margin:0; padding:32px; background:var(--bg); color:var(--text);
+         font:15px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif; max-width:78ch; }
+  h1 { margin:0 0 4px; font-size:24px; font-weight:600; letter-spacing:-.01em; }
+  h2 { margin:32px 0 10px; font-size:13px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; color:var(--muted); }
+  .kicker { margin:0 0 28px; color:var(--muted); font-size:13px; }
+  p { margin:0 0 12px; }
+  code { font:13px/1.5 ui-monospace,Consolas,monospace; background:#0b0d11; border:1px solid var(--border);
+         border-radius:5px; padding:1px 5px; color:#cfd6e4; }
+  pre { background:#0b0d11; border:1px solid var(--border); border-radius:8px; padding:12px 14px; overflow:auto; }
+  table { width:100%; border-collapse:collapse; margin:6px 0 16px; font-size:14px; }
+  th, td { text-align:left; padding:7px 10px; border-bottom:1px solid var(--border); vertical-align:top; }
+  th { color:var(--muted); font-weight:600; font-size:12px; letter-spacing:.06em; text-transform:uppercase; }
+  .note { color:var(--muted); font-size:13px; }
+  .lede { font-size:16px; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Services</h1>
+  <p class="kicker">the catalog · door on :8128 · definitions only — nothing here runs</p>
+</header>
+
+<section id="summary">
+  <p class="lede">Services is the list of things this node could be asked to do, written down instead of
+  executed. It scans one folder of <code>.js</code> files — each file one service, loaded as data and
+  validated against a schema — and serves the result as a listing of shapes, a whole definition by name,
+  and the two pages every service carries: the ad that sells it and the inputs that gather what a run
+  needs. It declares; it never runs.</p>
+</section>
+
+<section id="concepts">
+  <h2>How it holds together</h2>
+
+  <p><b>The folder is the catalog.</b> <code>createServiceCatalog()</code> calls
+  <code>readdirSync(dir).filter(name =&gt; name.endsWith('.js')).sort()</code> on creation — there is no
+  index file, no database, no registration step. Adding a service is dropping a file; deleting the file
+  removes the service on the next scan; <code>POST /api/services/reload</code> re-scans without a
+  restart. The directory defaults to <code>./services</code> (resolved against the working directory) and
+  can be moved with <code>--dir</code> or <code>SERVICES_DIR</code>.</p>
+
+  <p><b>A service file is DATA, and the loader treats it that way.</b> It is never <code>import</code>ed.
+  <code>loadServiceText()</code> walks a ladder: comments may lead but the text must then assign exactly
+  one <code>module.exports = &lt;literal&gt;</code>; a text token gate refuses <code>${</code>,
+  <code>require(</code>, <code>import(</code>, <code>globalThis</code>, <code>eval(</code>,
+  <code>Function(</code>, <code>process.env</code> and <code>child_process</code>; the surviving text is
+  run in an empty <code>vm</code> context — no <code>require</code>, no <code>process</code>, code
+  generation off, a 2 s timeout — and the loaded value is then walked for function, symbol, bigint and
+  cycle values, each refused with the path that carried it (<code>$.hand</code>). Files over 2 MB are
+  refused before they are even read. The reason is a ruling, not taste: a service file may arrive from
+  another node, and a file that runs on receipt is a remote code path. Heavy things travel by link
+  (<code>models[]</code> carry a path, url and sha256), small images ride inline as base64, and the two
+  pages ride as strings.</p>
+
+  <p><b>A bad file is a refusal, not an outage.</b> Every entry carries <code>ok</code>,
+  <code>errors</code> and <code>warnings</code>; <code>refusals()</code> lists the broken ones with their
+  reason, and <code>GET /api/services/validate</code> reports all of them plus whether the whole catalog
+  is sound. One malformed file never empties the list. Duplicate names are refused on <em>both</em> sides —
+  two files claiming <code>resize</code> both become refusals, because a name has to mean one thing, and
+  picking a winner silently would make the catalog lie about which file it served.</p>
+
+  <p><b>The definition is an elaborate object, and that is the point.</b> One service declares:</p>
+  <table>
+    <tr><th>field</th><th>what it settles</th></tr>
+    <tr><td><code>advert</code></td><td>what it does, an expected time (from history — unknown stays unknown), a karma weight</td></tr>
+    <tr><td><code>provider</code></td><td>the app that runs it, with <code>launch</code> and <code>probe</code> — the app lives inside the definition, not beside it</td></tr>
+    <tr><td><code>variables</code></td><td><code>init</code> (install-time facts), <code>input</code> (per request), <code>files</code> (slots that plug a file <em>or</em> a service that produces one)</td></tr>
+    <tr><td><code>modes</code></td><td>one service, several fits — each with its own models, needs, karma and <code>install.pins</code> (python/cuda/torch combos, <code>sm</code> notes for old cards)</td></tr>
+    <tr><td><code>needs</code></td><td>what the Resource Manager would book: gpu, vramGb, ramMb, cores, diskGb, child services</td></tr>
+    <tr><td><code>output</code> · <code>children</code></td><td>what comes out; child services declared by name, wired by their outputs</td></tr>
+    <tr><td><code>pages</code></td><td>the two pages the service <em>produces</em>: <code>ad</code> (sell sheet) and <code>inputs</code> (the way in, which also carries progress during a run)</td></tr>
+    <tr><td><code>progress</code> · <code>gui</code></td><td>how a run's progress can be seen, and the service's own GUI when it has one — declared here, tracked elsewhere</td></tr>
+  </table>
+
+  <p><b>The listing carries shapes; contents only ever answer a get.</b> <code>summarizeService()</code>
+  emits name, what, provider, mode names, the highest karma weight across advert and modes, the output
+  kind, a child count, <code>ok</code> and the file path. It never includes <code>pages</code> — the gate
+  asserts that a listing cannot contain the ad HTML. A catalog browsed by an agent has to stay cheap to
+  read; the sell sheet is fetched per service, by name.</p>
+
+  <p><b>Modes exist so a smaller machine is not a second-class one.</b> A mode is the fit between a
+  service and a card: <code>{ vramGbMin: '6', sm: '&lt;=52' }</code> with its own model links and its own
+  install pins. The version dance — which python, which cuda, which torch still has a wheel for an old
+  <code>sm_XX</code> — lives there rather than in prose, so an installer can follow it and a reader can
+  see why the same service has two shapes. A mode with no install and no service-level install is a
+  warning, not an error: the installer would have to guess, and the page says so.</p>
+
+  <p><b>Karma is a weight, not a score.</b> <code>advert.karma</code> and per-mode karma are numbers
+  ≥ 0; the listing reports the maximum. Nothing in this module spends it — the ledger and the priority
+  decision live elsewhere. Declaring it here is what lets a caller rank without re-reading every file.</p>
+
+  <p><b>Reserved words.</b> Under <code>/api/services/</code>, <code>reload</code> and
+  <code>validate</code> are routes before they are names, so a service cannot shadow them. The route
+  matcher resolves <code>/ad</code> and <code>/inputs</code> suffixes first, then treats the remainder as
+  a service name.</p>
+
+  <p><b>One implementation, three faces.</b> The page at <code>/</code>, the JSON API under
+  <code>/api/</code> and the MCP registry at <code>/mcp</code> all read the same catalog object, so they
+  cannot disagree. The MCP registry (<code>services_list</code>, <code>services_get</code>,
+  <code>services_ad</code>, <code>services_inputs</code>, <code>services_reload</code>,
+  <code>services_validate</code>) is the same object the module hands over for a future Api_Root mount.
+  An optional token (<code>SERVICES_TOKEN</code> / <code>--token</code>) guards <code>/api/*</code> and
+  <code>/mcp</code> via <code>x-services-token</code> or <code>?token=</code>; static files are not
+  actions and are served without it.</p>
+</section>
+
+<section id="wiring">
+  <h2>Wiring, for humans</h2>
+  <p>What Services needs in order to answer:</p>
+  <table>
+    <thead><tr><th>needs</th><th>from</th><th>required</th></tr></thead>
+    <tbody>
+      <tr><td>a folder of <code>.js</code> service files</td><td><code>./services</code> (<code>--dir</code>, <code>SERVICES_DIR</code>)</td><td>no — a missing or empty folder is an empty catalog, caught and reported honestly</td></tr>
+      <tr><td>a <code>public/</code> folder</td><td><code>&lt;cwd&gt;/public</code></td><td>yes for the page at <code>/</code>; the API answers without it</td></tr>
+      <tr><td>a listening port</td><td><code>127.0.0.1:8128</code> (<code>--port</code>, <code>--host</code>)</td><td>yes — the door is the module</td></tr>
+      <tr><td>no other Hydra module</td><td>—</td><td>— Services calls none of them; it is a leaf</td></tr>
+    </tbody>
+  </table>
+  <p>What it gives back:</p>
+  <table>
+    <thead><tr><th>gives</th><th>to</th><th>shape</th></tr></thead>
+    <tbody>
+      <tr><td><code>GET /health</code></td><td>a stranger</td><td><code>{ok, module:"services", dir, services, refused}</code></td></tr>
+      <tr><td><code>GET /api/services</code></td><td>a browser or an agent</td><td><code>{ok, dir, services:[summary]}</code>; <code>?filter=</code> matches name · provider · mode · what</td></tr>
+      <tr><td><code>GET /api/services/&lt;name&gt;</code></td><td>a caller that picked one</td><td><code>{ok, name, file, warnings, service}</code> — the whole definition</td></tr>
+      <tr><td><code>GET /api/services/&lt;name&gt;/ad</code></td><td>Menu, Basic_App, a human</td><td><code>text/html</code> — the sell sheet, exactly as the maker wrote it</td></tr>
+      <tr><td><code>GET /api/services/&lt;name&gt;/inputs</code></td><td>the run form</td><td><code>text/html</code> — the way in</td></tr>
+      <tr><td><code>POST /api/services/reload</code></td><td>whoever just dropped a file</td><td><code>{ok, count, refused[]}</code></td></tr>
+      <tr><td><code>GET /api/services/validate</code></td><td>an author</td><td><code>{ok, reports[]}</code> — errors and warnings per file</td></tr>
+      <tr><td><code>POST /mcp</code></td><td>an agent</td><td>six tools: <code>services_list · services_get · services_ad · services_inputs · services_reload · services_validate</code></td></tr>
+      <tr><td><code>GET /</code></td><td>a human</td><td>the catalog page (static, from <code>public/</code>)</td></tr>
+    </tbody>
+  </table>
+  <p>Who actually calls it, as of this build: <b>Menu</b> (renders ad and inputs pages, posts runs to the
+  Scheduler), <b>Join</b> (reads the offered population from <code>:8128</code>), <b>Basic_App</b>
+  (<code>servicesUrl</code>), <b>Core</b> (the catalog behind its advertised services), and the
+  <b>Scheduler's local runner</b> (a service's definition, its <code>port</code> and its
+  <code>gui</code>).</p>
+  <p class="note">This is wiring in words, not a type. The shapes live in
+  <code>public/ts/serviceSchema.ts</code>, <code>serviceFile.ts</code>, <code>serviceCatalog.ts</code> and
+  <code>apiServer.ts</code>; if this page and those files disagree, the files are right and this page is a
+  bug.</p>
+</section>
+
+<script type="application/json" id="contract">
+{
+  "module": "Services",
+  "port": 8128,
+  "kind": "door",
+  "needs": [
+    { "name": "services folder", "from": "./services (SERVICES_DIR)", "required": false },
+    { "name": "public folder", "from": "<cwd>/public", "required": false }
+  ],
+  "gives": [
+    { "name": "/health", "to": "the LAN", "kind": "http" },
+    { "name": "/api/services", "to": "the LAN", "kind": "http" },
+    { "name": "/api/services/<name>", "to": "the LAN", "kind": "http" },
+    { "name": "/api/services/<name>/ad", "to": "Menu", "kind": "http" },
+    { "name": "/api/services/<name>/inputs", "to": "Menu", "kind": "http" },
+    { "name": "/api/services/reload", "to": "authors", "kind": "http" },
+    { "name": "/api/services/validate", "to": "authors", "kind": "http" },
+    { "name": "/mcp", "to": "agents", "kind": "mcp" },
+    { "name": "services_list", "to": "MCP / Api_Root", "kind": "tool" },
+    { "name": "services_get", "to": "MCP / Api_Root", "kind": "tool" },
+    { "name": "services_ad", "to": "MCP / Api_Root", "kind": "tool" },
+    { "name": "services_inputs", "to": "MCP / Api_Root", "kind": "tool" },
+    { "name": "services_reload", "to": "MCP / Api_Root", "kind": "tool" },
+    { "name": "services_validate", "to": "MCP / Api_Root", "kind": "tool" }
+  ]
+}
+</script>
+
+</body>
+</html>

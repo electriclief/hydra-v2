@@ -1,0 +1,3 @@
+node_modules/
+data/events.log
+data/*.log

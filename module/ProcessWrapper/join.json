@@ -1,0 +1,8 @@
+{
+  "name": "ProcessWrapper",
+  "kind": "door",
+  "port": 8125,
+  "start": "\"%LOCALAPPDATA%\\hermes\\node\\node.exe\" public/js/main.js",
+  "wiredAtBoot": true,
+  "what": "THE ROOT — the only place a process may come from. Every launched thing lives in its one table."
+}

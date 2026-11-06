@@ -29,3 +29,6 @@ Thumbs.db
 desktop.ini
 *.bak
 *.bak-*
+
+# generated diary site (rebuilt from data by the door)
+module/SessionDiary/site/

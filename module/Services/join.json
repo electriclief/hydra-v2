@@ -1,0 +1,8 @@
+{
+  "name": "Services",
+  "kind": "door",
+  "port": 8128,
+  "start": "\"%LOCALAPPDATA%\\hermes\\node\\node.exe\" public/js/main.js",
+  "wiredAtBoot": false,
+  "what": "The catalog door — one data file per service, served on 8128. It holds definitions and runs nothing itself."
+}

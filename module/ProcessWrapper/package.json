@@ -1,0 +1,37 @@
+{
+  "name": "process-wrapper",
+  "version": "0.1.0",
+  "private": true,
+  "description": "A process wrapper (ES modules): launch any command as a child process, capture its stdout/stderr as a text stream, and serve an API that can launch, copy the output, and kill.",
+  "type": "module",
+  "main": "public/js/main.js",
+  "exports": {
+    ".": "./public/js/main.js",
+    "./client": "./public/js/client.js",
+    "./wrapper": "./public/js/processWrapper.js",
+    "./hub": "./public/js/streamHub.js",
+    "./registry": "./public/js/registryStore.js"
+  },
+  "bin": {
+    "pw": "public/js/cli.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "esbuild public/ts/*.ts public/ts/browser/*.ts --outdir=public/js --format=esm --platform=node --target=node20 --sourcemap",
+    "watch": "esbuild public/ts/*.ts public/ts/browser/*.ts --outdir=public/js --format=esm --platform=node --target=node20 --sourcemap --watch",
+    "dev": "npm run watch",
+    "typecheck": "tsc --noEmit",
+    "selftest": "node public/js/selftest.js",
+    "docs": "node scripts/build-docs.cjs",
+    "test": "npm run build && npm run typecheck && npm run selftest",
+    "start": "node public/js/main.js",
+    "cli": "node public/js/cli.js"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "esbuild": "^0.25.0",
+    "typescript": "^5.6.0"
+  }
+}

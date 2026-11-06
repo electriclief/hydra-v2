@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Basic_App — the shell</title>
+<style>
+  :root { color-scheme: dark; --bg:#111318; --panel:#171a21; --line:#2b303a; --ink:#e6e8ee; --dim:#9aa3b2; --acc:#63bd58; }
+  * { box-sizing: border-box; }
+  body { margin:0; padding:44px 24px 72px; background:var(--bg); color:var(--ink);
+         font:15px/1.65 system-ui, "Segoe UI", Roboto, sans-serif; }
+  main { max-width: 78ch; margin: 0 auto; }
+  h1 { font-size:26px; font-weight:650; letter-spacing:-.01em; margin:0 0 6px; }
+  .kicker { color:var(--dim); font-size:13px; letter-spacing:.04em; text-transform:uppercase; margin:0 0 28px; }
+  h2 { font-size:14px; letter-spacing:.09em; text-transform:uppercase; color:var(--acc); margin:36px 0 10px; font-weight:600; }
+  p { margin:0 0 14px; }
+  code, .m { font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; font-size:.92em; color:#cfd6e4; }
+  table { width:100%; border-collapse:collapse; margin:6px 0 18px; font-size:14px; }
+  th, td { text-align:left; padding:8px 10px; border-bottom:1px solid var(--line); vertical-align:top; }
+  th { font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--dim); font-weight:600; }
+  td:first-child { white-space:nowrap; }
+  .note { border-left:2px solid var(--acc); padding:2px 0 2px 14px; color:var(--dim); }
+  footer { margin-top:44px; padding-top:14px; border-top:1px solid var(--line); color:var(--dim); font-size:13px; }
+  ul { margin:0 0 14px; padding-left:20px; }
+  li { margin:4px 0; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Basic_App</h1>
+  <p class="kicker">the shell — one window, every door, and the level you are shown</p>
+
+  <section id="summary">
+  <p>Basic_App is the Electron shell that turns a shelf of module servers into one application window.
+  It starts or adopts every door, mounts the window through Electron_Wrapper, serves the small shelf API on port
+  8130, and owns the settings that decide which tabs a person is shown. It is the only process on a node that is
+  allowed to know the whole door table, because it is the only one that has to start the rest.</p>
+  </section>
+
+  <section id="concepts">
+  <h2>How it holds together</h2>
+  <p>A door is a module that listens on a port. The shell's job is to make sure each one is listening, and to keep
+  its hands off the ones that already are: <span class="m">DOOR_TABLE</span> is the list, and each row says what to
+  launch (<span class="m">dir</span>), where it should end up (<span class="m">port</span>), which entry file to run
+  when it is not the default (<span class="m">script</span>), and any argv flags the module wants
+  (<span class="m">args</span>, e.g. <span class="m">SessionDiary --scan 120</span>). Before launching, the shell
+  probes the port; a door that answers is <em>adopted</em>, not duplicated. That single rule is why a window can be
+  closed and reopened without the LAN losing its services for ten seconds.</p>
+
+  <p>The processes themselves are not children of the window. They are booked through ProcessWrapper on
+  <span class="m">:8125</span> and appear there as tabs tagged <span class="m">basic-gui</span>, so closing the
+  window is a presentation choice and the doors keep running until something explicitly pops them.</p>
+
+  <p>Tabs are data, not code. <span class="m">electron/ui.cjs</span> holds a catalog: for each tab, its name, the
+  address it points at, a group, and the module folder whose help page documents it. The catalog is filtered by a
+  user level kept in <span class="m">electron/ui.json</span>:</p>
+  <ul>
+    <li><span class="m">basic</span> — the Menu only, for someone who does not want tabs to choose between.</li>
+    <li><span class="m">advanced</span> — Menu plus the Memory sub-modules (Diaries, Thoughts).</li>
+    <li><span class="m">development</span> — every tab, including the doors themselves.</li>
+  </ul>
+  <p>Any single tab can be ticked on or off in <strong>View</strong>, and an explicit tick beats the level in both
+  directions: unticking Mirror in Development hides it, ticking Join in Basic shows it. The tick lives in the same
+  file, so the window comes back the way it was left.</p>
+
+  <p class="note">Rebuilding the menu bar from inside the click of an item that lives on that bar is how Electron
+  dies on Windows. Every settings change therefore lands on a 60 ms timer, after the click has returned, and only
+  one rebuild can be queued.</p>
+
+  <p>The third job is documentation. The shell starts a small static server (<span class="m">8199</span> by default,
+  an ephemeral port if that one is taken) which serves each module's own <span class="m">help.html</span> and an
+  index that marks a missing page as missing. The <strong>Help</strong> menu opens it as a tab, so the docs are a
+  view of the same window rather than a folder somebody has to find.</p></section>
+
+  <section id="wiring">
+  <h2>Wiring</h2>
+  <table>
+    <tr><th>needs</th><th>from where</th><th>required</th></tr>
+    <tr><td class="m">Electron runtime</td><td>the installed Electron binary, launched by <span class="m">relaunch-hydra.cmd</span></td><td>yes</td></tr>
+    <tr><td class="m">ProcessWrapper :8125</td><td>started hidden by the shell if it is down; doors are booked here</td><td>yes</td></tr>
+    <tr><td class="m">the doors</td><td><span class="m">DOOR_TABLE</span> — State 8127, Services 8128, RM 8129, Join 8131, Scheduler 8132, Menu 8133, SessionDiary 8134, TrainOfThought 8135, Core 8136, Mirror 8137</td><td>yes, each</td></tr>
+    <tr><td class="m">Electron_Wrapper</td><td><span class="m">module/Electron_Wrapper/Electron_Wrapper_module.js</span> — loaded from the shelf, not installed</td><td>yes</td></tr>
+    <tr><td class="m">ui.json</td><td><span class="m">module/Basic_App/electron/ui.json</span> — absent means <span class="m">advanced</span></td><td>no</td></tr>
+  </table>
+
+  <table>
+    <tr><th>gives</th><th>to</th><th>shape</th></tr>
+    <tr><td class="m">the window</td><td>the person at the machine</td><td>one BrowserWindow, tabs and menus from the catalog</td></tr>
+    <tr><td class="m">GET /api/basic/state</td><td>any local reader</td><td><span class="m">{doors:[...], busy, service}</span> — what the shelf is doing right now</td></tr>
+    <tr><td class="m">GET /api/basic/services</td><td>the shelf page</td><td>summaries of what this node can run</td></tr>
+    <tr><td class="m">GET /api/basic/services/:name/ad</td><td>the shelf page</td><td>that service's own inputs page (the "ad")</td></tr>
+    <tr><td class="m">POST /api/basic/run</td><td>the shelf page</td><td><span class="m">{name, values}</span> — one job, booked through the doors</td></tr>
+    <tr><td class="m">POST /api/basic/stop</td><td>the shelf page</td><td>stop the job this shell started</td></tr>
+    <tr><td class="m">GET /api/basic/progress?from=&lt;n&gt;</td><td>the shelf page</td><td>output lines after <span class="m">n</span> — the pull model, not a socket</td></tr>
+    <tr><td class="m">help pages</td><td>the Help tab</td><td><span class="m">http://127.0.0.1:8199/&lt;Module&gt;</span> and <span class="m">/</span> for the index</td></tr>
+  </table>
+
+  <p>The shelf API is loopback-only on purpose. It is the console in front of this machine's own doors, not a
+  service the LAN is meant to call; what the LAN talks to is Core and Mirror.</p></section>
+
+  <h2>Contract</h2>
+  <script type="application/json" id="contract">
+  {
+    "module": "Basic_App",
+    "port": 8130,
+    "kind": "shell",
+    "needs": ["electron", "ProcessWrapper:8125", "DOOR_TABLE doors", "Electron_Wrapper module"],
+    "gives": ["the window", "GET /api/basic/state", "GET /api/basic/services", "GET /api/basic/services/:name/ad", "POST /api/basic/run", "POST /api/basic/stop", "GET /api/basic/progress", "help pages on :8199"]
+  }
+  </script>
+
+  <footer>Files: <span class="m">electron/main.cjs</span>, <span class="m">electron/ui.cjs</span>,
+  <span class="m">electron/ui.json</span>, <span class="m">public/ts/basicServer.ts</span>,
+  <span class="m">public/ts/doors.ts</span>, <span class="m">public/index.html</span>. Env:
+  <span class="m">BASIC_PORT</span>, <span class="m">BASIC_HELP_PORT</span>. Logs:
+  <span class="m">C:\AI\hydra-local\logs\electron.log</span>.
+  If this page and the code disagree, the code is right and this page is a bug.</footer>
+</main>
+</body>
+</html>

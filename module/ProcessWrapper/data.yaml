@@ -1,0 +1,45 @@
+# ProcessWrapper registry — commands saved on this box.
+# Written by registryStore.ts (stateToYaml) — hand edits survive the round trip.
+version: 1
+lastUpdated: "2026-11-06T16:44:21.010Z"
+commands:
+  - name: "tick"
+    command: "node"
+    args:
+      - "-e"
+      - "setInterval(()=>console.log('tick '+new Date().toISOString()),1000)"
+    cwd: ""
+    env: {}
+    shell: false
+    description: "a ticker — proves a stream is live"
+    tag: "demo"
+    createdAt: "2026-09-16T15:13:03.205Z"
+    updatedAt: "2026-09-16T15:13:03.205Z"
+  - name: "ping-demo"
+    command: "ping"
+    args:
+      - "-n"
+      - "4"
+      - "127.0.0.1"
+    cwd: ""
+    env: {}
+    shell: false
+    description: "four pings to the loopback"
+    tag: "probe"
+    createdAt: "2026-09-16T15:13:03.206Z"
+    updatedAt: "2026-09-16T15:13:03.206Z"
+  - name: "standby-guard"
+    command: "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe"
+    args:
+      - "-NoProfile"
+      - "-ExecutionPolicy"
+      - "Bypass"
+      - "-File"
+      - "C:\\AI\\hydra-local\\scripts\\standby-guard.ps1"
+    cwd: "C:\\AI\\hydra-local\\scripts"
+    env: {}
+    shell: false
+    description: "Idle Service guard: yields the miner to real AI GPU work, resumes it after grace"
+    tag: "watch"
+    createdAt: "2026-11-06T16:44:21.010Z"
+    updatedAt: "2026-11-06T16:44:21.010Z"

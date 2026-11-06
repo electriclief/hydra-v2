@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ProcessWrapper</title>
+<link rel="stylesheet" href="/css/window.css">
+</head>
+<body>
+  <header id="strip"></header>
+  <main id="pane"><pre id="console"></pre></main>
+  <footer>
+    <form id="addForm" autocomplete="off">
+      <span class="hint">add Process Console Display:</span>
+      <input id="f-name" placeholder="name (lean: console-N)" size="22">
+      <input id="f-command" placeholder="command - the wiring to connect (required)" size="46">
+      <input id="f-cwd" placeholder="cwd (lean: the wrapper's folder)" size="26">
+      <button type="submit">Fire it</button>
+      <span id="status"></span>
+    </form>
+  </footer>
+  <script type="module" src="/js/browser/window.js"></script>
+</body>
+</html>

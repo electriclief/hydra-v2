@@ -1,0 +1,12 @@
+node_modules/
+*.log
+
+# the life files of captured output — runtime artifacts, one per process life
+data/streams/*.log
+!data/streams/.gitkeep
+
+# the drain watch's small logs + the expected list — runtime artifacts
+data/watch/*
+!data/watch/.gitkeep
+
+# keep the saved-commands registry (data.yaml) — it is authored state, not a runtime dump

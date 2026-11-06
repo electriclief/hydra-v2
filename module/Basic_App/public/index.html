@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Basic — service shelf</title>
+<link rel="stylesheet" href="/css/gui.css">
+</head>
+<body>
+  <header>
+    <div class="brand">Basic<span class="dot">·</span><span class="dim">service shelf</span></div>
+    <div id="busy-strip">
+      <span class="lamp"></span>
+      <span id="busy-text"></span>
+      <button id="btn-gui" style="display:none">follow gui →</button>
+      <button id="btn-stop" style="display:none">■ Stop</button>
+    </div>
+    <div id="scout" class="dim"></div>
+  </header>
+
+  <main>
+    <aside id="services" aria-label="available services"></aside>
+    <section id="viewer">
+      <div class="welcome">
+        <h1>Pick a service on the left.</h1>
+        <p class="dim">Its offer shows here. <b>Prepare this serve</b> gathers what it needs, then it runs — one at a time, no queue. Looking around is always free.</p>
+      </div>
+    </section>
+  </main>
+
+  <script type="module">
+    import { mount } from '/js/browser/gui.js';
+    mount();
+  </script>
+</body>
+</html>

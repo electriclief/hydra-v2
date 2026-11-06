@@ -1,0 +1,13 @@
+:root { --ink:#d8dee9; --dim:#7b8794; --back:#10141a; --line:#2a3441; --code:#1b232e; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--back); color:var(--ink); font:14px/1.55 "Segoe UI", system-ui, sans-serif; }
+header { padding:20px 26px 8px; border-bottom:1px solid var(--line); }
+header h1 { margin:0 0 4px; font-size:22px; }
+main { padding:12px 26px 60px; max-width:1100px; }
+section { margin:22px 0; padding:14px 16px; background:#141a22; border:1px solid var(--line); border-radius:8px; }
+section h2 { margin:0 0 8px; font-size:15px; color:#9ecbff; }
+.dim { color:var(--dim); }
+code { background:var(--code); padding:1px 5px; border-radius:4px; }
+pre { margin:8px 0; padding:10px 12px; background:var(--code); border:1px solid var(--line); border-radius:6px; overflow:auto; font:12px/1.5 Consolas, monospace; white-space:pre-wrap; }
+pre.header { max-height:260px; }
+pre.contract { max-height:520px; }

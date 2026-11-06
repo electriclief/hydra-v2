@@ -1,0 +1,44 @@
+:root { color-scheme: light dark; }
+body {
+  font: 15px/1.55 system-ui, "Segoe UI", sans-serif;
+  max-width: 980px;
+  margin: 2rem auto;
+  padding: 0 1.2rem;
+}
+h1 { font-size: 1.7rem; margin-bottom: 0.2rem; }
+h2 {
+  margin-top: 2.4rem;
+  border-bottom: 1px solid #9993;
+  padding-bottom: 0.3rem;
+}
+h3 { margin-top: 1.8rem; margin-bottom: 0.4rem; }
+.sub { color: #888; margin-top: 0; }
+table { border-collapse: collapse; width: 100%; }
+th, td {
+  text-align: left;
+  padding: 0.35rem 0.6rem;
+  border-bottom: 1px solid #9993;
+  vertical-align: top;
+}
+code, pre { font: 13px/1.5 "Cascadia Mono", Consolas, monospace; }
+pre {
+  background: #8881;
+  padding: 0.8rem 1rem;
+  overflow-x: auto;
+  border-radius: 6px;
+}
+pre.dts { background: #66811a; }
+.caption { color: #888; font-size: 0.85rem; margin: 0.9rem 0 0.3rem; }
+.purpose p { margin: 0.5rem 0; }
+.tag {
+  font-size: 0.75rem;
+  color: #888;
+  border: 1px solid #9996;
+  border-radius: 4px;
+  padding: 0.1rem 0.4rem;
+  margin-left: 0.4rem;
+  vertical-align: middle;
+}
+footer { margin-top: 3rem; color: #888; font-size: 0.85rem; }
+a { color: inherit; }
+section { scroll-margin-top: 1rem; }

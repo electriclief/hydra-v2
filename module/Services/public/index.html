@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Services</title>
+<link rel="stylesheet" href="./css/gui.css">
+</head>
+<body>
+<header>
+  <h1>Services</h1>
+  <p class="sub">the definitions of a run — advert · variables · modes · install — served, never started</p>
+  <div id="svc-status" class="status">connecting…</div>
+</header>
+<main>
+  <section class="pane">
+    <h2 class="filters">
+      Available services <span id="svc-count" class="dim">0</span>
+      <input id="svc-filter" class="filter" placeholder="filter: name · provider · mode">
+      <button id="svc-refresh">reload</button>
+    </h2>
+    <table>
+      <thead><tr><th>service</th><th>provider</th><th>modes</th><th>karma</th><th>state</th><th></th></tr></thead>
+      <tbody id="svc-table"></tbody>
+    </table>
+  </section>
+  <section class="pane">
+    <h2>Definition</h2>
+    <div id="svc-detail" class="output"><div class="line dim">pick a service — its whole definition lands here, and its made pages (the ad · the way in) open beside it</div></div>
+  </section>
+</main>
+<script type="module" src="./js/browser/gui.js"></script>
+</body>
+</html>

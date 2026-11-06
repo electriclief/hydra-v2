@@ -1,0 +1,130 @@
+/* The console window: a strip of console tabs, one big console pane, the add bar.
+   Dark on purpose — it is a console. */
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  height: 100%;
+  background: #101214;
+  color: #d6d8da;
+  font: 13px/1.45 "Segoe UI", system-ui, sans-serif;
+}
+
+body {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* --- the strip (one tab per console display) --- */
+#strip {
+  display: flex;
+  align-items: stretch;
+  gap: 2px;
+  padding: 5px 6px 0;
+  background: #17191c;
+  border-bottom: 1px solid #000;
+  overflow-x: auto;
+  white-space: nowrap;
+  flex: 0 0 auto;
+}
+
+.tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border: 1px solid #2a2d31;
+  border-bottom: none;
+  border-radius: 6px 6px 0 0;
+  background: #1d2024;
+  color: #aeb3b8;
+  cursor: default;
+  user-select: none;
+}
+
+.tab:hover { background: #22262b; }
+
+.tab.active {
+  background: #262b31;
+  color: #f0f2f4;
+  border-color: #3a3f45;
+}
+
+.tab-label { cursor: pointer; }
+
+.tab-min, .tab-x {
+  border: none;
+  background: transparent;
+  color: #7c838a;
+  font: inherit;
+  line-height: 1;
+  padding: 2px 4px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.tab-min:hover, .tab-x:hover { background: #3a3f45; color: #fff; }
+.tab-x:hover { background: #6b2f2f; }
+
+/* --- the console pane --- */
+#pane {
+  flex: 1 1 auto;
+  min-height: 0;
+  background: #0a0b0c;
+}
+
+#console {
+  margin: 0;
+  padding: 10px 12px;
+  height: 100%;
+  overflow: auto;
+  font: 12.5px/1.5 Consolas, "Cascadia Mono", monospace;
+  color: #cfe3cf;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* --- the footer: fill the fields, fire the event --- */
+footer {
+  flex: 0 0 auto;
+  background: #17191c;
+  border-top: 1px solid #000;
+  padding: 7px 10px;
+}
+
+#addForm {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.hint { color: #8b9299; }
+
+#addForm input {
+  background: #0d0f11;
+  color: #dfe3e6;
+  border: 1px solid #2c3136;
+  border-radius: 5px;
+  padding: 5px 8px;
+  font: inherit;
+}
+
+#addForm input:focus { outline: 1px solid #4a6b8a; border-color: #4a6b8a; }
+
+#addForm button {
+  background: #2f4a63;
+  color: #eef3f8;
+  border: 1px solid #3d5c78;
+  border-radius: 5px;
+  padding: 5px 12px;
+  font: inherit;
+  cursor: pointer;
+}
+
+#addForm button:hover { background: #3a5975; }
+
+#status { color: #9fb4c4; margin-left: 6px; }

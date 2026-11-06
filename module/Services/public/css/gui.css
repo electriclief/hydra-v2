@@ -1,0 +1,43 @@
+:root {
+  --ink: #d8dee9;
+  --dim: #7b8794;
+  --back: #10141a;
+  --pane: #161c24;
+  --line: #2a3441;
+  --ok: #6fbf73;
+  --err: #e06c75;
+  --badge: #3b4a5c;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--back);
+  color: var(--ink);
+  font: 14px/1.5 "Segoe UI", system-ui, sans-serif;
+}
+header { padding: 18px 22px 8px; border-bottom: 1px solid var(--line); }
+h1 { margin: 0; font-size: 22px; letter-spacing: 0.4px; }
+h2 { font-size: 15px; margin: 0 0 10px; }
+.sub { margin: 4px 0 10px; color: var(--dim); }
+.status { font-size: 13px; color: var(--dim); }
+.status.ok { color: var(--ok); }
+.status.err { color: var(--err); }
+main { display: grid; grid-template-columns: 1.4fr 1fr; gap: 16px; padding: 16px 22px 30px; }
+.pane { background: var(--pane); border: 1px solid var(--line); border-radius: 8px; padding: 14px; min-width: 0; }
+.filters { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.filter { background: var(--back); color: var(--ink); border: 1px solid var(--line); border-radius: 6px; padding: 5px 8px; }
+.wide { width: 100%; }
+table { width: 100%; border-collapse: collapse; }
+th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { color: var(--dim); font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.6px; }
+code { background: #0b0e13; padding: 1px 5px; border-radius: 4px; }
+button { background: #223041; color: var(--ink); border: 1px solid var(--line); border-radius: 6px; padding: 5px 12px; cursor: pointer; }
+button:hover { background: #2b3d52; }
+.badge { background: var(--badge); border-radius: 10px; padding: 1px 8px; font-size: 12px; margin-right: 4px; }
+.badge.ok { background: #234b2a; }
+.badge.err { background: #4b2226; }
+.dim { color: var(--dim); }
+.err { color: var(--err); }
+.output { max-height: 70vh; overflow: auto; }
+pre.content { background: #0b0e13; border: 1px solid var(--line); border-radius: 6px; padding: 10px; overflow: auto; font-size: 12.5px; }
+.line { margin: 4px 0; }

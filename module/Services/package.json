@@ -1,0 +1,34 @@
+{
+  "name": "services",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Services — the elaborate object (ES modules). ONE tiny .js data file per service: the definition (advert · provider · variables · modes · needs · output · children · install · update) plus the two pages it produces (ad — the sell sheet · inputs — the way in), its declared progress, and its own gui when it has one, loaded as DATA — never executed — validated, and served to humans and agents alike. Runs nothing: the Scheduler's business, later.",
+  "type": "module",
+  "main": "public/js/main.js",
+  "exports": {
+    ".": "./public/js/main.js",
+    "./client": "./public/js/client.js",
+    "./catalog": "./public/js/serviceCatalog.js",
+    "./schema": "./public/js/serviceSchema.js",
+    "./file": "./public/js/serviceFile.js",
+    "./registry": "./public/js/mcpTools.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "esbuild public/ts/*.ts public/ts/browser/*.ts --outdir=public/js --format=esm --platform=node --target=node20 --sourcemap",
+    "watch": "esbuild public/ts/*.ts public/ts/browser/*.ts --outdir=public/js --format=esm --platform=node --target=node20 --sourcemap --watch",
+    "dev": "npm run watch",
+    "typecheck": "tsc --noEmit",
+    "selftest": "node public/js/selftest.js",
+    "docs": "node scripts/build-docs.cjs",
+    "test": "npm run build && npm run typecheck && npm run selftest",
+    "start": "node public/js/main.js"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "esbuild": "^0.25.0",
+    "typescript": "^5.6.0"
+  }
+}

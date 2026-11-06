@@ -1,0 +1,335 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>{{SERVICE_NAME}} — inputs</title>
+<!--
+  ============================================================================
+  INPUTS PAGE — THE DEFAULT TEMPLATE (copy this file when authoring a service)
+  ============================================================================
+
+  Four laws. They are the whole point; the palette is just how it reads.
+
+  1. TIER 1 IS WHAT A NEW USER MUST DECIDE. Nothing else above the fold: the
+     words, the size, the pictures. No sampler, no cache flags, no paths.
+
+  2. EVERY DEEPER LAYER IS A <details>, closed by default, ordered by
+     UNDERSTANDING — not by the definition's field order:
+        tier 2  how it runs     steps · cfg · sampler · seed · negative
+        tier 3  which model     the mode/stack swap and the weights
+        tier 4  the machine     device · tiling · offload · folders
+     A beginner never opens them; an expert never hunts for them.
+
+  3. A DEFAULT IS GREY. Change it and it LIGHTS (amber rule + ink text).
+     "Reset" returns everything to grey. GREY IS STILL SUBMITTED — unchanged
+     is not empty; the value shown is always the value sent.
+
+  4. NAME ATTRIBUTES MUST EQUAL THE DEFINITION'S variables.input NAMES.
+     A human typing here and an agent calling the tool write the SAME keys.
+     If this page invents a field the definition lacks, only the human path
+     breaks — and it breaks silently.
+
+  Replace: title · kicker · h1 · lede · the field list · the needs line · the
+  output line · the hero. Keep: the tier order, grey→lit, the sticky bar, the
+  palette, the footer sentence.
+  ============================================================================
+-->
+<style>
+  :root{
+    --ground:#0a0b0d; --panel:#101216; --ink:#ece7dd; --dim:#8b857a; --faint:#5f5a52;
+    --line:rgba(236,231,221,.12); --accent:#d9a441; --good:#7fa650;
+    --sans:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+    --serif:"Iowan Old Style",Georgia,"Times New Roman",serif;
+    --mono:ui-monospace,"Cascadia Mono",Consolas,"SF Mono",monospace;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--sans);
+    -webkit-font-smoothing:antialiased}
+  body{padding-bottom:86px}
+  main{max-width:880px;margin:0 auto;padding:0 26px}
+
+  .kicker{font:500 11px/1 var(--mono);letter-spacing:.24em;text-transform:uppercase;
+    color:var(--accent);margin:38px 0 14px}
+  h1{font:400 40px/1.1 var(--serif);margin:0 0 12px;letter-spacing:-.01em}
+  .lede{font-size:16.5px;line-height:1.6;color:#cfc8bb;max-width:62ch;margin:0 0 8px}
+  .hero{margin:24px 0 4px;border:1px solid var(--line);overflow:hidden;max-height:200px}
+  .hero img{display:block;width:100%;height:200px;object-fit:cover;object-position:center}
+
+  /* ---------- tier 1 ---------- */
+  .t1{margin:30px 0 0;border-top:1px solid var(--line);padding-top:26px}
+  .field{margin:0 0 22px}
+  .field label{display:block;font:500 10.5px/1 var(--mono);letter-spacing:.18em;
+    text-transform:uppercase;color:var(--dim);margin-bottom:9px}
+  .field .help{font-size:12.5px;line-height:1.5;color:#6f6a61;margin-top:7px}
+  input[type=text],input[type=number],textarea,select{
+    width:100%;background:var(--panel);color:var(--ink);border:1px solid var(--line);
+    padding:13px 14px;font:400 14px/1.4 var(--sans);outline:none;
+    border-left:2px solid transparent}
+  /* NO transition on colour/border: a background tab freezes CSS transitions at t=0, so a
+     fading "lit" state can read as grey to anything inspecting it (and to a screenshot).
+     The lit switch must be instant and true wherever the page is rendered. */
+  textarea{min-height:132px;resize:vertical;font-size:15.5px;line-height:1.55}
+  input:focus,textarea:focus,select:focus{border-color:var(--accent)}
+  .row{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+  .row.two{grid-template-columns:repeat(2,1fr)}
+  .mono{font-family:var(--mono);font-size:13.5px}
+
+  /* THE GREY → LIT LAW.
+     Element+attribute selectors so these beat the input[type=…] base rule above —
+     a bare [attr] selector loses to input[type=number] and the class would look inert. */
+  input[data-default],textarea[data-default],select[data-default]{
+    color:var(--dim);border-left-color:transparent}
+  input[data-default].lit,textarea[data-default].lit,select[data-default].lit{
+    color:var(--ink);border-left-color:var(--accent);background:#14171c}
+  .lit-label{color:var(--ink)}
+  .lit-label::after{content:" · changed";color:var(--accent);letter-spacing:.14em}
+
+  /* ---------- tiers ---------- */
+  details{margin:0;border-top:1px solid var(--line)}
+  details summary{cursor:pointer;list-style:none;padding:17px 2px;
+    font:500 11px/1 var(--mono);letter-spacing:.2em;text-transform:uppercase;color:var(--dim);
+    display:flex;align-items:center;gap:12px}
+  details summary::-webkit-details-marker{display:none}
+  details summary::before{content:"+";font:400 15px/1 var(--mono);color:var(--accent);
+    width:12px;display:inline-block}
+  details[open] summary::before{content:"–"}
+  details[open] summary{color:var(--ink)}
+  details summary .hint{font:400 10.5px/1 var(--mono);letter-spacing:.06em;color:var(--faint);
+    text-transform:none;margin-left:auto}
+  details .body{padding:4px 0 26px}
+  details .body p.note{font-size:12.5px;line-height:1.6;color:var(--faint);max-width:66ch;
+    margin:0 0 18px}
+
+  /* ---------- receipt ---------- */
+  .aside{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin:26px 0 0;
+    border-top:1px solid var(--line);padding-top:16px}
+  .aside div{font:400 12px/1.7 var(--mono);color:var(--dim)}
+  .aside b{display:block;color:#cfc8bb;font-weight:500;margin-bottom:5px;letter-spacing:.12em;
+    text-transform:uppercase;font-size:10.5px}
+  footer{margin:34px 0 30px;padding-top:16px;border-top:1px solid var(--line);
+    font:400 11px/1 var(--mono);color:var(--faint);letter-spacing:.16em;text-transform:uppercase}
+
+  /* ---------- sticky run bar ---------- */
+  .runbar{position:fixed;left:0;right:0;bottom:0;background:rgba(10,11,13,.96);
+    border-top:1px solid var(--line);backdrop-filter:blur(8px);z-index:20}
+  .runbar .in{max-width:880px;margin:0 auto;padding:16px 26px;display:flex;align-items:center;gap:14px}
+  .runbar .state{font:400 11.5px/1 var(--mono);color:var(--dim);letter-spacing:.08em}
+  .runbar .state i{color:var(--good);font-style:normal}
+  .runbar .spacer{margin-left:auto}
+  .btn{font:600 12px/1 var(--mono);letter-spacing:.16em;text-transform:uppercase;
+    background:var(--accent);color:#14100a;border:0;padding:15px 26px;cursor:pointer}
+  .btn.ghost{background:transparent;color:var(--dim);border:1px solid var(--line);padding:14px 18px}
+</style>
+</head>
+<body>
+<main>
+  <div class="kicker">{{KICKER}}</div>
+  <h1>{{SERVICE_NAME}}</h1>
+  <p class="lede">{{LEDE}}</p>
+
+  <figure class="hero">
+    <img src="{{HERO}}" alt="">
+  </figure>
+
+  <form id="f" onsubmit="return false">
+
+    <!-- ================= TIER 1 — a new user needs only this ================= -->
+    <section class="t1">
+      <div class="field">
+        <label for="prompt">Prompt</label>
+        <textarea id="prompt" name="prompt" placeholder="Describe the picture you want."
+          data-default=""></textarea>
+      </div>
+
+      <div class="row">
+        <div class="field">
+          <label for="width">Width</label>
+          <input id="width" name="width" class="mono" type="number" value="512" data-default="512">
+        </div>
+        <div class="field">
+          <label for="height">Height</label>
+          <input id="height" name="height" class="mono" type="number" value="512" data-default="512">
+        </div>
+        <div class="field">
+          <label for="seed">Seed</label>
+          <input id="seed" name="seed" class="mono" type="number" value="42" data-default="42">
+        </div>
+      </div>
+
+      <div class="row two">
+        <div class="field">
+          <label for="startImage">Start frame · path</label>
+          <input id="startImage" name="startImage" class="mono" type="text" value=""
+            placeholder="(empty — text to image)" data-default="">
+        </div>
+        <div class="field">
+          <label for="refImages">Reference images · paths</label>
+          <input id="refImages" name="refImages" class="mono" type="text" value=""
+            placeholder="(empty — no references)" data-default="">
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= TIER 2 — how it runs ================= -->
+    <details>
+      <summary>How it runs <span class="hint">steps · cfg · sampler</span></summary>
+      <div class="body">
+        <p class="note">Turbo models are distilled: 4 steps and cfg 1.0 are the intended
+          settings, not a compromise. Raising steps on a turbo model mostly costs time.</p>
+        <div class="row">
+          <div class="field">
+            <label for="steps">Steps</label>
+            <input id="steps" name="steps" class="mono" type="number" value="4" data-default="4">
+            <div class="help">4 is intended. 8 costs double and adds little.</div>
+          </div>
+          <div class="field">
+            <label for="cfg">CFG</label>
+            <input id="cfg" name="cfg" class="mono" type="number" step="0.1" value="1" data-default="1">
+            <div class="help">Turbo wants 1.0.</div>
+          </div>
+          <div class="field">
+            <label for="sampler">Sampler</label>
+            <select id="sampler" name="sampler" class="mono" data-default="euler_a">
+              <option value="euler_a" selected>euler_a</option>
+              <option value="euler">euler</option>
+              <option value="dpmpp2m">dpm++ 2m</option>
+              <option value="lcm">lcm</option>
+            </select>
+          </div>
+        </div>
+        <div class="field">
+          <label for="negative">Negative prompt</label>
+          <textarea id="negative" name="negative" data-default=""
+            placeholder="what to keep out (empty is normal on turbo)"></textarea>
+        </div>
+      </div>
+    </details>
+
+    <!-- ================= TIER 3 — which model ================= -->
+    <details>
+      <summary>The model <span class="hint">swap · quality</span></summary>
+      <div class="body">
+        <p class="note">Changing the stack changes what the numbers above MEAN. The page keeps
+          your values; the engine reads them differently.</p>
+        <div class="row two">
+          <div class="field">
+            <label for="mode">Stack</label>
+            <select id="mode" name="mode" class="mono" data-default="turbo-q4k">
+              <option value="turbo-q4k" selected>turbo-q4k · 4 steps</option>
+              <option value="base-z-image">base-z-image · full steps</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="quality">Weights</label>
+            <select id="quality" name="quality" class="mono" data-default="Q4_K (fast)">
+              <option value="Q4_K (fast)" selected>Q4_K · 3.86 GB</option>
+              <option value="Q8_0">Q8_0 · 6.58 GB · more detail</option>
+            </select>
+          </div>
+        </div>
+        <div class="field">
+          <label for="model">Model file</label>
+          <input id="model" name="model" class="mono" type="text"
+            value="D:/Models/sd-cpp/zimage-turbo-Q4_K.gguf" data-default="D:/Models/sd-cpp/zimage-turbo-Q4_K.gguf">
+        </div>
+      </div>
+    </details>
+
+    <!-- ================= TIER 4 — the machine ================= -->
+    <details>
+      <summary>The machine <span class="hint">device · cache · folders</span></summary>
+      <div class="body">
+        <p class="note">If a render crawls or fails, it is almost always here — the wrong GPU, or
+          tiling off on a picture that does not fit.</p>
+        <div class="row">
+          <div class="field">
+            <label for="device">GPU</label>
+            <input id="device" name="device" class="mono" type="text" value="vulkan1" data-default="vulkan1">
+            <div class="help">vulkan0 is the small card on this box. Leave vulkan1.</div>
+          </div>
+          <div class="field">
+            <label for="tiling">VAE tiling</label>
+            <select id="tiling" name="tiling" class="mono" data-default="on (3x3)">
+              <option value="on (3x3)" selected>on · 3×3</option>
+              <option value="off">off · fastest, needs memory</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="offload">Offload to CPU</label>
+            <select id="offload" name="offload" class="mono" data-default="off">
+              <option value="off" selected>off</option>
+              <option value="on">on · slow, fits anywhere</option>
+            </select>
+          </div>
+        </div>
+        <div class="row two">
+          <div class="field">
+            <label for="outDir">Output folder</label>
+            <input id="outDir" name="outDir" class="mono" type="text"
+              value="D:/Models/sd-cpp/out" data-default="D:/Models/sd-cpp/out">
+          </div>
+          <div class="field">
+            <label for="sdDir">sd.cpp folder</label>
+            <input id="sdDir" name="sdDir" class="mono" type="text"
+              value="D:/Models/sd-cpp/bin-master-929" data-default="D:/Models/sd-cpp/bin-master-929">
+          </div>
+        </div>
+      </div>
+    </details>
+
+  </form>
+
+  <div class="aside">
+    <div><b>Needs here</b>{{NEEDS}}</div>
+    <div><b>Lands at</b>{{OUTPUT}}</div>
+  </div>
+
+  <footer>{{FOOTER}}</footer>
+</main>
+
+<div class="runbar">
+  <div class="in">
+    <span class="state"><i>●</i> idle · nothing running</span>
+    <span class="spacer"></span>
+    <button class="btn ghost" id="reset" type="button">Reset</button>
+    <button class="btn" type="button">Run →</button>
+  </div>
+</div>
+
+<script>
+/* THE GREY → LIT LAW — no library, no framework, no template literals. */
+(function () {
+  var fields = Array.prototype.slice.call(document.querySelectorAll('[data-default]'));
+
+  function isChanged(el) {
+    var d = el.getAttribute('data-default');
+    if (el.tagName === 'TEXTAREA' || el.tagName === 'INPUT') return String(el.value) !== d;
+    if (el.tagName === 'SELECT') return String(el.value) !== d;
+    return false;
+  }
+
+  function paint(el) {
+    var lit = isChanged(el);
+    el.classList.toggle('lit', lit);
+    var label = document.querySelector('label[for="' + el.id + '"]');
+    if (label) label.classList.toggle('lit-label', lit);
+  }
+
+  fields.forEach(function (el) {
+    ['input', 'change'].forEach(function (ev) {
+      el.addEventListener(ev, function () { paint(el); });
+    });
+    paint(el);
+  });
+
+  document.getElementById('reset').addEventListener('click', function () {
+    fields.forEach(function (el) {
+      if (el.tagName === 'SELECT') el.value = el.getAttribute('data-default');
+      else el.value = el.getAttribute('data-default');
+      paint(el);
+    });
+  });
+})();
+</script>
+</body>
+</html>

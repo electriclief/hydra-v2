@@ -1,0 +1,16 @@
+{
+  "name": "basic-app",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Basic_App — the service shelf instance: lists available services, prepares one, runs ONE at a time (busy or not, no queue). Wires services · ProcessWrapper · ResourceManager · State · Event_Handler · Electron_Wrapper.",
+  "main": "Basic_App_module.js",
+  "scripts": {
+    "build": "esbuild 'public/ts/**/*.ts' --outdir=public/js --format=esm --platform=neutral --target=es2022 --sourcemap",
+    "typecheck": "tsc --noEmit",
+    "selftest": "node public/js/selftest.js",
+    "test": "npm run build && npm run typecheck && npm run selftest",
+    "start": "node public/js/main.js",
+    "shell": "electron electron/main.cjs"
+  }
+}
