@@ -619,9 +619,7 @@
       "state": "open",
       "deps": [],
       "next": [
-        "standby{start,stop,verify} still live in scripts/standby-guard.ps1 - move the commands into node.json so the guard is generic (label, after, pinned already read from there)",
         "on book: stop the standby through ProcessWrapper, poll until the process is really gone, then launch - today the guard kills processes directly",
-        "on idle: verify the standby before reporting green (miner API answers, or the process is in the PW table) - today it trusts schtasks SUCCESS",
         "direct control: POST /api/standby {action:start|stop|pin} on the Scheduler so mining is addressable without booking a job"
       ],
       "tags": [
@@ -696,10 +694,22 @@
           "kind": "done",
           "text": "prove end to end on one node: idle 30 min -> miner starts and verifies, book a job -> miner gone in seconds, release -> miner returns :: proved twice: 18 booked jobs -> YIELD 18:00:17 -> countdown from the book (12s/7s/2s) -> RESUME 18:01:22; second run overshoot 2.5s after the nap-to-deadline fix",
           "by": "hermes-agent"
+        },
+        {
+          "at": 1794006713361,
+          "kind": "done",
+          "text": "standby{start,stop,verify} still live in scripts/standby-guard.ps1 :: built: node.json standby now carries start{command,args,cwd}, stop{processes,task} and verify{processes,timeoutS}; the guard reads them and falls back to the Hydra-Miner task when absent",
+          "by": "hermes-agent"
+        },
+        {
+          "at": 1794006713361,
+          "kind": "done",
+          "text": "on idle: verify the standby before reporting green :: built: Start-Miner polls for verify.processes up to verify.timeoutS and reports ok / blocked / failed; the footer says 'Idle Service BLOCKED - standby did not start' instead of claiming mining",
+          "by": "hermes-agent"
         }
       ],
       "created": 1793923776255,
-      "touched": 1794006358850,
+      "touched": 1794006713361,
       "dir": "thoughts/db39b286"
     },
     {

@@ -190,25 +190,99 @@ function Get-MinerRunning {
 }
 
 function Stop-Miner {
-  schtasks /end /tn $MinerTask 2>$null | Out-Null
+  $task = $MinerTask
+  $names = @('unMiner', 'SRBMiner-MULTI', 'lolMiner', 'xmrig')
+  if ($Policy -and $Policy.stop) {
+    if ($Policy.stop.task) { $task = [string]$Policy.stop.task }
+    if ($Policy.stop.processes) { $names = @($Policy.stop.processes) }
+  }
+  schtasks /end /tn $task 2>$null | Out-Null
   Start-Sleep -Seconds 2
-  foreach ($n in @('unMiner','SRBMiner-MULTI','lolMiner','xmrig')) {
+  foreach ($n in $names) {
     Get-Process -Name $n -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
   }
   LogIt "YIELD  miner stopped for AI work"
 }
 
-function Start-Miner {
-  # A task that still claims Running with no children is a wrapper that outlived its miner, and /run on it does
-  # nothing at all. End it first, so "start" means what it says. This cost 20 seconds of dead air once.
-  $procs = @(Get-Process -Name 'SRBMiner-MULTI', 'unMiner' -ErrorAction SilentlyContinue)
-  if ($procs.Count -eq 0) {
-    schtasks /end /tn $MinerTask 2>$null | Out-Null
-    Start-Sleep -Milliseconds 600
+# How this box is idle lives in the instance layer's node.json, never in this script: a guard with a hardcoded
+# miner command cannot hold a different card busy. Re-read every few minutes so an edit takes effect without a
+# restart, and fall back to the old hardcoded behaviour when the block is absent.
+function Get-StandbyPolicy {
+  foreach ($p in @('C:\AI\hydra-local\module\Core\data\node.json', 'C:\AI\hydra-local\module\Menu\data\node.json')) {
+    if (Test-Path $p) {
+      try {
+        $j = Get-Content $p -Raw | ConvertFrom-Json
+        if ($j.standby) { return $j.standby }
+      }
+      catch { }
+    }
   }
-  $script:taskRunningSince = $null
-  $r = schtasks /run /tn $MinerTask 2>$null | Out-String
-  if ($r -match 'SUCCESS') { LogIt "RESUME  miner started" } else { LogIt ("RESUME failed: " + $r.Trim()) }
+  return $null
+}
+
+function Test-StandbyUp {
+  # verified means the thing that earns is actually there, not that a launcher returned success
+  if ($Policy -and $Policy.verify -and $Policy.verify.processes) {
+    foreach ($n in @($Policy.verify.processes)) {
+      if (Get-Process -Name $n -ErrorAction SilentlyContinue) { return $true }
+    }
+    return $false
+  }
+  return (Get-MinerRunning)
+}
+
+function Start-Miner {
+  $script:lastVerify = 'pending'
+  if ($Policy -and $Policy.start -and $Policy.start.command) {
+    $cmd = [string]$Policy.start.command
+    # an empty JSON array arrives as $null, and Start-Process rejects a null ArgumentList outright. Build the list
+    # element by element and omit the parameter entirely when there is nothing to pass.
+    $argList = @()
+    if ($null -ne $Policy.start.args) {
+      foreach ($a in @($Policy.start.args)) { if ($null -ne $a -and ([string]$a) -ne '') { $argList += [string]$a } }
+    }
+    $wd = $null
+    if ($Policy.start.cwd) { $wd = [string]$Policy.start.cwd }
+    try {
+      $procArgs = @{ FilePath = $cmd }
+      if ($argList.Count -gt 0) { $procArgs['ArgumentList'] = $argList }
+      if ($wd) { $procArgs['WorkingDirectory'] = $wd }
+      Start-Process @procArgs
+      LogIt "RESUME  standby launched (node.json start)"
+    }
+    catch {
+      LogIt ("RESUME failed: " + $_.Exception.Message)
+      $script:lastVerify = 'failed'
+      return $false
+    }
+  }
+  else {
+    $procs = @(Get-Process -Name 'SRBMiner-MULTI', 'unMiner' -ErrorAction SilentlyContinue)
+    if ($procs.Count -eq 0) {
+      schtasks /end /tn $MinerTask 2>$null | Out-Null
+      Start-Sleep -Milliseconds 600
+    }
+    $script:taskRunningSince = $null
+    $r = schtasks /run /tn $MinerTask 2>$null | Out-String
+    if ($r -match 'SUCCESS') { LogIt "RESUME  miner started (task)" } else { LogIt ("RESUME failed: " + $r.Trim()) }
+  }
+
+  # A start that never produced the standby is a BLOCKED state, not a green one: report it as such instead of
+  # letting the footer claim the card is earning while nothing does.
+  $timeout = 60
+  if ($Policy -and $Policy.verify -and $null -ne $Policy.verify.timeoutS) { $timeout = [int]$Policy.verify.timeoutS }
+  $deadline = (Get-Date).AddSeconds($timeout)
+  while ((Get-Date) -lt $deadline) {
+    Start-Sleep -Seconds 3
+    if (Test-StandbyUp) {
+      LogIt ("RESUME verified after " + [int]((Get-Date) - $deadline.AddSeconds(-$timeout)).TotalSeconds + "s")
+      $script:lastVerify = 'ok'
+      return $true
+    }
+  }
+  LogIt ("RESUME BLOCKED  standby not up " + $timeout + "s after launch")
+  $script:lastVerify = 'blocked'
+  return $false
 }
 
 LogIt "guard start  poll ${PollSeconds}s  grace ${ResumeGraceSeconds}s  task=$MinerTask"
@@ -234,9 +308,21 @@ $busySince = $null
 $wasPinned = $false
 $lastMode = $null
 $lastPublishError = $null
+$tick = 0
+
+# the standby policy is the node's, not this script's: read it before the first poll and refresh it periodically
+$Policy = Get-StandbyPolicy
+if ($Policy -and $null -ne $Policy.after) { $ResumeGraceSeconds = [int]$Policy.after }
+if ($Policy -and $Policy.label) { LogIt ("standby: " + $Policy.label + "  after " + $ResumeGraceSeconds + "s") }
 
 while ($true) {
+  $tick++
+  if ($tick % 20 -eq 0) {
+    $Policy = Get-StandbyPolicy
+    if ($Policy -and $null -ne $Policy.after) { $ResumeGraceSeconds = [int]$Policy.after }
+  }
   $pinned = Test-Path $PinFile
+  if ($Policy -and $null -ne $Policy.pinned) { if ($Policy.pinned) { $pinned = $true } }
   $ai = @(Get-AiWork)
   $miner = Get-MinerRunning
   $idle = Get-IdleState
@@ -324,6 +410,8 @@ while ($true) {
     grace      = $ResumeGraceSeconds
     after      = $(if ($null -ne $idle -and $null -ne $idle.after) { [int]$idle.after } else { $null })
     idleSource = $(if ($null -ne $idle) { 'book' } else { 'guard' })
+    verify     = $script:lastVerify
+    standby    = $(if ($Policy -and $Policy.label) { [string]$Policy.label } else { $null })
     poll       = $PollSeconds
   }
   ($st | ConvertTo-Json -Depth 5 -Compress) | Set-Content -Path $StatePath -Encoding ascii

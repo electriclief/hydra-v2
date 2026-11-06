@@ -44,8 +44,11 @@ export interface StandbyState {
   working?: number;
   parked?: number;
   mode?: 'ai' | 'mining' | 'idle';
-  /**
-   * What the miner says it is doing, asked of the miner itself (SRBMiner's JSON summary) - algorithm, rate, shares.
+  /** did the last standby start actually produce the standby? 'blocked' is a real, reportable state */
+  verify?: 'ok' | 'blocked' | 'failed' | 'pending' | null;
+  /** the standby's own name from node.json: "PearlPow mining" */
+  standby?: string | null;
+  /** what the miner says it is doing, asked of the miner itself (SRBMiner's JSON summary) - algorithm, rate, shares.
    * Absent when the miner publishes nothing; the line then says "mining" without inventing a number.
    */
   minerDetail?: {
@@ -288,6 +291,12 @@ export function statusLineOf(parts: StatusParts): string {
   }
   if (parts.queued > 0) return `${node}GPU · idle · ${parts.queued} booked, next starts on release`;
   if (parts.aiWork) return `${node}GPU · ${parts.standby?.ai || 'AI work'} · AI work`;
+  // A standby that was told to start and never appeared is the most important thing this line can say: the card is
+  // idle, the node believes it is earning, and it is not. Say it before "mining" gets a chance to lie.
+  if ((parts.standby?.verify === 'blocked' || parts.standby?.verify === 'failed') && !parts.standby?.miner) {
+    const what = parts.standby.standby ? ` (${parts.standby.standby})` : '';
+    return `${node}GPU · idle · Idle Service BLOCKED${what} - standby did not start`;
+  }
   if (parts.standby?.miner) {
     // What the miner reports beats the word "mining": the algorithm and rate come from SRBMiner's own summary.
     // No detail means no number is invented - the line stays at "mining".

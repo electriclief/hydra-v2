@@ -122,6 +122,10 @@ function statusLineOf(parts) {
   }
   if (parts.queued > 0) return `${node}GPU \xB7 idle \xB7 ${parts.queued} booked, next starts on release`;
   if (parts.aiWork) return `${node}GPU \xB7 ${parts.standby?.ai || "AI work"} \xB7 AI work`;
+  if ((parts.standby?.verify === "blocked" || parts.standby?.verify === "failed") && !parts.standby?.miner) {
+    const what = parts.standby.standby ? ` (${parts.standby.standby})` : "";
+    return `${node}GPU \xB7 idle \xB7 Idle Service BLOCKED${what} - standby did not start`;
+  }
   if (parts.standby?.miner) {
     const md = parts.standby.minerDetail;
     const doing = md && (md.label || md.algo) ? `${md.label || md.algo}${typeof md.rate === "number" ? ` ${md.rate} ${md.unit ?? ""}`.trimEnd() : ""}` : "mining";
