@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ProcessWrapper — the process supervisor</title>
+<style>
+  :root { color-scheme: dark; --bg:#111318; --panel:#191c23; --border:#303541; --text:#e5e7eb; --muted:#a1a8b7; --accent:#8ab4f8; }
+  * { box-sizing: border-box; }
+  body { margin:0; padding:32px; background:var(--bg); color:var(--text);
+         font:15px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif; max-width:78ch; }
+  h1 { margin:0 0 4px; font-size:24px; font-weight:600; letter-spacing:-.01em; }
+  h2 { margin:32px 0 10px; font-size:13px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; color:var(--muted); }
+  .kicker { margin:0 0 28px; color:var(--muted); font-size:13px; }
+  p { margin:0 0 12px; }
+  code { font:13px/1.5 ui-monospace,Consolas,monospace; background:#0b0d11; border:1px solid var(--border);
+         border-radius:5px; padding:1px 5px; color:#cfd6e4; }
+  pre { background:#0b0d11; border:1px solid var(--border); border-radius:8px; padding:12px 14px; overflow:auto; }
+  table { width:100%; border-collapse:collapse; margin:6px 0 16px; font-size:14px; }
+  th, td { text-align:left; padding:7px 10px; border-bottom:1px solid var(--border); vertical-align:top; }
+  th { color:var(--muted); font-weight:600; font-size:12px; letter-spacing:.06em; text-transform:uppercase; }
+  .note { color:var(--muted); font-size:13px; }
+  .lede { font-size:16px; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>ProcessWrapper</h1>
+  <p class="kicker">the process supervisor · door on :8125 · one table, one file per life, one console window at /window.html</p>
+</header>
+
+<section id="summary">
+  <p class="lede">ProcessWrapper is the only place on this box where a process may begin. It launches any
+  command as a child, gives that child a row in one table and a text file of its own, and copies what the child
+  said back out through the same port that launched it. Its console page at <code>/window.html</code> gives each
+  running thing a tab, so watching a process and starting one are the same window.</p>
+</section>
+
+<section id="concepts">
+  <h2>How it holds together</h2>
+  <p><b>One table is the truth.</b> Everything that spawns goes through <code>wrapper.launch(spec)</code> and
+  becomes one <code>ProcessRecord</code>: <code>id, name, tag, command, args, cwd, shell, pid, life,
+  spawnedAt, endedAt, exitCode, signal, chars{stdout,stderr}, truncated, streamFile</code>. <code>life</code> is
+  one of <code>starting · running · exited · killed · failed</code>, and a life is over when it reaches one of
+  the last three. The law written at the top of <code>processWrapper.ts</code> is <em>nothing hidden</em>: a
+  child is only ever created here, and it is always in the list — which is why the API, the stream fan-out, the
+  console window and the saved commands all read the same table instead of keeping one each.</p>
+  <p><b>One life = one file.</b> A launch writes an empty
+  <code>data/streams/&lt;slug&gt;-&lt;seq&gt;-&lt;hex&gt;.log</code> — the id is the name slugged to 18 chars, a
+  zero-padded counter and four hex digits — and every chunk is appended to it as it arrives, both channels
+  interleaved in arrival order. The file is never rotated, is whole while the process lives, and is kept at
+  death until an operator deletes it. The RAM buffer (<code>bufferLimitChars</code>, default
+  <code>4,000,000</code>) exists only for fast copies; when it has to shed old chunks it sets
+  <code>truncated: true</code> rather than pretending the text is complete.</p>
+  <p><b>Two ways to read the same text, and the offsets are the contract.</b> <code>GET
+  /api/processes/&lt;id&gt;/output?from=&amp;limit=&amp;channel=</code> returns a copy as
+  <code>text/plain</code> with the frame written into headers — <code>x-pw-from</code>, <code>x-pw-to</code>,
+  <code>x-pw-total</code>, <code>x-pw-complete</code> — so a reader can ask again from exactly where it
+  stopped. <code>GET /api/processes/&lt;id&gt;/stream</code> is the same content as SSE, one
+  <code>chunk</code> event carrying <code>{seq, channel, from, fileFrom, at, text}</code>, plus
+  <code>open</code>, <code>drop</code> and <code>end</code>. Offsets are character offsets in two different
+  frames on purpose: <code>from</code> is inside its own channel, <code>fileFrom</code> is inside the life
+  file. A slow client is told so (<code>drop</code>) instead of being silently skipped.</p>
+  <p><b>The root is a row too.</b> The process that keeps this law for everyone else used to be the one
+  process it did not cover — a bare console with no name, no pid, no file. <code>captureRootLife</code> tees
+  the root's own stdout/stderr into <code>streams/root.log</code>, publishes a <code>root</code> record beside
+  the children in <code>GET /api/processes</code>, and serves it at <code>GET /api/root/output</code>. It tees;
+  it never replaces, because hiding output from a live terminal to satisfy a file would be the same mistake in
+  the other direction. The console window is therefore no longer load-bearing, and the box can run with one
+  window instead of a stray console beside it.</p>
+  <p><b>Events are the handle; the window is a view.</b> <code>consoleEvents.ts</code> loads the sibling
+  module's embed entry (<code>../../../Event_Handler/Event_Handler_module.js</code>) into <em>this</em> thread
+  and registers three events: <code>add Process Console Display</code>, <code>kill Process Console Display</code>
+  and <code>note System Drain</code>. The add event launches through the same wrapper with
+  <code>tag: 'console'</code> — <code>provider.launch</code> is the command, <code>command</code> wins over it,
+  and anything the registration supplied rides back in the result instead of being dropped. So a click, a curl,
+  a script and an agent all take one path. <code>/window.html</code> polls <code>GET /api/processes</code> and
+  derives its tabs from that table: every console appears as a tab, minimizing parks it without ending the
+  process, and closing a live tab fires the kill event. A display can leave the strip while its process
+  lives.</p>
+  <p><b>Saved commands are a file, not a database.</b> <code>data.yaml</code> holds
+  <code>{name, command, args, cwd, env, shell, description, tag, createdAt, updatedAt}</code>, written by
+  <code>registryStore.ts</code>; hand edits survive the round trip, and the wrapper never rewrites a part of the
+  file it does not own. <code>POST /api/processes {"saved":"tick"}</code> resolves the definition to a spec, so
+  the thing that was tested by hand is the thing that runs later.</p>
+  <p><b>A token guards actions, not the page.</b> <code>/api/*</code>, <code>/health</code> and
+  <code>/mcp</code> require <code>x-pw-token</code> (or <code>?token=</code>) when the door was started with
+  <code>--token</code>; static files never do — an operator has to be able to load the GUI in order to type the
+  token into it. <code>POST /api/stop</code> is the stop-all: it answers <code>202</code> first and only then
+  takes the door down, so a caller is never left hanging on the death it asked for.</p>
+</section>
+
+<section id="wiring">
+  <h2>Wiring, for humans</h2>
+  <p>What ProcessWrapper needs in order to keep its own law:</p>
+  <table>
+    <thead><tr><th>needs</th><th>from</th><th>required</th></tr></thead>
+    <tbody>
+      <tr><td>a writable stream folder — one text file per life, plus <code>root.log</code></td><td><code>data/streams/</code> (default: cwd)</td><td>yes — a launch with nowhere to write has no record</td></tr>
+      <tr><td>the events embed — <code>createModule({logPath})</code></td><td><code>module/Event_Handler/Event_Handler_module.js</code></td><td>yes — <code>startWrapper</code> awaits it unguarded, so a missing sibling means the door does not start</td></tr>
+      <tr><td>the saved-command registry</td><td><code>data.yaml</code> (default: cwd)</td><td>no — an empty registry is a normal start, not an error</td></tr>
+      <tr><td>a port and a bind</td><td><code>--port</code> (8125) · <code>--host</code> (127.0.0.1)</td><td>yes — flags beat <code>PW_*</code> environment, which beats the defaults</td></tr>
+    </tbody>
+  </table>
+  <p>What it gives back:</p>
+  <table>
+    <thead><tr><th>gives</th><th>to</th><th>shape</th></tr></thead>
+    <tbody>
+      <tr><td><code>GET /api/processes</code> · <code>POST /api/processes</code></td><td>any launcher</td><td><code>{processes[], count, root}</code> · <code>{process}</code> — filters <code>?life=</code>, <code>?tag=</code></td></tr>
+      <tr><td><code>GET /api/processes/&lt;id&gt;</code> · <code>/output</code> · <code>/stream</code> · <code>/file</code></td><td>a reader</td><td>the record + buffer status · <code>text/plain</code> with <code>x-pw-*</code> frame · SSE <code>chunk</code> events · the path of the life file</td></tr>
+      <tr><td><code>POST /api/processes/&lt;id&gt;/input</code> · <code>/kill</code> · <code>DELETE /api/processes/&lt;id&gt;</code></td><td>an operator</td><td>stdin text · <code>{kill}</code> — a graceful ask bounded by <code>graceMs</code> (3000), tree-killed when <code>force:true</code> · kill + forget</td></tr>
+      <tr><td><code>GET /api/commands</code> · <code>POST /api/commands</code> · <code>DELETE /api/commands/&lt;name&gt;</code></td><td>the GUI, a script</td><td><code>{registry:{commands[]}}</code>, persisted to <code>data.yaml</code></td></tr>
+      <tr><td><code>GET /api/events</code> · <code>GET /api/events/log?limit=</code> · <code>POST /api/events/trigger</code></td><td>any hand</td><td>the palette · the rolling log · <code>202</code> with a receipt (fire-and-forget)</td></tr>
+      <tr><td><code>GET /api/root/output</code></td><td>an operator</td><td><code>text/plain</code>, the root's own life</td></tr>
+      <tr><td><code>POST /api/stop</code></td><td>the window, a script</td><td><code>202 {stopping:true, lives}</code>, then every child and the door go</td></tr>
+      <tr><td><code>POST /mcp</code></td><td>an agent</td><td>initialize · tools/list · tools/call over the same table</td></tr>
+      <tr><td><code>GET /</code> · <code>GET /window.html</code></td><td>a browser</td><td>the operator GUI · the console window (a tab per display)</td></tr>
+      <tr><td><code>GET /health</code></td><td>a monitor</td><td><code>{ok, module, since, uptimeMs, processes:{total,live}, copies, savedCommands, surfaces}</code></td></tr>
+    </tbody>
+  </table>
+  <p class="note">This is wiring in words, not a type. The routes live in <code>public/ts/apiServer.ts</code>,
+  the table in <code>processWrapper.ts</code>, the palette in <code>consoleEvents.ts</code>; if this page and
+  those files disagree, the files are right and the page is a bug.</p>
+</section>
+
+<footer>
+  <p class="note">If this page and the code disagree, the code is right and this page is a bug.</p>
+</footer>
+
+<script type="application/json" id="contract">
+{
+  "module": "ProcessWrapper",
+  "port": 8125,
+  "kind": "door",
+  "needs": [
+    { "name": "streams", "from": "data/streams/", "required": true },
+    { "name": "event_handler_embed", "from": "module/Event_Handler/Event_Handler_module.js", "required": true },
+    { "name": "registry", "from": "data.yaml", "required": false },
+    { "name": "bind", "from": "--port 8125 / --host 127.0.0.1", "required": true }
+  ],
+  "gives": [
+    { "name": "/api/processes", "to": "any launcher", "kind": "http" },
+    { "name": "/api/processes/<id>/output", "to": "a reader", "kind": "text" },
+    { "name": "/api/processes/<id>/stream", "to": "a reader", "kind": "sse" },
+    { "name": "/api/processes/<id>/file", "to": "a reader", "kind": "json" },
+    { "name": "/api/processes/<id>/input", "to": "an operator", "kind": "http" },
+    { "name": "/api/processes/<id>/kill", "to": "an operator", "kind": "http" },
+    { "name": "/api/commands", "to": "the GUI", "kind": "http" },
+    { "name": "/api/events", "to": "any hand", "kind": "http" },
+    { "name": "/api/events/trigger", "to": "any hand", "kind": "http" },
+    { "name": "/api/root/output", "to": "an operator", "kind": "text" },
+    { "name": "/api/stop", "to": "the window", "kind": "http" },
+    { "name": "/mcp", "to": "an agent", "kind": "mcp" },
+    { "name": "/", "to": "a browser", "kind": "html" },
+    { "name": "/window.html", "to": "a browser", "kind": "html" },
+    { "name": "/health", "to": "a monitor", "kind": "json" }
+  ]
+}
+</script>
+
+</body>
+</html>

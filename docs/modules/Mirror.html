@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mirror — the reader</title>
+<style>
+  :root { color-scheme: dark; --bg:#111318; --panel:#191c23; --border:#303541; --text:#e5e7eb; --muted:#a1a8b7; --accent:#8ab4f8; }
+  * { box-sizing: border-box; }
+  body { margin:0; padding:32px; background:var(--bg); color:var(--text);
+         font:15px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif; max-width:78ch; }
+  h1 { margin:0 0 4px; font-size:24px; font-weight:600; letter-spacing:-.01em; }
+  h2 { margin:32px 0 10px; font-size:13px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; color:var(--muted); }
+  .kicker { margin:0 0 28px; color:var(--muted); font-size:13px; }
+  p { margin:0 0 12px; }
+  code { font:13px/1.5 ui-monospace,Consolas,monospace; background:#0b0d11; border:1px solid var(--border);
+         border-radius:5px; padding:1px 5px; color:#cfd6e4; }
+  pre { background:#0b0d11; border:1px solid var(--border); border-radius:8px; padding:12px 14px; overflow:auto; }
+  table { width:100%; border-collapse:collapse; margin:6px 0 16px; font-size:14px; }
+  th, td { text-align:left; padding:7px 10px; border-bottom:1px solid var(--border); vertical-align:top; }
+  th { color:var(--muted); font-weight:600; font-size:12px; letter-spacing:.06em; text-transform:uppercase; }
+  .note { color:var(--muted); font-size:13px; }
+  .lede { font-size:16px; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Mirror</h1>
+  <p class="kicker">the reader · door on :8137 · one LAN view · writes nothing, owns nothing</p>
+</header>
+
+<section id="summary">
+  <p class="lede">Mirror reads. On every tick it pulls a handful of known entry names from this node's State and
+  from the State of every registry it is allowed to see, folds each set of answers into one node object, and
+  serves the lot as a single LAN object — machine JSON, a markdown brief, and one route per node. It holds no
+  truth and has no writes: stop it and every node keeps publishing, keeps working, and nothing anywhere is
+  diminished by its absence.</p>
+</section>
+
+<section id="concepts">
+  <h2>How it holds together</h2>
+  <p><b>A reader is defined by what it does not do.</b> There is no lease, no heartbeat of its own, no cache of
+  anyone's contents beyond the snapshot it is about to serve, and no route that changes another module's state.
+  What it does keep between ticks is exactly one thing per peer: the last cycle number it saw and how many
+  consecutive ticks failed to advance. That is the whole of its memory, and it is why killing Mirror is not an
+  outage.</p>
+  <p><b>One registry's answers become one node.</b> The grammar it reads is small and it is a grammar, not a
+  discovery: <code>node.&lt;ref&gt;.id</code>, <code>.doors</code>, <code>.cycle</code>,
+  <code>.services.&lt;slug&gt;</code> (plus a <code>.services</code> rollup index, if a node publishes one),
+  <code>.scheduler.booked.&lt;jobId&gt;</code>, <code>.resources.&lt;name&gt;</code>,
+  <code>.health.&lt;what&gt;</code>, <code>.observed.&lt;peer&gt;</code>. It pulls five of those names per node
+  in parallel rather than running a discovery pass, because a reader that already knows the grammar pays five
+  requests instead of a walk plus five. Anything else it receives lands in the node's <code>unknown</code> map —
+  kept, not dropped, because an entry this reader cannot classify is a fact about the reader.</p>
+  <p><b>A 404 is an answer.</b> Reachability is set by whether the far State replied at all, not by whether it
+  had anything to say: a node that publishes no <code>doors</code> is up, just empty. Without that rule a
+  freshly booted node would look dead for its first tick, and a quiet one would look dead forever.</p>
+  <p><b>Alive is a comparison, not a timestamp.</b> Each peer's cycle counter is compared with the one from the
+  previous tick: it went up, so the node is alive; it stood still while the door answered, or the door did not
+  answer, so a miss is counted; twelve consecutive misses and the peer is <code>gone</code>. No clock is compared
+  across machines, so a laptop with a dead CMOS battery ages exactly like a good one. The rules are a deliberate
+  copy of Core's rather than an import across module folders — a runtime import that reaches into a sibling
+  module is a deployment trap — and the copy is kept honest by a gate that imports both files and fails if they
+  ever disagree. One honest quirk of those rules: the verdict reads <code>stalled</code> from the very first
+  miss, and the three-tick threshold only changes the wording of <code>reason</code>; twelve is the number that
+  turns it into <code>gone</code>.</p>
+  <p><b>No node rather than a false one.</b> A peer that never answered assembles to <code>null</code>, but the
+  view still emits a row for it carrying its ref, its verdict and its miss count and nothing else. A machine
+  that disappears from the table is a machine nobody notices is gone, so the row stays and says so.</p>
+  <p><b>Self is not privileged.</b> This node's own entries are pulled from its own State by the same five names
+  as any peer, and assembled by the same function; the only difference is a <code>role: "self"</code> label and
+  a verdict of <code>alive</code> once its own State answered. If that State is down, there is no self node at
+  all — the LAN object then holds peers only and <code>self: null</code>, which is the truth rather than a
+  placeholder. Every number in <code>counts</code> is a length of an array that is actually present; nothing is
+  estimated, and <code>schemaVersion</code> is <code>1</code>.</p>
+</section>
+
+<section id="wiring">
+  <h2>Wiring, for humans</h2>
+  <p>What it needs to have something to read:</p>
+  <table>
+    <thead><tr><th>needs</th><th>from</th><th>required</th></tr></thead>
+    <tbody>
+      <tr><td>this node's registry</td><td><code>MIRROR_STATE</code>, default <code>http://127.0.0.1:8127</code> (State)</td><td>yes for a self node — without it the view still answers, with peers only</td></tr>
+      <tr><td>the member list</td><td><code>MIRROR_JOIN</code>, default <code>http://127.0.0.1:8131</code> → <code>GET /api/members</code></td><td>no — an empty LAN is a normal answer</td></tr>
+      <tr><td>extra peers by hand</td><td><code>MIRROR_PEERS="jims@http://192.168.1.127:8127,…"</code></td><td>no — a bare host becomes that ref on <code>:8127</code></td></tr>
+      <tr><td>its own name</td><td><code>MIRROR_REF</code>, then <code>HYDRA_REF</code>, then <code>data/node.json</code> or <code>Menu/data/node.json</code>, then the hostname</td><td>no — lowercased, whatever it finds</td></tr>
+      <tr><td>a port, a tick, a patience</td><td><code>MIRROR_PORT</code> (or <code>--port</code>) <code>8137</code> · <code>MIRROR_TICK_MS</code> <code>5000</code> · <code>MIRROR_TIMEOUT_MS</code> <code>900</code></td><td>no</td></tr>
+    </tbody>
+  </table>
+  <p>What it gives back:</p>
+  <table>
+    <thead><tr><th>gives</th><th>to</th><th>shape</th></tr></thead>
+    <tbody>
+      <tr><td><code>GET /api/lan.json</code></td><td>a machine</td><td><code>{schemaVersion, at, self, counts{nodes, alive, services, ready, booked}, nodes[]}</code> — before the first tick, <code>{ok:false, error:"no snapshot yet"}</code></td></tr>
+      <tr><td><code>GET /api/lan.md</code></td><td>a person, or one agent call</td><td>who is up, what they offer, what is booked, what is degraded — no adjective without a number behind it</td></tr>
+      <tr><td><code>GET /api/node/&lt;ref&gt;</code></td><td>a drill-down</td><td><code>{ok, role:"self", node}</code> or <code>{ok, role:"peer", verdict, node}</code>; 404 for an unknown ref</td></tr>
+      <tr><td><code>GET /health</code></td><td>a probe</td><td><code>{ok, nodes, peers, at, refreshError, refreshes}</code></td></tr>
+      <tr><td>anything else</td><td>a stranger</td><td>404 listing the four real paths</td></tr>
+    </tbody>
+  </table>
+  <p>Two details that decide whether it can see a machine at all. It binds <code>0.0.0.0</code> and sends
+  <code>access-control-allow-origin: *</code> with no token, because it is a read-only view of things already
+  published on the LAN. And from Join it takes a member's ref as <code>ref</code>, <code>name</code> or
+  <code>id</code> and its address as <code>stateUrl</code>, <code>url</code>, or an <code>ip</code> /
+  <code>host</code> on <code>:8127</code>; a member registered with only a <code>port</code> yields no URL and
+  is skipped, so a peer in Join needs a <code>url</code> to be read.</p>
+  <p class="note">This is wiring in words, not a type. The exact shapes live in <code>src/main.js</code>,
+  <code>src/assemble.js</code> and <code>src/lan.js</code>. If this page and the code disagree, the code is
+  right and this page is a bug.</p>
+</section>
+
+<script type="application/json" id="contract">
+{
+  "module": "Mirror",
+  "port": 8137,
+  "kind": "door",
+  "needs": [
+    { "name": "state", "from": "State via MIRROR_STATE (default http://127.0.0.1:8127)", "required": true },
+    { "name": "members", "from": "Join via MIRROR_JOIN (default http://127.0.0.1:8131) /api/members", "required": false },
+    { "name": "peers", "from": "MIRROR_PEERS=\"ref@url,...\"", "required": false },
+    { "name": "ref", "from": "MIRROR_REF / HYDRA_REF / data/node.json / Menu/data/node.json", "required": false },
+    { "name": "port/tick/timeout", "from": "MIRROR_PORT 8137 · MIRROR_TICK_MS 5000 · MIRROR_TIMEOUT_MS 900", "required": false }
+  ],
+  "gives": [
+    { "name": "/api/lan.json", "to": "machines", "kind": "http" },
+    { "name": "/api/lan.md", "to": "people and agents", "kind": "http" },
+    { "name": "/api/node/<ref>", "to": "drill-downs", "kind": "http" },
+    { "name": "/health", "to": "probes", "kind": "http" }
+  ]
+}
+</script>
+
+</body>
+</html>

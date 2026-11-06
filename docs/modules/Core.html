@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Core — the basic server</title>
+<style>
+  :root { color-scheme: dark; --bg:#111318; --panel:#191c23; --border:#303541; --text:#e5e7eb; --muted:#a1a8b7; --accent:#8ab4f8; }
+  * { box-sizing: border-box; }
+  body { margin:0; padding:32px; background:var(--bg); color:var(--text);
+         font:15px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif; max-width:78ch; }
+  h1 { margin:0 0 4px; font-size:24px; font-weight:600; letter-spacing:-.01em; }
+  h2 { margin:32px 0 10px; font-size:13px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; color:var(--muted); }
+  .kicker { margin:0 0 28px; color:var(--muted); font-size:13px; }
+  p { margin:0 0 12px; }
+  code { font:13px/1.5 ui-monospace,Consolas,monospace; background:#0b0d11; border:1px solid var(--border);
+         border-radius:5px; padding:1px 5px; color:#cfd6e4; }
+  pre { background:#0b0d11; border:1px solid var(--border); border-radius:8px; padding:12px 14px; overflow:auto; }
+  table { width:100%; border-collapse:collapse; margin:6px 0 16px; font-size:14px; }
+  th, td { text-align:left; padding:7px 10px; border-bottom:1px solid var(--border); vertical-align:top; }
+  th { color:var(--muted); font-weight:600; font-size:12px; letter-spacing:.06em; text-transform:uppercase; }
+  .note { color:var(--muted); font-size:13px; }
+  .lede { font-size:16px; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Core</h1>
+  <p class="kicker">the basic server · door on :8136 · started by the app, one per node</p>
+</header>
+
+<section id="summary">
+  <p class="lede">Core is the part of a node that says who it is. On boot it registers this box's own subtree in
+  its own State — what it is, what it answers on, and a heartbeat that never stops — then spends the rest of its
+  life comparing that beat with the same beat arriving from every other node. It is the only thing here that
+  writes about a node, and it writes only about the node it runs on.</p>
+</section>
+
+<section id="concepts">
+  <h2>How it holds together</h2>
+  <p>A node is a tree, addressed by path: <code>node.&lt;ref&gt;.&lt;child&gt;</code>. Core does not invent a
+  schema for the whole LAN; it publishes the few branches that a stranger would need, each as its own entry so a
+  reader can take the cheap one:</p>
+  <table>
+    <tr><th>entry</th><th>what it answers</th><th>how often it changes</th></tr>
+    <tr><td><code>node.&lt;ref&gt;.cycle</code></td><td>am I alive, and since when</td><td>every tick (5 s)</td></tr>
+    <tr><td><code>node.&lt;ref&gt;.id</code></td><td>what this box is, its gpu, its paths, who it acts for</td><td>rarely</td></tr>
+    <tr><td><code>node.&lt;ref&gt;.doors</code></td><td>which ports answer right now</td><td>every 12th tick</td></tr>
+    <tr><td><code>node.&lt;ref&gt;.services.&lt;slug&gt;</code></td><td>one service, ready or not</td><td>on change</td></tr>
+    <tr><td><code>node.&lt;ref&gt;.observed.&lt;peer&gt;</code></td><td>what <em>this</em> node last saw of a peer</td><td>every tick, per peer</td></tr>
+  </table>
+  <p><b>The cycle is the heartbeat, and it is a counter, not a clock.</b> Nothing here compares timestamps across
+  machines — a 2013 laptop's clock is irrelevant. A peer is alive if its number went up since the last look,
+  stalled if the number stood still while the port answered, and gone if nothing answered at all. Three ticks
+  before stalled, twelve before gone: enough that a closed lid is a nap, not an outage.</p>
+  <p><b>An observation is an opinion, and it lives under the observer.</b> Core never writes into a peer's branch.
+  When this node says <code>observed.jims.verdict = stalled</code> it is saying "I have not seen Jim's number
+  move", not "Jim is broken". When Jim's own entry disagrees, that disagreement is a partition — information,
+  not an error to reconcile away.</p>
+  <p><b>Nothing is stored twice.</b> Core holds no mirror, no lease, and no expiry. A registration lives as long
+  as the process that registered it, so a dead node's branch is simply not there: absence reads as absence, and
+  the purge path that a push design would need does not exist because there is nothing to purge.</p>
+  <p><b>What leaves the node is a projection, not the tree.</b> <code>/api/broadcast</code> answers the question a
+  stranger is allowed to ask — who is this, is it alive, what can it make — and it is a filter over entries the
+  node already published, so it cannot drift from what the node says about itself.</p>
+</section>
+
+<section id="wiring">
+  <h2>Wiring, for humans</h2>
+  <p>What Core needs in order to be honest:</p>
+  <table>
+    <thead><tr><th>needs</th><th>from</th><th>required</th></tr></thead>
+    <tbody>
+      <tr><td>a registry it can write to</td><td>State, <code>:8127</code></td><td>yes — without it, Core runs but publishes nothing</td></tr>
+      <tr><td>the member list</td><td>Join, <code>:8131</code></td><td>no — an empty LAN is a normal answer</td></tr>
+      <tr><td>the catalog</td><td>Services, <code>:8128</code></td><td>no — no catalog, no services advertised</td></tr>
+      <tr><td>a name and a face</td><td><code>Menu/data/node.json</code> (<code>ref</code>, <code>name</code>, <code>gpu</code>)</td><td>yes — the ref is the path it publishes under</td></tr>
+    </tbody>
+  </table>
+  <p>What it gives back:</p>
+  <table>
+    <thead><tr><th>gives</th><th>to</th><th>shape</th></tr></thead>
+    <tbody>
+      <tr><td><code>node.&lt;ref&gt;.cycle</code> + <code>.id</code> + <code>.doors</code></td><td>State</td><td>one entry each</td></tr>
+      <tr><td><code>node.&lt;ref&gt;.services.&lt;slug&gt;</code></td><td>State</td><td>one entry per advertised service, plus an index</td></tr>
+      <tr><td><code>node.&lt;ref&gt;.observed.&lt;peer&gt;</code></td><td>State</td><td>one entry per peer it watches</td></tr>
+      <tr><td><code>GET /api/broadcast</code></td><td>a stranger</td><td><code>{ref, cycle, at, services{}}</code> — nothing else</td></tr>
+      <tr><td><code>GET /api/tree</code></td><td>a local reader</td><td>self + peers + verdicts</td></tr>
+    </tbody>
+  </table>
+  <p class="note">This is wiring in words, not a type. The exact shapes live in <code>src/self.js</code>; if this
+  page and that file disagree, the file is right and the page is a bug.</p>
+</section>
+
+<script type="application/json" id="contract">
+{
+  "module": "Core",
+  "port": 8136,
+  "kind": "door",
+  "needs": [
+    { "name": "state", "from": "State :8127", "required": true },
+    { "name": "members", "from": "Join :8131", "required": false },
+    { "name": "catalog", "from": "Services :8128", "required": false },
+    { "name": "node.json", "from": "Menu/data/node.json", "required": true }
+  ],
+  "gives": [
+    { "name": "node.<ref>.cycle", "to": "State", "kind": "entry" },
+    { "name": "node.<ref>.id", "to": "State", "kind": "entry" },
+    { "name": "node.<ref>.doors", "to": "State", "kind": "entry" },
+    { "name": "node.<ref>.services.<slug>", "to": "State", "kind": "entry" },
+    { "name": "node.<ref>.observed.<peer>", "to": "State", "kind": "entry" },
+    { "name": "/api/broadcast", "to": "the LAN", "kind": "http" },
+    { "name": "/api/tree", "to": "local readers", "kind": "http" }
+  ]
+}
+</script>
+
+</body>
+</html>

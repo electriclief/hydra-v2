@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>State — the generic retainer</title>
+<style>
+  :root { color-scheme: dark; --bg:#111318; --panel:#191c23; --border:#303541; --text:#e5e7eb; --muted:#a1a8b7; --accent:#8ab4f8; }
+  * { box-sizing: border-box; }
+  body { margin:0; padding:32px; background:var(--bg); color:var(--text);
+         font:15px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif; max-width:78ch; }
+  h1 { margin:0 0 4px; font-size:24px; font-weight:600; letter-spacing:-.01em; }
+  h2 { margin:32px 0 10px; font-size:13px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; color:var(--muted); }
+  .kicker { margin:0 0 28px; color:var(--muted); font-size:13px; }
+  p { margin:0 0 12px; }
+  code { font:13px/1.5 ui-monospace,Consolas,monospace; background:#0b0d11; border:1px solid var(--border);
+         border-radius:5px; padding:1px 5px; color:#cfd6e4; }
+  pre { background:#0b0d11; border:1px solid var(--border); border-radius:8px; padding:12px 14px; overflow:auto; }
+  table { width:100%; border-collapse:collapse; margin:6px 0 16px; font-size:14px; }
+  th, td { text-align:left; padding:7px 10px; border-bottom:1px solid var(--border); vertical-align:top; }
+  th { color:var(--muted); font-weight:600; font-size:12px; letter-spacing:.06em; text-transform:uppercase; }
+  .note { color:var(--muted); font-size:13px; }
+  .lede { font-size:16px; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>State</h1>
+  <p class="kicker">the generic retainer · door on :8127 · holds what it is handed · persists nothing</p>
+</header>
+
+<section id="summary">
+  <p class="lede">State is a registry with no opinion about what it holds. Anything — a counter, a rolling log,
+  another module's whole registry — is registered under a dotted-path name and pulled back later, either whole
+  or as just the part past the mark the caller carries. It boots blank, writes nothing to disk, runs no clocks
+  and remembers nobody: an entry lives exactly as long as the thing that registered it.</p>
+</section>
+
+<section id="concepts">
+  <h2>How it holds together</h2>
+  <p><b>A name is a path, and the tree falls out of the string.</b> Registering
+  <code>node.123.services.llama-chat</code> creates no parents and requires none: the dotted segments are the
+  address, and a tree is what you get when you read them together. The same reason makes reads cheap — a pull
+  tries the exact path, then the shortest unique suffix, so <code>llama-chat</code> alone resolves while it is
+  the only one. Two matches are refused as <code>ambiguous</code>, and the refusal carries both full paths,
+  because guessing between them would be the registry deciding something.</p>
+  <p><b>The requester carries the mark, and that is why there are no sessions.</b> State never tracks who has
+  read what. Instead an element can be flagged <code>serving: { log: 'delta' }</code>, and a pull that arrives
+  with <code>marks: { log: 812 }</code> gets only what came after line 812 — a string slices by lines, an array
+  by items, so the mark is always a plain position count. A mark that is new, unknown, stale, or unintelligible
+  is not an error: it gets the full value plus a fresh mark. That fallback is what makes a client that has been
+  offline for an hour correct without a repair path, and it is why State needs no clock — refresh speed is
+  negotiated between the source and the requester, and this module sits in neither seat.</p>
+  <p><b>Entries describe themselves.</b> A registration may also carry <code>alive</code> (a lazy liveness
+  check), <code>pull</code> (a recipe the entry answers with, for live sources and relays),
+  <code>render</code> and <code>update</code>. State calls the first on every walk and the second when asked; it
+  stores the last two and hands them back untouched. Nothing in this module knows what a service, a node or a
+  schedule is — that vocabulary belongs to the registrants.</p>
+  <p><b>A registration lives as long as its registrant.</b> If a declared <code>alive</code> returns false, or
+  throws, the entry is popped on the next walk and a <code>dropped</code> event is emitted with
+  <code>reason: 'gone'</code>. <code>drop(name)</code> is the explicit hand, with <code>reason:
+  'explicit'</code>. There is no lease, no expiry and no sweep: a dead node's branch is simply not there, so
+  absence reads as absence and the purge path a push design would need does not exist.</p>
+  <p><b>Contents are pulled, never embedded.</b> <code>discover()</code> answers with the shape — the top-level
+  keys, when it landed, whether it answers pulls itself, which elements are delta-served — and never with the
+  values. A listing that carried contents would become a cache, and a cache of a live thing is a lie with a
+  delay on it.</p>
+  <p><b>Nesting is registration, not knowledge.</b> Register an object that has its own
+  <code>pull(name, options)</code> method and the entry becomes a door: the parent asks it for the entry's own
+  leaf and passes the answer up. A recipe can do the same explicitly by returning <code>shaped(content, {
+  full, marks })</code>. Separately, an entry of the form <code>{ kind: 'link', to: 'http://…' }</code> lets a
+  pull for a name that is not here be asked of the registry at <code>to</code> — longest matching prefix wins,
+  the walked bases ride along in <code>via</code>, a base already walked is refused rather than followed again,
+  and the whole chase is capped at 3 hops of 900 ms each. Replies are clones, so a caller that mutates an
+  answer cannot reach back into the registry.</p>
+</section>
+
+<section id="wiring">
+  <h2>Wiring, for humans</h2>
+  <p>State needs nothing but a registrant. That is not modesty — it is the property that lets Core, Menu and
+  anything else publish into it without State learning their names.</p>
+  <table>
+    <thead><tr><th>needs</th><th>from</th><th>required</th></tr></thead>
+    <tbody>
+      <tr><td>something to hold</td><td>any thread (<code>State_module.js</code>) or any HTTP client</td><td>yes — with no registrant it boots blank and stays blank</td></tr>
+      <tr><td>a port</td><td><code>--port</code> / <code>STATE_PORT</code>, default <code>8127</code></td><td>no</td></tr>
+      <tr><td>a bind interface</td><td><code>--host</code> / <code>STATE_HOST</code>, default <code>127.0.0.1</code></td><td>no</td></tr>
+      <tr><td>a guard, if you want one</td><td><code>--token</code> / <code>STATE_TOKEN</code></td><td>no — a flag beats the environment</td></tr>
+      <tr><td>a page to serve</td><td><code>public/</code> under the working directory</td><td>no — without it <code>/</code> simply 404s</td></tr>
+    </tbody>
+  </table>
+  <p>What it gives back:</p>
+  <table>
+    <thead><tr><th>gives</th><th>to</th><th>shape</th></tr></thead>
+    <tbody>
+      <tr><td><code>GET /health</code></td><td>a probe</td><td><code>{ok, module:"state", entries, changes}</code> — stays open even when a token is set</td></tr>
+      <tr><td><code>GET /api/state?q=</code></td><td>a reader</td><td>the active set: path, timestamps, flags, shape — never contents</td></tr>
+      <tr><td><code>GET /api/state/pull</code></td><td>a reader</td><td><code>?name=&amp;marks=&amp;follow=&amp;hops=&amp;via=</code> → <code>{ok, name, at, full, content, marks}</code>, plus <code>source</code>/<code>hops</code>/<code>via</code> when it came through a link</td></tr>
+      <tr><td><code>POST /api/state/register</code></td><td>a writer</td><td><code>{name, content, serving?, render?, update?}</code> → <code>{ok, entry}</code></td></tr>
+      <tr><td><code>POST /api/state/drop</code></td><td>a writer</td><td><code>{name}</code> → <code>{ok, dropped, name}</code></td></tr>
+      <tr><td><code>GET /api/state/stream</code></td><td>a watcher</td><td>SSE: <code>ready</code>, then one <code>change</code> per registered/updated/dropped, a <code>: beat</code> every 15 s</td></tr>
+      <tr><td><code>POST /mcp</code></td><td>an agent</td><td>tools <code>state_list</code>, <code>state_pull</code>, <code>state_register</code>, <code>state_drop</code></td></tr>
+      <tr><td><code>GET /</code></td><td>a person</td><td>the held set and the pull bench, from <code>public/</code></td></tr>
+    </tbody>
+  </table>
+  <p>Refusals are JSON with a real code: <code>bad_json</code> and <code>bad_name</code> at 400,
+  <code>no_such_entry</code> and <code>no_route</code> at 404, <code>ambiguous</code> at 409 (candidates in the
+  message), <code>unauthorized</code> at 401 — and a token guards <code>/api/*</code> and <code>/mcp</code>
+  only, since a static file is not an action. Over the wire a registration can carry <code>content</code>,
+  <code>serving</code>, <code>render</code> and <code>update</code>; <code>alive</code> and <code>pull</code>
+  are functions and therefore exist only for in-process registrants.</p>
+  <p class="note">This is wiring in words, not a type. The exact shapes live in
+  <code>public/ts/stateRegistry.ts</code> and <code>public/ts/apiServer.ts</code>. If this page and the code
+  disagree, the code is right and this page is a bug.</p>
+</section>
+
+<script type="application/json" id="contract">
+{
+  "module": "State",
+  "port": 8127,
+  "kind": "door",
+  "needs": [
+    { "name": "registrant", "from": "any thread (State_module.js) or an HTTP client", "required": true },
+    { "name": "port", "from": "--port / STATE_PORT (default 8127)", "required": false },
+    { "name": "host", "from": "--host / STATE_HOST (default 127.0.0.1)", "required": false },
+    { "name": "token", "from": "--token / STATE_TOKEN", "required": false },
+    { "name": "public/", "from": "module/State/public", "required": false }
+  ],
+  "gives": [
+    { "name": "/health", "to": "probes", "kind": "http" },
+    { "name": "/api/state", "to": "readers", "kind": "http" },
+    { "name": "/api/state/pull", "to": "readers", "kind": "http" },
+    { "name": "/api/state/register", "to": "writers", "kind": "http" },
+    { "name": "/api/state/drop", "to": "writers", "kind": "http" },
+    { "name": "/api/state/stream", "to": "watchers", "kind": "sse" },
+    { "name": "state_list / state_pull / state_register / state_drop", "to": "agents at /mcp", "kind": "mcp" },
+    { "name": "createStateRegistry / register / pull / discover / drop / on", "to": "a host thread", "kind": "api" }
+  ]
+}
+</script>
+
+</body>
+</html>

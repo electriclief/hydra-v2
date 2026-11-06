@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SessionDiary — sessions as data you can open</title>
+<style>
+  :root { color-scheme: dark; --bg:#111318; --panel:#191c23; --border:#303541; --text:#e5e7eb; --muted:#a1a8b7; --accent:#8ab4f8; }
+  * { box-sizing: border-box; }
+  body { margin:0; padding:32px; background:var(--bg); color:var(--text);
+         font:15px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif; max-width:78ch; }
+  h1 { margin:0 0 4px; font-size:24px; font-weight:600; letter-spacing:-.01em; }
+  h2 { margin:32px 0 10px; font-size:13px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; color:var(--muted); }
+  .kicker { margin:0 0 28px; color:var(--muted); font-size:13px; }
+  p { margin:0 0 12px; }
+  code { font:13px/1.5 ui-monospace,Consolas,monospace; background:#0b0d11; border:1px solid var(--border);
+         border-radius:5px; padding:1px 5px; color:#cfd6e4; }
+  pre { background:#0b0d11; border:1px solid var(--border); border-radius:8px; padding:12px 14px; overflow:auto; }
+  table { width:100%; border-collapse:collapse; margin:6px 0 16px; font-size:14px; }
+  th, td { text-align:left; padding:7px 10px; border-bottom:1px solid var(--border); vertical-align:top; }
+  th { color:var(--muted); font-weight:600; font-size:12px; letter-spacing:.06em; text-transform:uppercase; }
+  .note { color:var(--muted); font-size:13px; }
+  .lede { font-size:16px; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>SessionDiary</h1>
+  <p class="kicker">the Hermes session wrapper · door on :8134 · not wired at boot · a static site first, an API for the verbs</p>
+</header>
+
+<section id="summary">
+  <p class="lede">SessionDiary turns Hermes' session store into something a human can read by double-clicking a file:
+  one page per session saying what was asked, what actually ran, what changed on disk and where it ended. Reading
+  needs no server. The door on <code>:8134</code> exists for the four things a page cannot do by itself — rebuild the
+  site, write a prose diary through the agent, ask a finished session a question, and fork or restart it.</p>
+</section>
+
+<section id="concepts">
+  <h2>How it holds together</h2>
+  <p><b>There is one source of truth and this module does not own it.</b> Everything on a page is derived from
+  <code>state.db</code> — <code>%LOCALAPPDATA%\hermes\state.db</code> by default, overridable with
+  <code>--db</code> or <code>SESSIONDIARY_DB</code>. Reads open that file with <code>readOnly: true</code>; the store
+  is WAL, so the diary reads while Hermes writes and never takes a lock. Writes are narrow and named: fork — the only
+  one the door exposes — copies a session row and its visible transcript in a single transaction, after a
+  <code>VACUUM INTO</code> backup into <code>data/backups/state-&lt;stamp&gt;.db</code> (reused if younger than an
+  hour). The store class also carries <code>setTitle()</code>, which no route calls. If the read-back
+  comparison fails — message count, first and last message bytes, parent link, title — the whole fork rolls back.</p>
+  <p><b>A session becomes a <em>ref</em>, and the ref is the address everywhere.</b> <code>refFor()</code> strips a
+  <code>local-</code> prefix and keeps the first 8 hex characters, hashing the id when it is not hex. That is why a
+  page is called <code>site/session_5a5525ad.html</code> and why the same 8-hex string can be pasted into
+  TrainOfThought without translation. Collisions are not allowed to silently overwrite a page: when two sessions
+  share a ref, both are extended to 10 characters and <code>build.json</code> counts the collision.</p>
+  <p><b>The site is files, not a service.</b> <code>site/read_dir_indexer.html</code> is the index,
+  <code>site/session_&lt;ref&gt;.html</code> is one page per session, <code>site/custom.css</code> and
+  <code>site/custom.js</code> are the only shared assets, and every page carries its own JSON inline — so
+  <code>file://</code> and <code>http://</code> render identically with no fetch. Alongside them the build writes the
+  machine-readable copies: <code>site/data/index.json</code> (every row), <code>site/data/sessions/&lt;ref&gt;.json</code>
+  (lean facts, no HTML) and <code>site/data/build.json</code> (the last build report). The site is roughly 460 files
+  and 17 MB, so the writer skips any file whose bytes it already wrote this process, and an idle session's page is
+  byte-identical between scans.</p>
+  <p><b>Two layers of prose, and the cheap one always exists.</b> The deterministic <em>card</em> is written for
+  every session on every build, for free: goal (the first real user turn, with Hermes' injected compaction and
+  handoff turns skipped), outcome (the last assistant turn), duration, turns, tokens, cost, files touched and
+  commands run, all scraped from tool arguments, plus the transcript with tool output trimmed. The LLM <em>diary</em>
+  is a separate, optional record of 4–7 sentences in <code>data/diaries.json</code>, keyed by session id, written by
+  shelling out to <code>hermes chat --query-file &lt;prompt&gt; --oneshot -Q</code>. A page shows the diary when one
+  exists and the card otherwise; the site never depends on a model being reachable.</p>
+  <p><b>Asking a dead session is the same seam, with a different prompt.</b> A <em>seance</em> is one question and one
+  answer stored in <code>data/diaries.json</code> under <code>seances[]</code>, with the timestamp, milliseconds, and
+  <code>spawnSessionId</code> of the Hermes session that answered — because each spawn mints its own session with
+  source <code>oneshot</code>, and those are hidden from the index unless you ask for them. The prompt tells the agent
+  to read the target session with its own <code>session_search</code> tool and answer from that transcript only. Both
+  paths return the command's stdout; nothing here synthesises an answer. Prompts are left behind in
+  <code>data/prompts/</code> (<code>diary-*.txt</code>, <code>ask-*.txt</code>) so a bad answer can be traced to the
+  question that produced it.</p>
+  <p><b>Restart is a real terminal, not a simulation.</b> It writes
+  <code>data/launch/resume-&lt;ref&gt;.cmd</code> containing <code>hermes --resume &lt;id&gt;</code> and launches
+  <code>cmd.exe /c start cmd.exe /k &lt;launcher&gt;</code>, so a path with spaces needs no nested quoting. Fork is
+  <code>/branch</code> done against the store instead of a live session: a new row with <code>parent_session_id</code>
+  set, title <code>&lt;title&gt; (fork)</code>, counters reset, transcript copied row by row, then verified.</p>
+  <p><b>Links are read, never invented.</b> At session start, TrainOfThought's
+  <code>scripts/session-start.mjs</code> appends one JSONL line — <code>{at, sessionId, refs[], note}</code> — to
+  <code>data/session-links.jsonl</code>. This module only reads that file. A missing file means no session has
+  announced anything yet, which is a normal empty answer, not an error; every session row then simply carries no
+  <code>serving</code> refs.</p>
+</section>
+
+<section id="wiring">
+  <h2>Wiring, for humans</h2>
+  <p>What it needs:</p>
+  <table>
+    <thead><tr><th>needs</th><th>from</th><th>required</th></tr></thead>
+    <tbody>
+      <tr><td><code>state.db</code>, read-only</td><td><code>%LOCALAPPDATA%\hermes\state.db</code> (<code>--db</code> / <code>SESSIONDIARY_DB</code>)</td><td>yes — the constructor throws "no session store at …" if it is missing</td></tr>
+      <tr><td>a writable site folder</td><td><code>module/SessionDiary/site</code> (<code>--site</code>)</td><td>yes — the build writes it and the door serves it</td></tr>
+      <tr><td>a writable data folder for its own records</td><td><code>module/SessionDiary/data</code> (<code>--data</code>)</td><td>yes — <code>diaries.json</code>, backups, prompts, launchers</td></tr>
+      <tr><td>the <code>hermes</code> binary</td><td><code>--hermes</code> / <code>SESSIONDIARY_HERMES</code>, default <code>hermes</code></td><td>no for reading; yes for diary, ask and restart</td></tr>
+      <tr><td>Node with <code>node:sqlite</code></td><td>engine <code>&gt;=22.5</code></td><td>yes — <code>DatabaseSync</code> is the only store driver</td></tr>
+    </tbody>
+  </table>
+  <p>What it gives back:</p>
+  <table>
+    <thead><tr><th>gives</th><th>to</th><th>shape</th></tr></thead>
+    <tbody>
+      <tr><td><code>GET /health</code></td><td>TrainOfThought, scripts, the window</td><td><code>{ok, door:"SessionDiary", db, site, index, sessions}</code></td></tr>
+      <tr><td><code>GET /api/sessions?q=&amp;source=&amp;quiet=1&amp;limit=&amp;offset=</code></td><td>an agent</td><td><code>{total, offset, limit, rows[]}</code>; <code>cron</code> and <code>oneshot</code> hidden unless <code>quiet=1</code></td></tr>
+      <tr><td><code>GET /api/sessions/&lt;id|ref&gt;</code></td><td>an agent</td><td><code>{session{…card, serving[]}, diary, seances[], page}</code>, last 40 turns</td></tr>
+      <tr><td><code>GET /api/index</code></td><td>anything that wants every row at once</td><td>the rows of <code>site/data/index.json</code></td></tr>
+      <tr><td><code>GET /api/links</code>, <code>GET /api/seances[/&lt;id&gt;]</code></td><td>a reader</td><td><code>{file, count, links[]}</code> · <code>{seances[]}</code></td></tr>
+      <tr><td><code>POST /api/scan</code></td><td>a scheduler</td><td><code>{"diary":true,"max":3}</code> → rebuild, optionally diary the newest N</td></tr>
+      <tr><td><code>POST /api/diary/&lt;id|ref&gt;</code></td><td>a human</td><td><code>{"force":true}</code> → <code>{diary{text, model, at, ms}, page}</code>; cached unless forced</td></tr>
+      <tr><td><code>POST /api/ask</code></td><td>a human</td><td><code>{"session_id":"…","question":"…"}</code> → <code>{answer, ms, seance, spawnSessionId, page}</code></td></tr>
+      <tr><td><code>POST /api/fork/&lt;id|ref&gt;</code>, <code>POST /api/restart/&lt;id|ref&gt;</code></td><td>a human</td><td><code>{newId, title, messages, backup, verified, checks[]}</code> · <code>{command, pid, launcher}</code></td></tr>
+      <tr><td><code>GET /site/&lt;file&gt;</code>, <code>GET /</code></td><td>browser or app</td><td>the same files that work from disk; <code>/</code> redirects to <code>/site/read_dir_indexer.html</code></td></tr>
+      <tr><td><code>site/session_&lt;ref&gt;.html</code> + <code>site/data/index.json</code></td><td>a human, and TrainOfThought</td><td>self-contained HTML with inline JSON · one row per session</td></tr>
+      <tr><td><code>data/diaries.json</code></td><td>a human, hand-editable</td><td><code>{diaries:{"&lt;id&gt;":{text,model,at,ms}}, seances:[{sessionId,question,answer,at,ms,spawnSessionId}], spawns[]}</code></td></tr>
+    </tbody>
+  </table>
+  <p class="note">This is wiring in words, not a type. The exact shapes live in <code>public/ts/types.ts</code>,
+  <code>public/ts/apiServer.ts</code> and <code>public/ts/store.ts</code>; if this page and those files disagree,
+  the code is right and this page is a bug.</p>
+</section>
+
+<script type="application/json" id="contract">
+{
+  "module": "SessionDiary",
+  "port": 8134,
+  "kind": "door",
+  "needs": [
+    { "name": "state.db", "from": "%LOCALAPPDATA%/hermes/state.db (--db)", "required": true },
+    { "name": "site folder", "from": "module/SessionDiary/site (--site)", "required": true },
+    { "name": "data folder", "from": "module/SessionDiary/data (--data)", "required": true },
+    { "name": "hermes binary", "from": "SESSIONDIARY_HERMES, default hermes", "required": false },
+    { "name": "node:sqlite", "from": "Node >= 22.5", "required": true }
+  ],
+  "gives": [
+    { "name": "/health", "to": "scripts and TrainOfThought", "kind": "http" },
+    { "name": "/api/sessions", "to": "agents", "kind": "http" },
+    { "name": "/api/sessions/{ref}", "to": "agents", "kind": "http" },
+    { "name": "/api/index", "to": "readers", "kind": "http" },
+    { "name": "/api/links", "to": "readers", "kind": "http" },
+    { "name": "/api/seances", "to": "readers", "kind": "http" },
+    { "name": "/api/scan", "to": "schedulers", "kind": "http" },
+    { "name": "/api/diary/{ref}", "to": "humans", "kind": "http" },
+    { "name": "/api/ask", "to": "humans", "kind": "http" },
+    { "name": "/api/fork/{ref}", "to": "humans", "kind": "http" },
+    { "name": "/api/restart/{ref}", "to": "humans", "kind": "http" },
+    { "name": "site/session_{ref}.html", "to": "file:// and the door", "kind": "file" },
+    { "name": "site/data/index.json", "to": "agents and TrainOfThought", "kind": "file" },
+    { "name": "data/diaries.json", "to": "a human", "kind": "file" }
+  ]
+}
+</script>
+
+</body>
+</html>

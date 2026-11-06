@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ResourceManager — the register of what this node has and what is taken</title>
+<style>
+  :root { color-scheme: dark; --bg:#111318; --panel:#191c23; --border:#303541; --text:#e5e7eb; --muted:#a1a8b7; --accent:#8ab4f8; }
+  * { box-sizing: border-box; }
+  body { margin:0; padding:32px; background:var(--bg); color:var(--text);
+         font:15px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif; max-width:78ch; }
+  h1 { margin:0 0 4px; font-size:24px; font-weight:600; letter-spacing:-.01em; }
+  h2 { margin:32px 0 10px; font-size:13px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; color:var(--muted); }
+  .kicker { margin:0 0 28px; color:var(--muted); font-size:13px; }
+  p { margin:0 0 12px; }
+  code { font:13px/1.5 ui-monospace,Consolas,monospace; background:#0b0d11; border:1px solid var(--border);
+         border-radius:5px; padding:1px 5px; color:#cfd6e4; }
+  pre { background:#0b0d11; border:1px solid var(--border); border-radius:8px; padding:12px 14px; overflow:auto; }
+  table { width:100%; border-collapse:collapse; margin:6px 0 16px; font-size:14px; }
+  th, td { text-align:left; padding:7px 10px; border-bottom:1px solid var(--border); vertical-align:top; }
+  th { color:var(--muted); font-weight:600; font-size:12px; letter-spacing:.06em; text-transform:uppercase; }
+  .note { color:var(--muted); font-size:13px; }
+  .lede { font-size:16px; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>ResourceManager</h1>
+  <p class="kicker">the register · door on :8129 · reads the machine, keeps bookings, enforces nothing</p>
+</header>
+
+<section id="summary">
+  <p class="lede">ResourceManager answers two different questions and refuses to mix them. <em>What does
+  this node have?</em> is a read — cpu, ram, gpus with honest VRAM, disks, declared Hydra shared folders,
+  and the gpu-side processes nobody booked — cached for four seconds and never throwing. <em>What is
+  already taken?</em> is a booking — one JSON file, one write, whole or refused whole, with the holder
+  named so a caller knows what it is waiting for. It schedules nothing and locks nothing; it is a register
+  that will not accept a double booking.</p>
+</section>
+
+<section id="concepts">
+  <h2>How it holds together</h2>
+
+  <p><b>Poll and book are independent, on purpose.</b> <code>GET /api/resources</code> is a pure read:
+  asking holds nothing and remembers nothing. <code>POST /api/book</code> is the only write, and it is a
+  transaction over a fresh-enough read — the request is validated, compared against the machine and
+  against everything already held, and then either the whole booking lands or nothing does. There is no
+  queue, no ordering, no ETA, no reservation that expires: a booking lives until someone pops or clears
+  it. That is the operator's ruling ("no internal logic — the scheduler does the thinking") made
+  structural: this module cannot schedule even if it wanted to.</p>
+
+  <p><b>VRAM is reported with its source, because the obvious source lies.</b> The resolution ladder is
+  <code>nvidia-smi</code> → the driver registry value <code>HardwareInformation.qwMemorySize</code> →
+  <code>AdapterRAM</code> → <code>unknown</code>. On Windows, <code>AdapterRAM</code> is a UInt32 and caps
+  at 4095 MB — the RX 6800 reports 4095 when it has 16384 — so a card that answers only through WMI is
+  reported as 4 GB and everything downstream under-estimates it. Each gpu therefore carries
+  <code>vramSource</code> (<code>nvidia-smi</code> · <code>registry</code> · <code>adapterram</code> ·
+  <code>unknown</code>), and a reader can weigh the claim instead of trusting the number.</p>
+
+  <p><b>What is on the gpu but not booked is information, never a rule.</b> The read keeps a
+  <code>gpusObserved</code> row: processes matching a known gpu app (<code>llama-server</code>,
+  <code>sd-cli</code>, <code>comfyui</code> …), a miner (<code>lolminer</code>,
+  <code>srbminer-multi</code>, <code>xmrig</code>), or a python whose command line names torch, comfy,
+  llama, diffusers, vulkan, stable-diffusion, wan or jupyter. A miner or a llama started by hand is
+  <em>visible</em> and blocks nothing — the V1 lesson was that a model started outside the runner still
+  holds the card, and pretending otherwise makes the register useless. The register's answer to that is
+  to show it, not to police it.</p>
+
+  <p><b>A booking is a claim on amounts, one whole gpu, and a subtree of paths.</b> The checks are exactly
+  these, and each produces a <em>blocker</em> rather than a bare refusal:</p>
+  <table>
+    <tr><th>kind</th><th>rule</th><th>what it compares against</th></tr>
+    <tr><td><code>gpu</code></td><td>one app per gpu — a name match, case-insensitive</td><td>active bookings first, then the gpus this node actually has</td></tr>
+    <tr><td><code>cores</code></td><td>sum of held cores + requested ≤ the machine's cores</td><td><code>cpu.cores</code></td></tr>
+    <tr><td><code>ram</code></td><td>sum of held MB + requested ≤ total RAM</td><td><code>ram.totalMb</code> (not free)</td></tr>
+    <tr><td><code>disk</code></td><td>sum of held MB + requested ≤ total free across drives</td><td><code>totalsOf(readings).diskFreeMb</code></td></tr>
+    <tr><td><code>path</code></td><td>equal paths, or one containing the other</td><td>every path on every active booking</td></tr>
+  </table>
+
+  <p><b>Paths are not locks; they are a promise about where you will be working.</b> Comparison
+  normalizes separators and case (<code>C:\work\proj</code> equals <code>c:/WORK/proj</code>) and covers
+  the subtree in both directions: a booking on <code>C:/work/proj</code> collides with
+  <code>C:/work/proj/src/main.ts</code> and with <code>C:/work/proj</code>, but
+  <code>C:/work/proj2</code> is a sibling and books fine. The assumption is deliberate — children of a
+  folder are assumed to belong to whoever holds the folder — so two parallel agents declare the
+  directories they work in and stop stepping on each other without anyone taking a filesystem lock.</p>
+
+  <p><b>The refusal is the useful part.</b> A refusal answers HTTP 200 with <code>ok:false</code>, a code
+  and a list of blockers; each blocker carries <code>kind</code>, a sentence, and <code>heldBy</code>
+  (<code>{id, service, since}</code>) when one booking is responsible. That is the wait information: not
+  "busy" but "booked by <code>qwen-image-2.1</code> since 23:35". The code is
+  <code>double_booked</code> when some of the blockers name a holder, <code>missing_resource</code> when
+  none do (the node lacks the gpu, or the amounts do not add up), and <code>invalid_book</code> when the
+  request itself was malformed — no service name, a negative amount, or nothing to book at all.</p>
+
+  <p><b>Two exits, and they mean slightly different things.</b> <code>pop</code> is the run ending
+  normally; <code>clear</code> is a human wiping a stale entry. Both move the booking from
+  <code>active</code> to <code>ended</code> with an <code>endedAt</code> and an
+  <code>endReason</code>. The ended list is capped at 100 (<code>ENDED_CAP</code>) so the file stays a
+  register and not a log.</p>
+
+  <p><b>It degrades toward answering.</b> If the machine read fails — no PowerShell, no nvidia-smi, a
+  timeout — <code>safeReads()</code> swallows it and the amount checks are skipped; the gpu-in-booking
+  conflict and the path checks still run, so a register-only booking is still refused on a double book. A
+  failed write to <code>bookings.json</code> is caught and ignored: the in-memory register keeps turning,
+  and the next save tries again. Every read failure becomes a line in <code>notes[]</code> rather than an
+  exception, because a bookkeeper that dies on a missing drive is worse than one that says "disk unknown
+  this poll".</p>
+
+  <p><b>What it does not do is enforce.</b> Nothing here stops a process from taking the gpu. A booking is
+  a record plus a refusal — voluntary all the way — and the honesty of that is the feature: the register
+  is where agreement lives, and <code>gpusObserved</code> is where reality shows through when the
+  agreement breaks.</p>
+
+  <p><b>Hydra shared folders are read, not managed.</b> <code>data/shares.json</code> is a declared list
+  of paths (strings, or <code>{label, path}</code>); each is reported with <code>exists</code> and the
+  free/total space of the volume its drive letter falls on. No file means no shares — the register never
+  creates one.</p>
+</section>
+
+<section id="wiring">
+  <h2>Wiring, for humans</h2>
+  <p>What the register needs in order to be honest:</p>
+  <table>
+    <thead><tr><th>needs</th><th>from</th><th>required</th></tr></thead>
+    <tbody>
+      <tr><td>the machine itself</td><td>one <code>powershell.exe -EncodedCommand</code> pass (WMI: cpu, drives, video controllers, vram registry, processes); <code>nvidia-smi</code> when it exists</td><td>yes for facts — without it gpus/disks are empty and <code>notes[]</code> says why</td></tr>
+      <tr><td>a writable data folder</td><td><code>./data/bookings.json</code> (<code>--data</code>, <code>RM_DATA</code>)</td><td>yes for persistence; created on first save</td></tr>
+      <tr><td>a declared share list</td><td><code>./data/shares.json</code> (<code>--shares</code>, <code>RM_SHARES</code>)</td><td>no — absent means no shared folders reported</td></tr>
+      <tr><td>a listening port</td><td><code>127.0.0.1:8129</code> (<code>--port</code>, <code>--host</code>)</td><td>yes</td></tr>
+    </tbody>
+  </table>
+  <p>What it gives back:</p>
+  <table>
+    <thead><tr><th>gives</th><th>to</th><th>shape</th></tr></thead>
+    <tbody>
+      <tr><td><code>GET /health</code></td><td>a stranger</td><td><code>{ok, module:"resource-manager", bookings, dataFile}</code></td></tr>
+      <tr><td><code>GET /api/resources</code></td><td>the poller</td><td><code>{ok, resources, bookings}</code> — the machine and every current booking in one answer</td></tr>
+      <tr><td><code>POST /api/resources/refresh</code></td><td>a caller that cannot wait 4 s</td><td>same shape, cache bypassed</td></tr>
+      <tr><td><code>GET /api/bookings</code></td><td>a reader</td><td><code>{ok, active[]}</code>; <code>?include=ended</code> adds the capped history</td></tr>
+      <tr><td><code>GET /api/bookings/&lt;id&gt;</code></td><td>a reader</td><td><code>{ok, booking}</code> — active or ended, 404 <code>no_such_booking</code></td></tr>
+      <tr><td><code>POST /api/book</code></td><td>the scheduler (or Basic_App today)</td><td><code>{ok:true, booking}</code> or <code>{ok:false, error:{code, message, blockers[]}}</code> at HTTP 200</td></tr>
+      <tr><td><code>POST /api/bookings/&lt;id&gt;/pop</code> · <code>/clear</code></td><td>whoever ends the run</td><td><code>{ok, booking}</code> with <code>endedAt</code> + <code>endReason</code></td></tr>
+      <tr><td><code>POST /mcp</code></td><td>an agent</td><td><code>rm_resources · rm_book · rm_bookings · rm_pop · rm_clear</code></td></tr>
+      <tr><td><code>GET /</code></td><td>a human</td><td>the page (static, from <code>public/</code>)</td></tr>
+      <tr><td><code>data/bookings.json</code></td><td>the node's own disk</td><td><code>{version:1, active[], ended[]}</code></td></tr>
+    </tbody>
+  </table>
+  <p><b>Basic_App</b> is the consumer in this build: it refreshes the poll, books before a run and pops
+  after it (<code>BASIC_RM_URL</code>, default <code>http://127.0.0.1:8129</code>). The
+  <b>Scheduler does not call this module yet</b> — no reference to <code>:8129</code> exists in its
+  sources — so in this build the register is booked by the app, not by the book of jobs. The agent face
+  is <code>POST /mcp</code>; an optional token (<code>RM_TOKEN</code> / <code>--token</code>) guards
+  <code>/api/*</code> and <code>/mcp</code> via <code>x-rm-token</code> or <code>?token=</code>, and
+  static files stay open.</p>
+  <p class="note">This is wiring in words, not a type. The shapes live in
+  <code>public/ts/resourceSchema.ts</code>, <code>bookingStore.ts</code>, <code>resourceRead.ts</code> and
+  <code>apiServer.ts</code>; if this page and those files disagree, the files are right and this page is a
+  bug.</p>
+</section>
+
+<script type="application/json" id="contract">
+{
+  "module": "ResourceManager",
+  "port": 8129,
+  "kind": "door",
+  "needs": [
+    { "name": "machine read", "from": "powershell.exe + nvidia-smi", "required": false },
+    { "name": "bookings.json", "from": "./data (RM_DATA)", "required": false },
+    { "name": "shares.json", "from": "./data (RM_SHARES)", "required": false }
+  ],
+  "gives": [
+    { "name": "/health", "to": "the LAN", "kind": "http" },
+    { "name": "/api/resources", "to": "pollers", "kind": "http" },
+    { "name": "/api/resources/refresh", "to": "pollers", "kind": "http" },
+    { "name": "/api/bookings", "to": "readers", "kind": "http" },
+    { "name": "/api/bookings/<id>", "to": "readers", "kind": "http" },
+    { "name": "/api/book", "to": "Basic_App, the Scheduler later", "kind": "http" },
+    { "name": "/api/bookings/<id>/pop", "to": "run callers", "kind": "http" },
+    { "name": "/api/bookings/<id>/clear", "to": "humans", "kind": "http" },
+    { "name": "/mcp", "to": "agents", "kind": "mcp" },
+    { "name": "rm_resources", "to": "MCP", "kind": "tool" },
+    { "name": "rm_book", "to": "MCP", "kind": "tool" },
+    { "name": "rm_bookings", "to": "MCP", "kind": "tool" },
+    { "name": "rm_pop", "to": "MCP", "kind": "tool" },
+    { "name": "rm_clear", "to": "MCP", "kind": "tool" },
+    { "name": "data/bookings.json", "to": "the node's disk", "kind": "file" }
+  ]
+}
+</script>
+
+</body>
+</html>

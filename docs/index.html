@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hydra V2 — help</title>
+<style>
+  :root { color-scheme: dark; --bg:#111318; --panel:#191c23; --border:#303541; --text:#e5e7eb; --muted:#a1a8b7; --accent:#8ab4f8; }
+  * { box-sizing: border-box; }
+  body { margin:0; padding:40px 24px 80px; background:var(--bg); color:var(--text);
+         font:15px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif; }
+  main { max-width:82ch; margin:0 auto; }
+  h1 { font-size:26px; font-weight:600; letter-spacing:-.01em; margin:0 0 6px; }
+  p.lede { color:var(--muted); margin:0 0 8px; }
+  p.warn { color:#f0b37e; font-size:13px; margin:18px 0 30px; padding:10px 12px; border-left:2px solid #f0b37e; background:#1b1a17; }
+  h2 { font-size:13px; text-transform:uppercase; letter-spacing:.14em; color:var(--muted);
+       margin:34px 0 10px; border-bottom:1px solid var(--border); padding-bottom:6px; }
+  a { color:var(--accent); text-decoration:none; }
+  a:hover { text-decoration:underline; }
+  ul { list-style:none; margin:0; padding:0; }
+  li { padding:10px 0; border-bottom:1px solid rgba(255,255,255,.05); }
+  li:last-child { border-bottom:none; }
+  .name { font-weight:600; }
+  .what { color:var(--muted); font-size:13px; display:block; margin-top:2px; }
+  .port { color:var(--muted); font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:12px; margin-left:8px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Hydra V2 — help</h1>
+  <p class="lede">Every door explains itself: what it owns, what it refuses, and how to read it from an agent.
+     These are the same pages the app serves on <code>:8199</code>, copied here by
+     <code>scripts/build-docs-site.py</code> so they cannot drift.</p>
+  <p class="warn">Hydra V2 is <strong>not working</strong>. This is a construction site: no installer, one node,
+     hardcoded paths, no broker, and no authentication by design. The pages describe the design honestly,
+     including the parts that do not exist yet.</p>
+  <h2>The doors — what the window opens</h2><ul><li><a class="name" href="modules/Menu.html">Menu</a><span class="port">:8133</span><span class="what">The way in — a tree of every service this node can make, its advert beside the row, its inputs page on click, and one booking call to the Scheduler. Nothing runs here.</span></li><li><a class="name" href="modules/Services.html">Services</a><span class="port">:8128</span><span class="what">The catalog door — one data file per service, served on 8128. It holds definitions and runs nothing itself.</span></li><li><a class="name" href="modules/Scheduler.html">Scheduler</a><span class="port">:8132</span><span class="what">The book of jobs — one at a time, queued, recorded, with a RUNNER seam. The runner today is a dummy: it executes nothing and says so, so the wiring is real before anything runs.</span></li><li><a class="name" href="modules/State.html">State</a><span class="port">:8127</span><span class="what">The generic retainer — register any object under a dotted-path name and pull it back. Where a node registers itself as a child.</span></li><li><a class="name" href="modules/Event_Handler.html">Event_Handler</a><span class="port">:8126</span><span class="what">The generic event handler — register, trigger, log. ONE door for a user click and an agent&#x27;s call, and the log records who fired it.</span></li><li><a class="name" href="modules/ProcessWrapper.html">ProcessWrapper</a><span class="port">:8125</span><span class="what">THE ROOT — the only place a process may come from. Every launched thing lives in its one table.</span></li><li><a class="name" href="modules/Join.html">Join</a><span class="port">:8131</span><span class="what">The shelf&#x27;s SELF-DESCRIPTION and RESOLVER — should (files) and is (probed), kept apart. NAMES ONLY: it never carries traffic and never decides. Asked for something declared but not answering, it asks ProcessWrapper to start it and answers &#x27;starting&#x27;, so a lookup never reports &#x27;not found&#x27; for something merely not running.</span></li><li><a class="name" href="modules/TrainOfThought.html">TrainOfThought</a><span class="port">:8135</span><span class="what">The long-term intention DAG — nodes carry intent, next actions, an append-only trail and a claim lease; /api/next answers &#x27;what is next&#x27; from the frontier, not from a clock; closing a node archives it with the sentence that says why. Reads the session manager (:8134) lazily for evidence and works with it down. Never a job log: a Scheduler run or an image render creates no node.</span></li><li><a class="name" href="modules/SessionDiary.html">SessionDiary</a><span class="port">:8134</span><span class="what">The Hermes session wrapper: reads state.db read-only, writes a local static diary site (file:// clickable), asks dead sessions questions through the deepseek agent, and forks or restarts a session. Static HTML for reading; the API for acting.</span></li><li><a class="name" href="modules/Core.html">Core</a></li><li><a class="name" href="modules/Mirror.html">Mirror</a></li><li><a class="name" href="modules/ResourceManager.html">ResourceManager</a><span class="port">:8129</span><span class="what">The register — reads what this node has and keeps bookings. Not enforcement.</span></li></ul><h2>The shell</h2><ul><li><a class="name" href="modules/Basic_App.html">Basic_App</a><span class="port">:8130</span><span class="what">The service shelf instance — lists the available services, prepares one, runs one at a time.</span></li><li><a class="name" href="modules/Electron_Wrapper.html">Electron_Wrapper</a><span class="what">THE ONE WINDOW — min/max/resize/close, the menu bar, the tray. Closing it pops everything.</span></li></ul><h2>Pages that are not door help</h2><ul><li><a class="name" href="module-map.html">Hydra V2 - module map</a></li><li><a class="name" href="voice-cast.html">Cast voices</a></li><li><a class="name" href="voice-samples.html">Voice samples - 980 Ti</a></li></ul>
+</main>
+</body>
+</html>
