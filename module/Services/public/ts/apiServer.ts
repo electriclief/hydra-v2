@@ -347,6 +347,33 @@ export async function startApiServer(options: ApiServerOptions): Promise<ApiServ
   });
   const addr = api.server.address() as AddressInfo | null;
   const boundPort = addr ? addr.port : (options.port ?? 8128);
+
+  // A fact about this node must survive a restart. State is an in-memory bulletin board - durable by nobody's
+  // effort - so a branch published only when something changes (the shelf revision) is gone the moment this door
+  // comes back, and readers are told "no shelf" while 448 files sit on disk. Republish at boot, computed from disk.
+  if (options.shelfRoot) {
+    void (async () => {
+      try {
+        const manifest = await buildManifest(options.shelfRoot as string);
+        const last = lastSyncMark(options.shelfRoot as string) as
+          | { pulledFrom?: string; fetched?: number; refused?: unknown[]; at?: string }
+          | null;
+        await noteShelf(options.shelfRoot as string, {
+          rev: manifest.rev,
+          files: manifest.files.length,
+          bytes: manifest.bytes,
+          pulledFrom: last?.pulledFrom ?? null,
+          at: new Date().toISOString(),
+          fetched: last?.fetched ?? 0,
+          refused: Array.isArray(last?.refused) ? last.refused.length : 0,
+          source: 'boot',
+        });
+      } catch {
+        // a node that cannot compute its own revision says nothing rather than something wrong
+      }
+    })();
+  }
+
   return {
     ...api,
     port: boundPort,

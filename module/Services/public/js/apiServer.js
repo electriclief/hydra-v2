@@ -260,6 +260,25 @@ async function startApiServer(options) {
   });
   const addr = api.server.address();
   const boundPort = addr ? addr.port : options.port ?? 8128;
+  if (options.shelfRoot) {
+    void (async () => {
+      try {
+        const manifest = await buildManifest(options.shelfRoot);
+        const last = lastSyncMark(options.shelfRoot);
+        await noteShelf(options.shelfRoot, {
+          rev: manifest.rev,
+          files: manifest.files.length,
+          bytes: manifest.bytes,
+          pulledFrom: last?.pulledFrom ?? null,
+          at: (/* @__PURE__ */ new Date()).toISOString(),
+          fetched: last?.fetched ?? 0,
+          refused: Array.isArray(last?.refused) ? last.refused.length : 0,
+          source: "boot"
+        });
+      } catch {
+      }
+    })();
+  }
   return {
     ...api,
     port: boundPort,
