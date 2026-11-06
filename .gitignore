@@ -32,3 +32,9 @@ desktop.ini
 
 # generated diary site (rebuilt from data by the door)
 module/SessionDiary/site/
+
+# the instance layer and runtime books: a node is not a clone of another node
+module/Menu/data/node.json
+module/Menu/data/models-cache.json
+module/Scheduler/data/jobs.json
+module/Core/data/*.log

@@ -54,7 +54,12 @@ if ($LASTEXITCODE -ne 0) {
 $dataDir = Join-Path $Dest 'module\Menu\data'
 New-Item -ItemType Directory -Force -Path $dataDir | Out-Null
 $nodeFile = Join-Path $dataDir 'node.json'
-if (-not (Test-Path $nodeFile)) {
+if (Test-Path $nodeFile) {
+  # a clone of another node's identity is worse than none: say it out loud instead of silently keeping it
+  $existing = (Get-Content $nodeFile -Raw | ConvertFrom-Json)
+  Say ("WARNING: node.json already exists (ref " + $existing.ref + '). Keeping it. Delete it and rerun to write ref ' + $Ref + '.')
+}
+else {
   $nodeJson = [ordered]@{
     ref        = $Ref
     name       = $(if ($Name) { $Name } else { $Ref })
@@ -89,15 +94,18 @@ if (-not $SkipDeps) {
 
 foreach ($m in $modules) {
   $pkg = Get-Content (Join-Path $m.FullName 'package.json') -Raw | ConvertFrom-Json
-  if ($pkg.scripts -and $pkg.scripts.build) {
-    Say ("build        " + $m.Name)
-    Push-Location $m.FullName
-    try {
-      & npm run --silent build 2>&1 | Out-Null
-      if ($LASTEXITCODE -ne 0) { Say ("build failed: " + $m.Name + " (continuing - compiled js ships in the repo)") }
-    }
-    finally { Pop-Location }
+  if (-not ($pkg.scripts -and $pkg.scripts.build)) { continue }
+  if (-not (Test-Path (Join-Path $m.FullName 'node_modules'))) {
+    Say ("build skipped: " + $m.Name + " has no node_modules (run without -SkipDeps)")
+    continue
   }
+  Say ("build        " + $m.Name)
+  Push-Location $m.FullName
+  try {
+    & npm run --silent build 2>&1 | Out-Null
+    if ($LASTEXITCODE -ne 0) { Say ("build failed: " + $m.Name + " (continuing - compiled js ships in the repo)") }
+  }
+  finally { Pop-Location }
 }
 
 if (-not $SkipGates) {
