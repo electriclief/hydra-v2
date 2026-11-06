@@ -619,7 +619,6 @@
       "state": "open",
       "deps": [],
       "next": [
-        "on book: stop the standby through ProcessWrapper, poll until the process is really gone, then launch - today the guard kills processes directly",
         "direct control: POST /api/standby {action:start|stop|pin} on the Scheduler so mining is addressable without booking a job"
       ],
       "tags": [
@@ -706,10 +705,16 @@
           "kind": "done",
           "text": "on idle: verify the standby before reporting green :: built: Start-Miner polls for verify.processes up to verify.timeoutS and reports ok / blocked / failed; the footer says 'Idle Service BLOCKED - standby did not start' instead of claiming mining",
           "by": "hermes-agent"
+        },
+        {
+          "at": 1794008134272,
+          "kind": "done",
+          "text": "the standby is a ProcessWrapper row :: adopt() wraps a miner that is already hashing (5 rows: unMiner x4 + SRBMiner-MULTI, tag standby, isolation supervised), launch-through-wrapper when nothing runs, stop via /kill so the row settles as killed. Found and fixed on the way: a 5s job never preempted because a 15s poll missed it - the guard now watches queued too and naps in slices; and a killed guard stayed dead because ensureWatchdogs only ran at boot (now every 30s)",
+          "by": "hermes-agent"
         }
       ],
       "created": 1793923776255,
-      "touched": 1794006713361,
+      "touched": 1794008134272,
       "dir": "thoughts/db39b286"
     },
     {

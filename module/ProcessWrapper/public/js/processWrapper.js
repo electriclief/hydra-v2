@@ -1,4 +1,4 @@
-import { spawn } from "node:child_process";
+import { spawn, execFileSync } from "node:child_process";
 import { EventEmitter } from "node:events";
 import fs from "node:fs";
 import path from "node:path";
@@ -33,6 +33,18 @@ function parseCommand(command) {
   if (started || cur.length) argv.push(cur);
   return argv;
 }
+function pidAlive(pid) {
+  try {
+    if (process.platform === "win32") {
+      const out2 = execFileSync("tasklist", ["/FI", `PID eq ${pid}`, "/NH"], { encoding: "utf8", windowsHide: true });
+      return out2.includes(String(pid));
+    }
+    const out = execFileSync("ps", ["-p", String(pid), "-o", "pid="], { encoding: "utf8" });
+    return out.trim().length > 0;
+  } catch {
+    return false;
+  }
+}
 function makeId(name, seq) {
   const slug = name.toLowerCase().replace(/\.[a-z0-9]+$/, "").replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 18);
   return `${slug || "proc"}-${String(seq).padStart(3, "0")}-${crypto.randomBytes(2).toString("hex")}`;
@@ -58,7 +70,74 @@ class ProcessWrapperService extends EventEmitter {
     this.killTree = options.killTree ?? true;
     fs.mkdirSync(this.streamDir, { recursive: true });
   }
-  /** Launch a command as a child process and start capturing its output. */
+  /**
+   * Take responsibility for a process this wrapper did NOT start.
+   *
+   * A process manager that only knows its own children is a launcher, not a manager: the miner arrives through
+   * schtasks, so it is invisible in the Processes tab and has no stop button, which is exactly the "nothing runs
+   * invisibly" rule broken by omission. Adoption is honest about its limits - there is no pipe to a process that is
+   * already running, so its output starts empty and the record says so - and it ends when the pid ends.
+   */
+  adopt(spec) {
+    if (this.closed) throw new Error("wrapper is shut down");
+    const pid = Number(spec.pid);
+    if (!Number.isFinite(pid) || pid <= 0) throw new Error("pid is required");
+    for (const rec of this.table.values()) {
+      if (rec.pid === pid && (rec.life === "running" || rec.life === "starting")) return rec;
+    }
+    const id = makeId(spec.name || `pid-${pid}`, ++this.seq);
+    const streamFile = path.join(this.streamDir, `${id}.log`);
+    fs.writeFileSync(streamFile, "");
+    const record = {
+      id,
+      name: spec.name || `pid ${pid}`,
+      tag: spec.tag ?? null,
+      // adoption has no pipe to read from, so nothing of this process's output can ever reach the control loop
+      isolation: "supervised",
+      command: spec.command || `pid ${pid}`,
+      args: spec.args ? spec.args.map(String) : [],
+      cwd: spec.cwd || "",
+      shell: false,
+      pid,
+      life: "running",
+      spawnedAt: Number.isFinite(Number(spec.startedAt)) ? Number(spec.startedAt) : Date.now(),
+      endedAt: null,
+      exitCode: null,
+      signal: null,
+      chars: { stdout: 0, stderr: 0 },
+      truncated: false,
+      streamFile,
+      error: null
+    };
+    this.table.set(id, record);
+    this.buffers.set(id, { chunks: [], chars: { stdout: 0, stderr: 0 } });
+    this.tails.set(id, { stdout: "", stderr: "" });
+    this.subs.set(id, /* @__PURE__ */ new Set());
+    this.watchAdopted(record);
+    return record;
+  }
+  /** Poll an adopted pid until it dies, then settle its record the way a spawned child's exit would. */
+  watchAdopted(record) {
+    const timer = setInterval(() => {
+      const pid = record.pid;
+      if (!pid || record.life !== "running") {
+        clearInterval(timer);
+        return;
+      }
+      if (!pidAlive(pid)) {
+        clearInterval(timer);
+        record.life = this.killed.has(record.id) ? "killed" : "exited";
+        record.endedAt = Date.now();
+        for (const sink of this.subs.get(record.id) ?? []) {
+          try {
+            sink("end");
+          } catch {
+          }
+        }
+      }
+    }, 2e3);
+    timer.unref?.();
+  }
   launch(spec) {
     if (this.closed) throw new Error("wrapper is shut down");
     if (!spec || !spec.command || !String(spec.command).trim()) throw new Error("command is required");
@@ -75,6 +154,7 @@ class ProcessWrapperService extends EventEmitter {
       id,
       name: spec.name || spec.command,
       tag: spec.tag ?? null,
+      isolation: spec.isolation === "supervised" ? "supervised" : "in-loop",
       command: exe,
       args,
       cwd,
@@ -107,7 +187,11 @@ class ProcessWrapperService extends EventEmitter {
         // a per-launch decision now: hideWindow defaults to true, and a console display
         // that is meant to be SEEN sets it false.
         windowsHide: spec.hideWindow !== false,
-        stdio: ["pipe", "pipe", "pipe"]
+        // 'supervised' means this door holds a HANDLE, not a pipe: no stdout is read here, so nothing a chatty
+        // process writes is billed to the loop that answers the API and the stop button. It is detached from this
+        // door's lifetime on purpose - a miner outliving a restart is a thing the operator can see, not a leak.
+        stdio: spec.isolation === "supervised" ? ["ignore", "ignore", "ignore"] : ["pipe", "pipe", "pipe"],
+        detached: spec.isolation === "supervised"
       });
     } catch (err) {
       this.fail(id, err.message);
@@ -132,6 +216,10 @@ class ProcessWrapperService extends EventEmitter {
     if (child.stderr) child.stderr.on("data", capture("stderr"));
     child.on("exit", (code, signal) => this.finish(id, code, signal));
     child.on("close", (code, signal) => this.finish(id, code, signal));
+    if (record.isolation === "supervised") {
+      child.unref();
+      this.watchAdopted(record);
+    }
     this.emit("spawn", record);
     return record;
   }
@@ -254,6 +342,29 @@ class ProcessWrapperService extends EventEmitter {
     const child = this.children.get(id);
     const force = opts.force === true;
     const grace = opts.graceMs ?? this.graceMs;
+    if (!child && rec.pid && rec.life === "running") {
+      this.killed.add(id);
+      const pid2 = rec.pid;
+      this.forceKill(pid2);
+      const deadline = Date.now() + Math.max(grace, 1500);
+      while (Date.now() < deadline && pidAlive(pid2)) {
+        await new Promise((resolve) => setTimeout(resolve, 120));
+      }
+      const gone = !pidAlive(pid2);
+      if (gone) {
+        rec.life = "killed";
+        rec.endedAt = Date.now();
+      }
+      return {
+        id,
+        pid: pid2,
+        requested: force ? "force" : "graceful",
+        outcome: rec.life,
+        exitCode: null,
+        signal: force ? "SIGKILL" : "SIGTERM",
+        forced: true
+      };
+    }
     if (!child || rec.life === "exited" || rec.life === "killed" || rec.life === "failed") {
       return {
         id,
@@ -625,6 +736,25 @@ async function runTests() {
   const visRows = wVis.list({});
   ok("and the table shows both lives", visRows.length >= 2, String(visRows.length));
   await wVis.shutdown(true);
+  const wAd = new ProcessWrapperService({ streamDir: path.join(os.tmpdir(), "pw-adopt-" + process.pid) });
+  const outside = spawn(process.execPath, ["-e", "setTimeout(()=>{}, 60000)"], { stdio: "ignore" });
+  await new Promise((r) => setTimeout(r, 500));
+  const adRec = wAd.adopt({ pid: outside.pid, name: "outside-thing", tag: "mined" });
+  ok("an adopted process gets a row with its pid", !!adRec.id && adRec.pid === outside.pid, JSON.stringify({ id: adRec.id, pid: adRec.pid }));
+  ok("adoption is supervised: nothing of its output reaches this loop", adRec.isolation === "supervised", String(adRec.isolation));
+  const adAgain = wAd.adopt({ pid: outside.pid });
+  ok("adopting the same pid twice is still ONE row", adAgain.id === adRec.id, `${adAgain.id} vs ${adRec.id}`);
+  const adKill = await wAd.kill(adRec.id, { force: true });
+  ok("an adopted process can be stopped from the table", adKill.outcome === "killed", JSON.stringify(adKill));
+  await new Promise((r) => setTimeout(r, 700));
+  ok("and its row is not left claiming a dead pid", wAd.get(adRec.id)?.life !== "running", String(wAd.get(adRec.id)?.life));
+  await wAd.shutdown(true);
+  const supRec = w.launch({ command: process.execPath, args: ["-e", 'setInterval(()=>console.log("noise"),50)'], isolation: "supervised", tag: "sup" });
+  ok("a supervised launch still gets a row and a pid", supRec.isolation === "supervised" && !!supRec.pid, JSON.stringify({ iso: supRec.isolation, pid: supRec.pid }));
+  await new Promise((r) => setTimeout(r, 800));
+  ok("and none of its noise is captured on this loop", (w.get(supRec.id)?.chars.stdout ?? -1) === 0, String(w.get(supRec.id)?.chars.stdout));
+  const supKill = await w.kill(supRec.id, { force: true });
+  ok("a supervised child is still stoppable from the table", supKill.outcome === "killed", JSON.stringify(supKill));
   await w.shutdown();
   ok("shutdown leaves nothing running", w.list({ life: "running" }).length === 0);
   const failed = results.filter((r) => r.startsWith("FAIL"));

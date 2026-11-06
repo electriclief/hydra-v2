@@ -86,11 +86,17 @@ export function renderProcessRow(rec: ProcessRecord, opts: { selected?: boolean;
     `<td>${escapeHtml(rec.name)}${rec.tag ? ` <span class="tag">${escapeHtml(rec.tag)}</span>` : ''}</td>`,
     `<td class="mono num">${rec.pid ?? '—'}</td>`,
     `<td><span class="${lifeClass(rec.life)}">${escapeHtml(rec.life)}</span></td>`,
+    // the structure has to be visible: who owns this process's output is a property of the row, not a footnote
+    rec.isolation === 'supervised'
+      ? `<td><span class="tag" title="nothing of this process's output reaches this door: it was not spawned here">supervised</span></td>`
+      : `<td class="mono muted">in-loop</td>`,
     `<td class="mono num">${formatChars(rec.chars.stdout + rec.chars.stderr)}</td>`,
     `<td class="mono num">${formatUptime(rec, opts.now)}</td>`,
     `<td class="mono num">${rec.exitCode === null ? '—' : rec.exitCode}</td>`,
     `<td class="actions">`,
-    `<button data-act="view" data-id="${escapeHtml(rec.id)}" title="show this stream">view</button>`,
+    rec.isolation === 'supervised'
+      ? `<span class="muted" title="adopted: its stdout was never ours to read">no capture</span>`
+      : `<button data-act="view" data-id="${escapeHtml(rec.id)}" title="show this stream">view</button>`,
     live
       ? `<button data-act="kill" data-id="${escapeHtml(rec.id)}" title="ask it to stop">kill</button>` +
         `<button class="danger" data-act="force" data-id="${escapeHtml(rec.id)}" title="kill the whole tree now">force</button>`
@@ -545,6 +551,7 @@ export async function runTests(): Promise<void> {
     id: 'demo-001-ab12',
     name: 'demo',
     tag: null,
+    isolation: 'in-loop',
     command: 'demo.exe',
     args: [],
     cwd: '.',
@@ -602,6 +609,7 @@ export async function runTests(): Promise<void> {
     cwd: '',
     env: {},
     shell: false,
+    isolation: 'in-loop',
     description: 'a ticker',
     tag: 'demo',
     createdAt: '',

@@ -11,7 +11,8 @@
  * Routes (all JSON unless noted):
  *   GET    /health                          → liveness + counters
  *   GET    /api/processes                   → the table (?life=&tag=)
- *   POST   /api/processes                   → launch {command|saved, args, cwd, env, name, tag, shell}
+ *   POST   /api/processes                   → launch {command|saved, args, cwd, env, name, tag, shell, isolation}
+ *   POST   /api/processes/adopt             → take over a running pid {pid, name, tag, command, args, cwd}
  *   GET    /api/processes/:id               → one record
  *   GET    /api/processes/:id/output        → a COPY of the text (?from=&limit=&channel=) text/plain
  *   GET    /api/processes/:id/stream        → a LIVE copy, SSE (?from=&channel=)
@@ -297,6 +298,7 @@ export function createApiServer(options: ApiServerOptions): ApiServer {
             cwd: body.cwd ? String(body.cwd) : '',
             env: body.env && typeof body.env === 'object' ? (body.env as Record<string, string>) : {},
             shell: body.shell === true,
+            isolation: (body.isolation === 'supervised' ? 'supervised' : 'in-loop') as 'in-loop' | 'supervised',
             description: body.description ? String(body.description) : '',
             tag: body.tag ? String(body.tag) : null,
           });
@@ -385,6 +387,7 @@ export function createApiServer(options: ApiServerOptions): ApiServer {
             spec = toSpec(def, {
               name: body.name ? String(body.name) : undefined,
               tag: body.tag ? String(body.tag) : undefined,
+              isolation: body.isolation === 'supervised' ? 'supervised' : body.isolation === 'in-loop' ? 'in-loop' : undefined,
             });
           } else {
             spec = {
@@ -395,6 +398,7 @@ export function createApiServer(options: ApiServerOptions): ApiServer {
               name: body.name ? String(body.name) : undefined,
               tag: body.tag ? String(body.tag) : null,
               shell: body.shell === true,
+              isolation: (body.isolation === 'supervised' ? 'supervised' : 'in-loop') as 'in-loop' | 'supervised',
               bufferLimitChars: typeof body.bufferLimitChars === 'number' ? body.bufferLimitChars : undefined,
             };
           }
@@ -402,6 +406,34 @@ export function createApiServer(options: ApiServerOptions): ApiServer {
           sendJson(res, 201, { process: rec });
         } catch (err) {
           sendError(res, 400, 'launch_failed', (err as Error).message);
+        }
+        return;
+      }
+
+      // POST /api/processes/adopt - take responsibility for a process this door did not start.
+      // A manager that only lists its own children cannot show the miner, because schtasks started it. Adoption
+      // gives it a row, a pid, a stop button and an honest note that its output was never captured.
+      if (method === 'POST' && id === 'adopt') {
+        let body: Record<string, unknown>;
+        try {
+          body = JSON.parse((await readBody(req)) || '{}');
+        } catch (err) {
+          sendError(res, 400, 'bad_json', `body must be JSON: ${(err as Error).message}`);
+          return;
+        }
+        try {
+          const rec = wrapper.adopt({
+            pid: Number(body.pid),
+            name: body.name ? String(body.name) : undefined,
+            tag: body.tag ? String(body.tag) : null,
+            command: body.command ? String(body.command) : undefined,
+            args: Array.isArray(body.args) ? (body.args as unknown[]).map(String) : undefined,
+            cwd: body.cwd ? String(body.cwd) : undefined,
+            startedAt: typeof body.startedAt === 'number' ? body.startedAt : undefined,
+          });
+          sendJson(res, 201, { process: rec, adopted: true });
+        } catch (err) {
+          sendError(res, 400, 'adopt_failed', (err as Error).message);
         }
         return;
       }

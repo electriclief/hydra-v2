@@ -189,7 +189,69 @@ function Get-MinerRunning {
   return $false
 }
 
+# --- ProcessWrapper: the miner must be a row in the table, not a thing behind schtasks -------------------------
+$PwUrl = 'http://127.0.0.1:8125'
+$StandbyTag = 'standby'
+
+function Invoke-Pw {
+  param([string]$Method, [string]$Path, $Body)
+  try {
+    if ($null -ne $Body) {
+      $json = ($Body | ConvertTo-Json -Depth 6 -Compress)
+      return Invoke-RestMethod -Uri ($PwUrl + $Path) -Method $Method -ContentType 'application/json' -Body $json -TimeoutSec 10
+    }
+    return Invoke-RestMethod -Uri ($PwUrl + $Path) -Method $Method -TimeoutSec 10
+  }
+  catch { return $null }
+}
+
+function Test-PwUp {
+  return ($null -ne (Invoke-Pw -Method GET -Path '/health'))
+}
+
+function Get-PwStandby {
+  $r = Invoke-Pw -Method GET -Path ('/api/processes?tag=' + $StandbyTag)
+  if (-not $r) { return @() }
+  return @($r.processes | Where-Object { $_.life -eq 'running' -or $_.life -eq 'starting' })
+}
+
+function Get-StandbyNames {
+  if ($Policy -and $Policy.stop -and $Policy.stop.processes) { return @($Policy.stop.processes) }
+  return @('unMiner', 'SRBMiner-MULTI', 'lolMiner', 'xmrig')
+}
+
+# Wrap whatever is already hashing. The operator's rule: a process manager must SEE a process that is already
+# running, not only the ones it started - otherwise the app shows an idle card while the GPU is at 100%.
+function Sync-StandbyToPw {
+  if (-not (Test-PwUp)) { return $false }
+  $known = @(Get-PwStandby | ForEach-Object { [int]$_.pid })
+  $wrapped = 0
+  foreach ($n in (Get-StandbyNames)) {
+    foreach ($p in @(Get-Process -Name $n -ErrorAction SilentlyContinue)) {
+      if ($known -contains $p.Id) { continue }
+      $cmd = $null
+      try { $cmd = $p.Path } catch { }
+      $rec = Invoke-Pw -Method POST -Path '/api/processes/adopt' -Body @{
+        pid    = $p.Id
+        name   = $p.ProcessName
+        tag    = $StandbyTag
+        command = $cmd
+      }
+      if ($rec -and $rec.process) { $wrapped++; LogIt ("WRAP   " + $p.ProcessName + " pid " + $p.Id + " -> " + $rec.process.id) }
+    }
+  }
+  return ($wrapped -gt 0)
+}
+
 function Stop-Miner {
+  # stop through the table first: a process stopped behind the manager's back leaves a row that says 'running'
+  if (Test-PwUp) {
+    foreach ($rec in @(Get-PwStandby)) {
+      $k = Invoke-Pw -Method POST -Path ('/api/processes/' + $rec.id + '/kill') -Body @{ force = $true }
+      if ($k) { LogIt ("YIELD   stopped " + $rec.id + " through ProcessWrapper") }
+      else { LogIt ("YIELD   ProcessWrapper would not stop " + $rec.id) }
+    }
+  }
   $task = $MinerTask
   $names = @('unMiner', 'SRBMiner-MULTI', 'lolMiner', 'xmrig')
   if ($Policy -and $Policy.stop) {
@@ -233,38 +295,72 @@ function Test-StandbyUp {
 
 function Start-Miner {
   $script:lastVerify = 'pending'
-  if ($Policy -and $Policy.start -and $Policy.start.command) {
-    $cmd = [string]$Policy.start.command
-    # an empty JSON array arrives as $null, and Start-Process rejects a null ArgumentList outright. Build the list
-    # element by element and omit the parameter entirely when there is nothing to pass.
-    $argList = @()
-    if ($null -ne $Policy.start.args) {
-      foreach ($a in @($Policy.start.args)) { if ($null -ne $a -and ([string]$a) -ne '') { $argList += [string]$a } }
+
+  # WHERE the standby comes from: ProcessWrapper first, because a process the manager cannot see is the thing the
+  # operator keeps objecting to. Wrap what is already hashing, else launch through the door so the row exists from
+  # the first millisecond. The node.json start command stays as the fallback for a box with no wrapper running.
+  $via = 'none'
+  if (Test-PwUp) {
+    if (Sync-StandbyToPw) {
+      $via = 'wrapped'
+      LogIt "RESUME  standby was already running - wrapped, no second copy"
     }
-    $wd = $null
-    if ($Policy.start.cwd) { $wd = [string]$Policy.start.cwd }
-    try {
-      $procArgs = @{ FilePath = $cmd }
-      if ($argList.Count -gt 0) { $procArgs['ArgumentList'] = $argList }
-      if ($wd) { $procArgs['WorkingDirectory'] = $wd }
-      Start-Process @procArgs
-      LogIt "RESUME  standby launched (node.json start)"
-    }
-    catch {
-      LogIt ("RESUME failed: " + $_.Exception.Message)
-      $script:lastVerify = 'failed'
-      return $false
+    elseif ($Policy -and $Policy.start -and $Policy.start.command) {
+      $body = @{
+        name      = 'standby-miner'
+        tag       = $StandbyTag
+        isolation = 'supervised'
+        command   = [string]$Policy.start.command
+      }
+      $argList = @()
+      if ($null -ne $Policy.start.args) {
+        foreach ($a in @($Policy.start.args)) { if ($null -ne $a -and ([string]$a) -ne '') { $argList += [string]$a } }
+      }
+      if ($argList.Count -gt 0) { $body['args'] = $argList }
+      if ($Policy.start.cwd) { $body['cwd'] = [string]$Policy.start.cwd }
+      $launched = Invoke-Pw -Method POST -Path '/api/processes' -Body $body
+      if ($launched -and $launched.process) {
+        $via = 'wrapper'
+        LogIt ("RESUME  launched through ProcessWrapper -> " + $launched.process.id)
+      }
+      else { LogIt "RESUME  ProcessWrapper refused the launch - falling back to node.json start" }
     }
   }
-  else {
-    $procs = @(Get-Process -Name 'SRBMiner-MULTI', 'unMiner' -ErrorAction SilentlyContinue)
-    if ($procs.Count -eq 0) {
-      schtasks /end /tn $MinerTask 2>$null | Out-Null
-      Start-Sleep -Milliseconds 600
+
+  if ($via -eq 'none') {
+    if ($Policy -and $Policy.start -and $Policy.start.command) {
+      $cmd = [string]$Policy.start.command
+      # an empty JSON array arrives as $null, and Start-Process rejects a null ArgumentList outright. Build the list
+      # element by element and omit the parameter entirely when there is nothing to pass.
+      $directArgs = @()
+      if ($null -ne $Policy.start.args) {
+        foreach ($a in @($Policy.start.args)) { if ($null -ne $a -and ([string]$a) -ne '') { $directArgs += [string]$a } }
+      }
+      $wd = $null
+      if ($Policy.start.cwd) { $wd = [string]$Policy.start.cwd }
+      try {
+        $procArgs = @{ FilePath = $cmd }
+        if ($directArgs.Count -gt 0) { $procArgs['ArgumentList'] = $directArgs }
+        if ($wd) { $procArgs['WorkingDirectory'] = $wd }
+        Start-Process @procArgs
+        LogIt "RESUME  standby launched (node.json start, no wrapper)"
+      }
+      catch {
+        LogIt ("RESUME failed: " + $_.Exception.Message)
+        $script:lastVerify = 'failed'
+        return $false
+      }
     }
-    $script:taskRunningSince = $null
-    $r = schtasks /run /tn $MinerTask 2>$null | Out-String
-    if ($r -match 'SUCCESS') { LogIt "RESUME  miner started (task)" } else { LogIt ("RESUME failed: " + $r.Trim()) }
+    else {
+      $procs = @(Get-Process -Name 'SRBMiner-MULTI', 'unMiner' -ErrorAction SilentlyContinue)
+      if ($procs.Count -eq 0) {
+        schtasks /end /tn $MinerTask 2>$null | Out-Null
+        Start-Sleep -Milliseconds 600
+      }
+      $script:taskRunningSince = $null
+      $r = schtasks /run /tn $MinerTask 2>$null | Out-String
+      if ($r -match 'SUCCESS') { LogIt "RESUME  miner started (task)" } else { LogIt ("RESUME failed: " + $r.Trim()) }
+    }
   }
 
   # A start that never produced the standby is a BLOCKED state, not a green one: report it as such instead of
@@ -275,8 +371,10 @@ function Start-Miner {
   while ((Get-Date) -lt $deadline) {
     Start-Sleep -Seconds 3
     if (Test-StandbyUp) {
-      LogIt ("RESUME verified after " + [int]((Get-Date) - $deadline.AddSeconds(-$timeout)).TotalSeconds + "s")
+      LogIt ("RESUME verified after " + [int]((Get-Date) - $deadline.AddSeconds(-$timeout)).TotalSeconds + "s  via " + $via)
       $script:lastVerify = 'ok'
+      # whatever path started it, the row must exist: wrap it now so the table and the tab agree
+      if (Test-PwUp) { [void](Sync-StandbyToPw) }
       return $true
     }
   }
@@ -315,6 +413,9 @@ $Policy = Get-StandbyPolicy
 if ($Policy -and $null -ne $Policy.after) { $ResumeGraceSeconds = [int]$Policy.after }
 if ($Policy -and $Policy.label) { LogIt ("standby: " + $Policy.label + "  after " + $ResumeGraceSeconds + "s") }
 
+# If it is already hashing when the guard starts, wrap it now: the table must show it before it ever needs stopping.
+if ((Get-MinerRunning) -and (Test-PwUp)) { [void](Sync-StandbyToPw) }
+
 while ($true) {
   $tick++
   if ($tick % 20 -eq 0) {
@@ -325,6 +426,10 @@ while ($true) {
   if ($Policy -and $null -ne $Policy.pinned) { if ($Policy.pinned) { $pinned = $true } }
   $ai = @(Get-AiWork)
   $miner = Get-MinerRunning
+
+  # Keep the table complete as the miner's own launcher spawns children: unMiner starts one SRBMiner after it comes
+  # up, and a child nobody wrapped is exactly the invisible process this is meant to end.
+  if ($miner -and ($tick % 2 -eq 0) -and (Test-PwUp)) { [void](Sync-StandbyToPw) }
   $idle = Get-IdleState
 
   # Work that needs the card: a batch job, or a server with a request in flight on GPU layers. An idle server
@@ -332,7 +437,9 @@ while ($true) {
   # A RUNNING JOB from the book also counts, before its GPU load shows up: the Scheduler already said the card is
   # taken, and waiting for the load to prove it would let the miner fight a job for a few seconds.
   $preempt = @($ai | Where-Object { $_.gpu -and ($_.busy -ne $false) })
-  $bookBusy = ($null -ne $idle -and [int]$idle.running -gt 0)
+  # A BOOKED job is this node's work even before it is running: a five-second job can start and finish between two
+  # polls, and a miner that never yields for it is contention the operator never gets told about.
+  $bookBusy = ($null -ne $idle -and ([int]$idle.running -gt 0 -or [int]$idle.queued -gt 0))
 
   if ($preempt.Count -gt 0 -or $bookBusy) {
     if ($null -eq $busySince) { $busySince = Get-Date }
@@ -439,5 +546,19 @@ while ($true) {
     }
     catch { }
   }
-  Start-Sleep -Seconds $nap
+  # ...and check the book in slices rather than once at the end: a queued job can be over in five seconds, and a
+  # miner that only yields every fifteen is contention the operator never learns about.
+  $slept = 0
+  $slice = [math]::Max(2, [int][math]::Floor($nap / 3))
+  while ($slept -lt $nap) {
+    $take = [math]::Min($slice, $nap - $slept)
+    Start-Sleep -Seconds $take
+    $slept += $take
+    if ($slept -ge $nap) { break }
+    $fast = Get-IdleState
+    if ($null -ne $fast -and ([int]$fast.running -gt 0 -or [int]$fast.queued -gt 0)) {
+      LogIt "wake  a job is booked - checking the standby"
+      break
+    }
+  }
 }

@@ -186,6 +186,7 @@ function createApiServer(options) {
             cwd: body.cwd ? String(body.cwd) : "",
             env: body.env && typeof body.env === "object" ? body.env : {},
             shell: body.shell === true,
+            isolation: body.isolation === "supervised" ? "supervised" : "in-loop",
             description: body.description ? String(body.description) : "",
             tag: body.tag ? String(body.tag) : null
           });
@@ -276,7 +277,8 @@ function createApiServer(options) {
             }
             spec = toSpec(def, {
               name: body.name ? String(body.name) : void 0,
-              tag: body.tag ? String(body.tag) : void 0
+              tag: body.tag ? String(body.tag) : void 0,
+              isolation: body.isolation === "supervised" ? "supervised" : body.isolation === "in-loop" ? "in-loop" : void 0
             });
           } else {
             spec = {
@@ -287,6 +289,7 @@ function createApiServer(options) {
               name: body.name ? String(body.name) : void 0,
               tag: body.tag ? String(body.tag) : null,
               shell: body.shell === true,
+              isolation: body.isolation === "supervised" ? "supervised" : "in-loop",
               bufferLimitChars: typeof body.bufferLimitChars === "number" ? body.bufferLimitChars : void 0
             };
           }
@@ -294,6 +297,30 @@ function createApiServer(options) {
           sendJson(res, 201, { process: rec2 });
         } catch (err) {
           sendError(res, 400, "launch_failed", err.message);
+        }
+        return;
+      }
+      if (method === "POST" && id === "adopt") {
+        let body;
+        try {
+          body = JSON.parse(await readBody(req) || "{}");
+        } catch (err) {
+          sendError(res, 400, "bad_json", `body must be JSON: ${err.message}`);
+          return;
+        }
+        try {
+          const rec2 = wrapper.adopt({
+            pid: Number(body.pid),
+            name: body.name ? String(body.name) : void 0,
+            tag: body.tag ? String(body.tag) : null,
+            command: body.command ? String(body.command) : void 0,
+            args: Array.isArray(body.args) ? body.args.map(String) : void 0,
+            cwd: body.cwd ? String(body.cwd) : void 0,
+            startedAt: typeof body.startedAt === "number" ? body.startedAt : void 0
+          });
+          sendJson(res, 201, { process: rec2, adopted: true });
+        } catch (err) {
+          sendError(res, 400, "adopt_failed", err.message);
         }
         return;
       }

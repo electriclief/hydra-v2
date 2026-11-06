@@ -23,6 +23,11 @@ export interface CommandDefinition {
   cwd: string;
   env: Record<string, string>;
   shell: boolean;
+  /**
+   * Where this command's output is handled. The DEFINITION carries it, because it is a property of what the command
+   * is (a miner floods stdout; a chat server does not), and a launch may override it for one run.
+   */
+  isolation: 'in-loop' | 'supervised';
   description: string;
   tag: string | null;
   createdAt: string;
@@ -82,6 +87,7 @@ export function stateToYaml(state: RegistryState): string {
       L.push('    env: {}');
     }
     L.push(`    shell: ${c.shell ? 'true' : 'false'}`);
+    L.push(`    isolation: ${yamlScalar(c.isolation === 'supervised' ? 'supervised' : 'in-loop')}`);
     L.push(`    description: ${yamlScalar(c.description || '')}`);
     L.push(`    tag: ${c.tag === null ? 'null' : yamlScalar(c.tag)}`);
     L.push(`    createdAt: ${yamlScalar(c.createdAt)}`);
@@ -230,6 +236,8 @@ export function yamlToState(yaml: string, fallbackName = 'registry.yaml'): Regis
         ? Object.fromEntries(Object.entries(it.env as Record<string, unknown>).map(([k, v]) => [k, String(v)]))
         : {},
       shell: it.shell === true,
+      // a file written before this field existed means in-loop: that was the only behaviour there was
+      isolation: it.isolation === 'supervised' ? 'supervised' : 'in-loop',
       description: typeof it.description === 'string' ? it.description : '',
       tag: typeof it.tag === 'string' && it.tag.length ? it.tag : null,
       createdAt: typeof it.createdAt === 'string' ? it.createdAt : now,
@@ -272,6 +280,7 @@ export function addCommand(state: RegistryState, def: Partial<CommandDefinition>
     args: (def.args ?? []).map(String),
     cwd: def.cwd ? String(def.cwd) : '',
     env: def.env ?? {},
+    isolation: def.isolation === 'supervised' ? 'supervised' : 'in-loop',
     shell: def.shell === true,
     description: def.description ? String(def.description) : '',
     tag: def.tag ? String(def.tag) : null,
@@ -333,6 +342,8 @@ export function toSpec(def: CommandDefinition, overrides: Partial<ProcessSpec> =
   if (overrides.cwd !== undefined) spec.cwd = overrides.cwd;
   if (overrides.env !== undefined) spec.env = overrides.env;
   if (overrides.shell !== undefined) spec.shell = overrides.shell;
+  if (def.isolation === 'supervised' && overrides.isolation === undefined) spec.isolation = 'supervised';
+  if (overrides.isolation !== undefined) spec.isolation = overrides.isolation;
   if (overrides.bufferLimitChars !== undefined) spec.bufferLimitChars = overrides.bufferLimitChars;
   return spec;
 }

@@ -215,6 +215,11 @@ async function ensureDoors() {
     }
   }
   await ensureWatchdogs();
+  // A watchdog that is only raised at boot is a watchdog that dies once and stays dead - which is how the guard
+  // disappeared for a minute while mining went unmanaged. Re-check on a slow interval; it is one GET per tick.
+  setInterval(() => {
+    ensureWatchdogs().catch((e) => console.log(`[watch] re-check failed: ${e.message}`));
+  }, 30000).unref?.();
   return pwChild;
 }
 
