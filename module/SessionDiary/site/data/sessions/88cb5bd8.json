@@ -1,0 +1,92 @@
+{
+  "id": "local-88cb5bd89629ebcaf2b8af90f5d0c3006d474213dc786fb8b14a174279ce98ea",
+  "title": "Your role is a low-priority, specialized AI Releas · Oct 30 16:46",
+  "source": "cron",
+  "model": "deepseek-flash",
+  "parentId": null,
+  "startedAt": 1793392998.568146,
+  "endedAt": 1793393202.09483,
+  "endReason": "cron_complete",
+  "messageCount": 48,
+  "toolCallCount": 23,
+  "inputTokens": 49499,
+  "outputTokens": 21102,
+  "costUsd": 0.024032802,
+  "cwd": "C:\\Users\\User\\Hermes\\gemma4site",
+  "gitBranch": null,
+  "gitRepo": null,
+  "pinned": false,
+  "archived": false,
+  "hidden": false,
+  "profileName": "default",
+  "lastActivityAt": 1793393188.8037858,
+  "createdSource": "cron",
+  "ref": "88cb5bd8",
+  "displayTitle": "Your role is a low-priority, specialized AI Releas · Oct 30 16:46",
+  "durationSec": 204,
+  "userTurns": 1,
+  "goal": "[IMPORTANT: The following skill(s) were listed for this job but could not be found and were skipped: web_search, terminal. Start your response with a brief notice so the user is aware, e.g.: '⚠️ Skill(s) not found and skipped: web_search, terminal'] The user has provided the following instruction alongside the skill invocation: [IMPORTANT: You are running as a scheduled cron job. DELIVERY: Your final response will be automatically delivered to the user — do NOT use send_message or try to deliver the output yourself. Just produce your report/output as your final response and the system handles the rest. SILENT: If there is genuinely nothing new to report, respond with exactly \"[SILENT]\" (not…",
+  "outcome": "⚠️ Skill(s) not found and skipped: web_search, terminal **HF Release Monitor — 2026-10-30 20:45Z cycle** • **Audio8-TTS-Realistic-0.6b** — HF Trending (new to the top-80 this cycle: trendingScore 107, 108 likes / 813 dl, Apache-2.0, 601M DualAR TTS with voice cloning) — the upstream repo is PyTorch/CUDA-only, but `audio-cpp/Audio8-TTS-Realistic-0.6b-GGUF` (2026-10-29) packs model+codec+tokenizer into **one 1.33 GiB Q8_0 file** (1.76 GiB BF16) run by `audiocpp_cli --family audio8_tts --backend vulkan|cpu|cuda`, so it fits both the 6 GB 1660 and the RX 6800 — caveat quoted from audio.cpp's own docs: the family has been validated on **CPU only**, its CUDA/Vulkan/Metal paths are \"built but not yet exercised\". (Second path, `Harsha001/...-ROCmFPX`, Q8 0.50 + mmproj 0.54 GiB via `llama-tts` in the ROCmFPX fork.) • **\"Broken on Arrival\" (arXiv 2609.05881) + `quantcheck`** — HF Daily Papers (2 …",
+  "files": [
+    "C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon/det60.py",
+    "C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon/det61.py",
+    "C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon/det62.py",
+    "C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon/det63.py",
+    "C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon/findings_2026-10-30_2045.json",
+    "C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon/scan60.py",
+    "C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon/fetch50.py"
+  ],
+  "commands": [
+    "cd \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon\" && curl -sL --max-time 40 \"https://raw.githubusercontent.com/0xShug0/audio.cpp/main/docs/…",
+    "cd \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon\" && curl -sL --max-time 40 \"https://raw.githubusercontent.com/0xShug0/audio.cpp/main/READM…",
+    "cd \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon\" && curl -sL --max-time 40 \"https://raw.githubusercontent.com/facebookresearch/sam3/main/R…",
+    "cd \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon\" && ls -la && date -u",
+    "cd \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon\" && python det60.py 2>&1",
+    "cd \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon\" && python det61.py 2>&1",
+    "cd \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon\" && python det62.py 2>&1",
+    "cd \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon\" && python det63.py 2>&1 && echo \"-----PREV FINDINGS-----\" && cat findings_2026-10-30_0830…",
+    "cd \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon\" && python scan60.py 2>&1",
+    "cd \"C:/Users/User/AppData/Local/hermes/skills/research/hf-release-monitor\" && grep -n \"Pitfalls\\|audio-cpp/\\*-GGUF\\|2026-10-30 20:45Z\\|A README VRAM …"
+  ],
+  "tools": [
+    {
+      "name": "terminal",
+      "count": 20
+    },
+    {
+      "name": "write_file",
+      "count": 12
+    },
+    {
+      "name": "browser_exec",
+      "count": 2
+    },
+    {
+      "name": "execute_code",
+      "count": 2
+    },
+    {
+      "name": "read_file",
+      "count": 2
+    },
+    {
+      "name": "skill_manage",
+      "count": 2
+    },
+    {
+      "name": "skill_view",
+      "count": 2
+    },
+    {
+      "name": "web_extract",
+      "count": 2
+    },
+    {
+      "name": "web_search",
+      "count": 2
+    }
+  ],
+  "bytes": 171668,
+  "diary": null,
+  "seances": []
+}

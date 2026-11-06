@@ -1,0 +1,455 @@
+command: python C:\AI\fleet\test_nas_snapshot.py
+exit: 0
+
+test FTP server up on 127.0.0.1:2121 root= C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3
+pre-seeded duplicate: _songs/breathing easier/BreathEasier Project/BreathEasier.als 146221 bytes
+
+[1] snapshot
+connected: 220 pyftpdlib 2.2.0 ready.
+walking / ...
+snapshot: 1 files, 0.00 GB, 0s -> C:\Users\User\AppData\Local\Temp\snap-test.tsv
+   snapshot entries: 1 -> [('/salvage/_songs/breathing easier/breatheasier project/breatheasier.als', (146221, '20260509'))]
+
+[2] diff against local tree
+snapshot entries : 1
+local files      : 66
+duplicates       : 1  (0.00 GB already there - will be skipped)
+to upload        : 65  (0.04 GB)
+        15.9 MB  _songs/KateMcGill_IfLovingYou/IfLovingYouIsWrong Project/Samples/Processed/Consolidate/contest [2025-11-17 131418].wav
+         7.9 MB  _songs/KateMcGill_TellMe/TellMe Project/Samples/Processed/Consolidate/can anyone sample this vocalsonly [2025-11-05 194052].wav
+         0.5 MB  _songs/breathing easier/BreathEasier Project/Ableton Project Info/AProject.ico
+         0.5 MB  _songs/KateMcGill_IfLovingYou/IfLovingYouIsWrong Project/Ableton Project Info/AProject.ico
+         0.5 MB  _songs/kateMcGill_IfYoullHaveMe/ifyoullhaveme Project/Ableton Project Info/AProject.ico
+         0.5 MB  _songs/KateMcGill_TellMe/TellMe Project/Ableton Project Info/AProject.ico
+         0.5 MB  _songs/KateMcGill_Waves/waves Project/Ableton Project Info/AProject.ico
+         0.3 MB  _songs/kateMcGill_IfYoullHaveMe/ifyoullhaveme Project/ifyoullhaveme.als
+         0.3 MB  _songs/kateMcGill_IfYoullHaveMe/ifyoullhaveme Project/Backup/ifyoullhaveme [2025-09-15 182540].als
+         0.3 MB  _songs/kateMcGill_IfYoullHaveMe/ifyoullhaveme Project/Backup/ifyoullhaveme [2025-09-15 123052].als
+         0.3 MB  _songs/kateMcGill_IfYoullHaveMe/ifyoullhaveme Project/Backup/ifyoullhaveme [2025-09-15 190540].als
+         0.3 MB  _songs/kateMcGill_IfYoullHaveMe/ifyoullhaveme Project/Backup/ifyoullhaveme [2025-09-15 190343].als
+         0.3 MB  _songs/kateMcGill_IfYoullHaveMe/ifyoullhaveme Project/Backup/ifyoullhaveme [2025-09-15 185738].als
+         0.3 MB  _songs/kateMcGill_IfYoullHaveMe/ifyoullhaveme Project/Backup/ifyoullhaveme [2025-09-15 185327].als
+         0.3 MB  _songs/kateMcGill_IfYoullHaveMe/ifyoullhaveme Project/Backup/ifyoullhaveme [2025-09-15 184249].als
+   ... 50 more
+
+[3] push (uploads non-duplicates)
+duplicates skipped: 1 (0.00 GB) | to upload: 65 (0.04 GB)
+  25/65 files, 20.2 MB verified
+  50/65 files, 33.0 MB verified
+uploaded+verified: 65 (0.04 GB) | failed: 0
+   push rc=0 in 1.1s
+
+[4] verify tree on server
+   local files=66 bytes=35998556
+   remote files=66 bytes=35998556
+   missing=0 size-mismatch=0
+
+[5] second push (must be all duplicates)
+duplicates skipped: 66 (0.04 GB) | to upload: 0 (0.00 GB)
+uploaded+verified: 0 (0.00 GB) | failed: 0
+
+RESULT: PASS
+snapshot file: C:\Users\User\AppData\Local\Temp\snap-test.tsv 7722 bytes
+
+-- stderr --
+[I 2026-11-01 18:36:52] 127.0.0.1:49657-[] FTP session opened (connect)
+[I 2026-11-01 18:36:52] 127.0.0.1:49657-[test] USER 'test' logged in.
+[I 2026-11-01 18:36:52] 127.0.0.1:49657-[test] FTP session closed (disconnect).
+[I 2026-11-01 18:36:52] 127.0.0.1:49663-[] FTP session opened (connect)
+[I 2026-11-01 18:36:52] 127.0.0.1:49663-[test] USER 'test' logged in.
+[I 2026-11-01 18:36:52] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage 550 'File exists.'
+[I 2026-11-01 18:36:52] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs 550 'File exists.'
+[I 2026-11-01 18:36:52] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\breathing easier 550 'File exists.'
+[I 2026-11-01 18:36:52] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\breathing easier\BreathEasier Project 550 'File exists.'
+[I 2026-11-01 18:36:52] 127.0.0.1:49663-[test] STOR C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\breathing easier\BreathEasier Project\Desktop.ini completed=1 bytes=106 seconds=0.015
+[I 2026-11-01 18:36:52] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage 550 'File exists.'
+[I 2026-11-01 18:36:52] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs 550 'File exists.'
+[I 2026-11-01 18:36:52] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\breathing easier 550 'File exists.'
+[I 2026-11-01 18:36:52] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\breathing easier\BreathEasier Project 550 'File exists.'
+[I 2026-11-01 18:36:52] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\breathing easier\BreathEasier Project\Ableton Project Info 257
+[I 2026-11-01 18:36:52] 127.0.0.1:49663-[test] STOR C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\breathing easier\BreathEasier Project\Ableton Project Info\AProject.ico completed=1 bytes=481686 seconds=0.032
+[I 2026-11-01 18:36:52] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage 550 'File exists.'
+[I 2026-11-01 18:36:52] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs 550 'File exists.'
+[I 2026-11-01 18:36:52] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\breathing easier 550 'File exists.'
+[I 2026-11-01 18:36:52] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\breathing easier\BreathEasier Project 550 'File exists.'
+[I 2026-11-01 18:36:52] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\breathing easier\BreathEasier Project\Ableton Project Info 550 'File exists.'
+[I 2026-11-01 18:36:52] 127.0.0.1:49663-[test] STOR C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\breathing easier\BreathEasier Project\Ableton Project Info\Project8_1.cfg completed=1 bytes=465 seconds=0.015
+[I 2026-11-01 18:36:52] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage 550 'File exists.'
+[I 2026-11-01 18:36:52] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs 550 'File exists.'
+[I 2026-11-01 18:36:52] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\breathing easier 550 'File exists.'
+[I 2026-11-01 18:36:52] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\breathing easier\BreathEasier Project 550 'File exists.'
+[I 2026-11-01 18:36:52] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\breathing easier\BreathEasier Project\Backup 257
+[I 2026-11-01 18:36:52] 127.0.0.1:49663-[test] STOR C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\breathing easier\BreathEasier Project\Backup\BreathEasier [2026-05-09 170047].als completed=1 bytes=11064 seconds=0.031
+[I 2026-11-01 18:36:52] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage 550 'File exists.'
+[I 2026-11-01 18:36:52] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs 550 'File exists.'
+[I 2026-11-01 18:36:52] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\breathing easier 550 'File exists.'
+[I 2026-11-01 18:36:52] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\breathing easier\BreathEasier Project 550 'File exists.'
+[I 2026-11-01 18:36:52] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\breathing easier\BreathEasier Project\Backup 550 'File exists.'
+[I 2026-11-01 18:36:52] 127.0.0.1:49663-[test] STOR C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\breathing easier\BreathEasier Project\Backup\BreathEasier [2026-05-09 170631].als completed=1 bytes=142726 seconds=0.016
+[I 2026-11-01 18:36:52] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage 550 'File exists.'
+[I 2026-11-01 18:36:52] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs 550 'File exists.'
+[I 2026-11-01 18:36:52] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_IfLovingYou 257
+[I 2026-11-01 18:36:52] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_IfLovingYou\IfLovingYouIsWrong Project 257
+[I 2026-11-01 18:36:52] 127.0.0.1:49663-[test] STOR C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_IfLovingYou\IfLovingYouIsWrong Project\Desktop.ini completed=1 bytes=106 seconds=0.016
+[I 2026-11-01 18:36:52] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage 550 'File exists.'
+[I 2026-11-01 18:36:52] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs 550 'File exists.'
+[I 2026-11-01 18:36:52] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_IfLovingYou 550 'File exists.'
+[I 2026-11-01 18:36:52] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_IfLovingYou\IfLovingYouIsWrong Project 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] STOR C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_IfLovingYou\IfLovingYouIsWrong Project\IfLovingYouIsWrong.als completed=1 bytes=236216 seconds=0.0
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_IfLovingYou 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_IfLovingYou\IfLovingYouIsWrong Project 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_IfLovingYou\IfLovingYouIsWrong Project\Ableton Project Info 257
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] STOR C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_IfLovingYou\IfLovingYouIsWrong Project\Ableton Project Info\AProject.ico completed=1 bytes=481686 seconds=0.016
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_IfLovingYou 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_IfLovingYou\IfLovingYouIsWrong Project 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_IfLovingYou\IfLovingYouIsWrong Project\Ableton Project Info 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] STOR C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_IfLovingYou\IfLovingYouIsWrong Project\Ableton Project Info\Project8_1.cfg completed=1 bytes=465 seconds=0.016
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_IfLovingYou 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_IfLovingYou\IfLovingYouIsWrong Project 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_IfLovingYou\IfLovingYouIsWrong Project\Backup 257
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] STOR C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_IfLovingYou\IfLovingYouIsWrong Project\Backup\IfLovingYouIsWrong [2025-11-28 190543].als completed=1 bytes=190366 seconds=0.015
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_IfLovingYou 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_IfLovingYou\IfLovingYouIsWrong Project 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_IfLovingYou\IfLovingYouIsWrong Project\Backup 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] STOR C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_IfLovingYou\IfLovingYouIsWrong Project\Backup\IfLovingYouIsWrong [2025-11-28 190615].als completed=1 bytes=161538 seconds=0.016
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_IfLovingYou 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_IfLovingYou\IfLovingYouIsWrong Project 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_IfLovingYou\IfLovingYouIsWrong Project\Backup 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] STOR C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_IfLovingYou\IfLovingYouIsWrong Project\Backup\IfLovingYouIsWrong [2025-11-28 213220].als completed=1 bytes=161633 seconds=0.015
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_IfLovingYou 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_IfLovingYou\IfLovingYouIsWrong Project 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_IfLovingYou\IfLovingYouIsWrong Project\Backup 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] STOR C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_IfLovingYou\IfLovingYouIsWrong Project\Backup\IfLovingYouIsWrong [2025-11-28 213737].als completed=1 bytes=177245 seconds=0.016
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_IfLovingYou 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_IfLovingYou\IfLovingYouIsWrong Project 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_IfLovingYou\IfLovingYouIsWrong Project\Backup 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] STOR C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_IfLovingYou\IfLovingYouIsWrong Project\Backup\IfLovingYouIsWrong [2025-11-28 214629].als completed=1 bytes=192717 seconds=0.0
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_IfLovingYou 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_IfLovingYou\IfLovingYouIsWrong Project 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_IfLovingYou\IfLovingYouIsWrong Project\Backup 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] STOR C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_IfLovingYou\IfLovingYouIsWrong Project\Backup\IfLovingYouIsWrong [2025-11-28 214847].als completed=1 bytes=205580 seconds=0.0
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_IfLovingYou 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_IfLovingYou\IfLovingYouIsWrong Project 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_IfLovingYou\IfLovingYouIsWrong Project\Backup 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] STOR C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_IfLovingYou\IfLovingYouIsWrong Project\Backup\IfLovingYouIsWrong [2025-11-28 215253].als completed=1 bytes=219555 seconds=0.0
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_IfLovingYou 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_IfLovingYou\IfLovingYouIsWrong Project 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_IfLovingYou\IfLovingYouIsWrong Project\Backup 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] STOR C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_IfLovingYou\IfLovingYouIsWrong Project\Backup\IfLovingYouIsWrong [2025-11-28 215515].als completed=1 bytes=219870 seconds=0.0
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_IfLovingYou 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_IfLovingYou\IfLovingYouIsWrong Project 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_IfLovingYou\IfLovingYouIsWrong Project\Backup 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] STOR C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_IfLovingYou\IfLovingYouIsWrong Project\Backup\IfLovingYouIsWrong [2025-11-28 215527].als completed=1 bytes=222328 seconds=0.0
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_IfLovingYou 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_IfLovingYou\IfLovingYouIsWrong Project 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_IfLovingYou\IfLovingYouIsWrong Project\Backup 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] STOR C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_IfLovingYou\IfLovingYouIsWrong Project\Backup\IfLovingYouIsWrong [2025-11-28 220153].als completed=1 bytes=222383 seconds=0.015
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_IfLovingYou 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_IfLovingYou\IfLovingYouIsWrong Project 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_IfLovingYou\IfLovingYouIsWrong Project\Samples 257
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_IfLovingYou\IfLovingYouIsWrong Project\Samples\Processed 257
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_IfLovingYou\IfLovingYouIsWrong Project\Samples\Processed\Consolidate 257
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] STOR C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_IfLovingYou\IfLovingYouIsWrong Project\Samples\Processed\Consolidate\contest [2025-11-17 131418].wav completed=1 bytes=15876044 seconds=0.031
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_IfLovingYou 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_IfLovingYou\IfLovingYouIsWrong Project 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_IfLovingYou\IfLovingYouIsWrong Project\Samples 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_IfLovingYou\IfLovingYouIsWrong Project\Samples\Processed 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_IfLovingYou\IfLovingYouIsWrong Project\Samples\Processed\Consolidate 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] STOR C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_IfLovingYou\IfLovingYouIsWrong Project\Samples\Processed\Consolidate\contest [2025-11-17 131418].wav.asd completed=1 bytes=186039 seconds=0.016
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\kateMcGill_IfYoullHaveMe 257
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\kateMcGill_IfYoullHaveMe\ifyoullhaveme Project 257
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] STOR C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\kateMcGill_IfYoullHaveMe\ifyoullhaveme Project\Desktop.ini completed=1 bytes=106 seconds=0.015
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\kateMcGill_IfYoullHaveMe 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\kateMcGill_IfYoullHaveMe\ifyoullhaveme Project 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] STOR C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\kateMcGill_IfYoullHaveMe\ifyoullhaveme Project\ifyoullhaveme.als completed=1 bytes=302435 seconds=0.0
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\kateMcGill_IfYoullHaveMe 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\kateMcGill_IfYoullHaveMe\ifyoullhaveme Project 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\kateMcGill_IfYoullHaveMe\ifyoullhaveme Project\Ableton Project Info 257
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] STOR C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\kateMcGill_IfYoullHaveMe\ifyoullhaveme Project\Ableton Project Info\AProject.ico completed=1 bytes=481686 seconds=0.0
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\kateMcGill_IfYoullHaveMe 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\kateMcGill_IfYoullHaveMe\ifyoullhaveme Project 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\kateMcGill_IfYoullHaveMe\ifyoullhaveme Project\Ableton Project Info 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] STOR C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\kateMcGill_IfYoullHaveMe\ifyoullhaveme Project\Ableton Project Info\Project8_1.cfg completed=1 bytes=465 seconds=0.015
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\kateMcGill_IfYoullHaveMe 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\kateMcGill_IfYoullHaveMe\ifyoullhaveme Project 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\kateMcGill_IfYoullHaveMe\ifyoullhaveme Project\Backup 257
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] STOR C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\kateMcGill_IfYoullHaveMe\ifyoullhaveme Project\Backup\ifyoullhaveme [2025-09-15 123052].als completed=1 bytes=295388 seconds=0.0
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\kateMcGill_IfYoullHaveMe 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\kateMcGill_IfYoullHaveMe\ifyoullhaveme Project 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\kateMcGill_IfYoullHaveMe\ifyoullhaveme Project\Backup 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] STOR C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\kateMcGill_IfYoullHaveMe\ifyoullhaveme Project\Backup\ifyoullhaveme [2025-09-15 182540].als completed=1 bytes=296880 seconds=0.0
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\kateMcGill_IfYoullHaveMe 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\kateMcGill_IfYoullHaveMe\ifyoullhaveme Project 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\kateMcGill_IfYoullHaveMe\ifyoullhaveme Project\Backup 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] STOR C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\kateMcGill_IfYoullHaveMe\ifyoullhaveme Project\Backup\ifyoullhaveme [2025-09-15 182730].als completed=1 bytes=289526 seconds=0.0
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\kateMcGill_IfYoullHaveMe 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\kateMcGill_IfYoullHaveMe\ifyoullhaveme Project 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\kateMcGill_IfYoullHaveMe\ifyoullhaveme Project\Backup 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] STOR C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\kateMcGill_IfYoullHaveMe\ifyoullhaveme Project\Backup\ifyoullhaveme [2025-09-15 183312].als completed=1 bytes=289549 seconds=0.0
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\kateMcGill_IfYoullHaveMe 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\kateMcGill_IfYoullHaveMe\ifyoullhaveme Project 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\kateMcGill_IfYoullHaveMe\ifyoullhaveme Project\Backup 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] STOR C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\kateMcGill_IfYoullHaveMe\ifyoullhaveme Project\Backup\ifyoullhaveme [2025-09-15 183826].als completed=1 bytes=289764 seconds=0.016
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\kateMcGill_IfYoullHaveMe 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\kateMcGill_IfYoullHaveMe\ifyoullhaveme Project 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\kateMcGill_IfYoullHaveMe\ifyoullhaveme Project\Backup 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] STOR C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\kateMcGill_IfYoullHaveMe\ifyoullhaveme Project\Backup\ifyoullhaveme [2025-09-15 184249].als completed=1 bytes=290827 seconds=0.0
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\kateMcGill_IfYoullHaveMe 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\kateMcGill_IfYoullHaveMe\ifyoullhaveme Project 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\kateMcGill_IfYoullHaveMe\ifyoullhaveme Project\Backup 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] STOR C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\kateMcGill_IfYoullHaveMe\ifyoullhaveme Project\Backup\ifyoullhaveme [2025-09-15 185327].als completed=1 bytes=290850 seconds=0.0
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\kateMcGill_IfYoullHaveMe 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\kateMcGill_IfYoullHaveMe\ifyoullhaveme Project 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\kateMcGill_IfYoullHaveMe\ifyoullhaveme Project\Backup 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] STOR C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\kateMcGill_IfYoullHaveMe\ifyoullhaveme Project\Backup\ifyoullhaveme [2025-09-15 185738].als completed=1 bytes=291382 seconds=0.0
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\kateMcGill_IfYoullHaveMe 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\kateMcGill_IfYoullHaveMe\ifyoullhaveme Project 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\kateMcGill_IfYoullHaveMe\ifyoullhaveme Project\Backup 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] STOR C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\kateMcGill_IfYoullHaveMe\ifyoullhaveme Project\Backup\ifyoullhaveme [2025-09-15 190343].als completed=1 bytes=291809 seconds=0.0
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\kateMcGill_IfYoullHaveMe 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\kateMcGill_IfYoullHaveMe\ifyoullhaveme Project 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\kateMcGill_IfYoullHaveMe\ifyoullhaveme Project\Backup 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] STOR C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\kateMcGill_IfYoullHaveMe\ifyoullhaveme Project\Backup\ifyoullhaveme [2025-09-15 190540].als completed=1 bytes=292209 seconds=0.0
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_TellMe 257
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_TellMe\TellMe Project 257
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] STOR C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_TellMe\TellMe Project\Desktop.ini completed=1 bytes=106 seconds=0.0
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_TellMe 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_TellMe\TellMe Project 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] STOR C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_TellMe\TellMe Project\TellMe.als completed=1 bytes=142600 seconds=0.0
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_TellMe 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_TellMe\TellMe Project 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_TellMe\TellMe Project\Ableton Project Info 257
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] STOR C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_TellMe\TellMe Project\Ableton Project Info\AProject.ico completed=1 bytes=481686 seconds=0.015
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_TellMe 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_TellMe\TellMe Project 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_TellMe\TellMe Project\Ableton Project Info 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] STOR C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_TellMe\TellMe Project\Ableton Project Info\Project8_1.cfg completed=1 bytes=465 seconds=0.016
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_TellMe 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_TellMe\TellMe Project 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_TellMe\TellMe Project\Backup 257
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] STOR C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_TellMe\TellMe Project\Backup\TellMe [2025-11-05 193909].als completed=1 bytes=141415 seconds=0.0
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_TellMe 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_TellMe\TellMe Project 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_TellMe\TellMe Project\Backup 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] STOR C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_TellMe\TellMe Project\Backup\TellMe [2025-11-05 194617].als completed=1 bytes=147632 seconds=0.015
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_TellMe 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_TellMe\TellMe Project 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_TellMe\TellMe Project\Backup 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] STOR C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_TellMe\TellMe Project\Backup\TellMe [2025-11-05 195119].als completed=1 bytes=146923 seconds=0.016
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_TellMe 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_TellMe\TellMe Project 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_TellMe\TellMe Project\Backup 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] STOR C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_TellMe\TellMe Project\Backup\TellMe [2025-11-05 195629].als completed=1 bytes=134570 seconds=0.015
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_TellMe 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_TellMe\TellMe Project 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_TellMe\TellMe Project\Backup 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] STOR C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_TellMe\TellMe Project\Backup\TellMe [2025-11-05 202747].als completed=1 bytes=134964 seconds=0.0
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_TellMe 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_TellMe\TellMe Project 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_TellMe\TellMe Project\Backup 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] STOR C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_TellMe\TellMe Project\Backup\TellMe [2025-11-05 203030].als completed=1 bytes=135235 seconds=0.015
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_TellMe 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_TellMe\TellMe Project 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_TellMe\TellMe Project\Backup 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] STOR C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_TellMe\TellMe Project\Backup\TellMe [2025-11-05 203941].als completed=1 bytes=135321 seconds=0.0
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_TellMe 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_TellMe\TellMe Project 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_TellMe\TellMe Project\Backup 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] STOR C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_TellMe\TellMe Project\Backup\TellMe [2025-11-05 204804].als completed=1 bytes=142420 seconds=0.016
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_TellMe 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_TellMe\TellMe Project 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_TellMe\TellMe Project\Backup 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] STOR C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_TellMe\TellMe Project\Backup\TellMe [2025-11-05 205313].als completed=1 bytes=142571 seconds=0.015
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_TellMe 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_TellMe\TellMe Project 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_TellMe\TellMe Project\Backup 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] STOR C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_TellMe\TellMe Project\Backup\TellMe [2025-11-05 205330].als completed=1 bytes=142555 seconds=0.0
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_TellMe 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_TellMe\TellMe Project 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_TellMe\TellMe Project\Samples 257
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_TellMe\TellMe Project\Samples\Processed 257
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_TellMe\TellMe Project\Samples\Processed\Consolidate 257
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] STOR C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_TellMe\TellMe Project\Samples\Processed\Consolidate\can anyone sample this vocalsonly [2025-11-05 194052].wav completed=1 bytes=7890794 seconds=0.031
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_TellMe 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_TellMe\TellMe Project 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_TellMe\TellMe Project\Samples 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_TellMe\TellMe Project\Samples\Processed 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_TellMe\TellMe Project\Samples\Processed\Consolidate 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] STOR C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_TellMe\TellMe Project\Samples\Processed\Consolidate\can anyone sample this vocalsonly [2025-11-05 194052].wav.asd completed=1 bytes=94494 seconds=0.016
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_Waves 257
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_Waves\waves Project 257
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] STOR C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_Waves\waves Project\Desktop.ini completed=1 bytes=106 seconds=0.0
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_Waves 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_Waves\waves Project 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] STOR C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_Waves\waves Project\waves.als completed=1 bytes=211063 seconds=0.0
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_Waves 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_Waves\waves Project 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_Waves\waves Project\Ableton Project Info 257
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] STOR C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_Waves\waves Project\Ableton Project Info\AProject.ico completed=1 bytes=481686 seconds=0.0
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_Waves 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_Waves\waves Project 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_Waves\waves Project\Ableton Project Info 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] STOR C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_Waves\waves Project\Ableton Project Info\Project8_1.cfg completed=1 bytes=465 seconds=0.015
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_Waves 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_Waves\waves Project 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_Waves\waves Project\Backup 257
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] STOR C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_Waves\waves Project\Backup\waves [2025-08-31 062325].als completed=1 bytes=200554 seconds=0.0
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_Waves 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_Waves\waves Project 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_Waves\waves Project\Backup 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] STOR C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_Waves\waves Project\Backup\waves [2025-08-31 062924].als completed=1 bytes=200988 seconds=0.016
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_Waves 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_Waves\waves Project 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_Waves\waves Project\Backup 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] STOR C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_Waves\waves Project\Backup\waves [2025-08-31 063203].als completed=1 bytes=201382 seconds=0.0
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_Waves 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_Waves\waves Project 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_Waves\waves Project\Backup 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] STOR C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_Waves\waves Project\Backup\waves [2025-08-31 063829].als completed=1 bytes=201449 seconds=0.0
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_Waves 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_Waves\waves Project 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_Waves\waves Project\Backup 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] STOR C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_Waves\waves Project\Backup\waves [2025-08-31 064043].als completed=1 bytes=201824 seconds=0.016
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_Waves 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_Waves\waves Project 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_Waves\waves Project\Backup 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] STOR C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_Waves\waves Project\Backup\waves [2025-08-31 064506].als completed=1 bytes=208205 seconds=0.016
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_Waves 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_Waves\waves Project 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_Waves\waves Project\Backup 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] STOR C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_Waves\waves Project\Backup\waves [2025-08-31 064533].als completed=1 bytes=208384 seconds=0.0
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_Waves 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_Waves\waves Project 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_Waves\waves Project\Backup 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] STOR C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_Waves\waves Project\Backup\waves [2025-08-31 064949].als completed=1 bytes=208401 seconds=0.0
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_Waves 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_Waves\waves Project 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_Waves\waves Project\Backup 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] STOR C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_Waves\waves Project\Backup\waves [2025-08-31 065312].als completed=1 bytes=210293 seconds=0.0
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_Waves 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_Waves\waves Project 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] MKD C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_Waves\waves Project\Backup 550 'File exists.'
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] STOR C:\Users\User\AppData\Local\Temp\ftproot_bdrb4_c3\salvage\_songs\KateMcGill_Waves\waves Project\Backup\waves [2025-08-31 065621].als completed=1 bytes=211090 seconds=0.016
+[I 2026-11-01 18:36:53] 127.0.0.1:49663-[test] FTP session closed (disconnect).
+[I 2026-11-01 18:36:53] 127.0.0.1:49735-[] FTP session opened (connect)
+[I 2026-11-01 18:36:53] 127.0.0.1:49735-[test] USER 'test' logged in.
+[I 2026-11-01 18:36:54] 127.0.0.1:49735-[test] FTP session closed (disconnect).
+[I 2026-11-01 18:36:54] 127.0.0.1:49764-[] FTP session opened (connect)
+[I 2026-11-01 18:36:54] 127.0.0.1:49764-[test] USER 'test' logged in.
+[I 2026-11-01 18:36:54] 127.0.0.1:49764-[test] FTP session closed (disconnect).

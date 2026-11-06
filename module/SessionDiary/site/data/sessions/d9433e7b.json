@@ -1,0 +1,81 @@
+{
+  "id": "local-d9433e7bbf4e40b485526c3d255ecaafe0cf6868a8601047a3ee4e0d8136ae84",
+  "title": "Your role is a low-priority, specialized AI Releas · Nov 03 12:57",
+  "source": "cron",
+  "model": "deepseek-flash",
+  "parentId": null,
+  "startedAt": 1793728484.766778,
+  "endedAt": 1793728636.2359114,
+  "endReason": "cron_complete",
+  "messageCount": 42,
+  "toolCallCount": 21,
+  "inputTokens": 68699,
+  "outputTokens": 18161,
+  "costUsd": 0.024597545999999998,
+  "cwd": "C:\\Users\\User\\Hermes\\gemma4site",
+  "gitBranch": null,
+  "gitRepo": null,
+  "pinned": false,
+  "archived": false,
+  "hidden": false,
+  "profileName": "default",
+  "lastActivityAt": 1793728614.1553066,
+  "createdSource": "cron",
+  "ref": "d9433e7b",
+  "displayTitle": "Your role is a low-priority, specialized AI Releas · Nov 03 12:57",
+  "durationSec": 151,
+  "userTurns": 1,
+  "goal": "[IMPORTANT: The following skill(s) were listed for this job but could not be found and were skipped: web_search, terminal. Start your response with a brief notice so the user is aware, e.g.: '⚠️ Skill(s) not found and skipped: web_search, terminal'] The user has provided the following instruction alongside the skill invocation: [IMPORTANT: You are running as a scheduled cron job. DELIVERY: Your final response will be automatically delivered to the user — do NOT use send_message or try to deliver the output yourself. Just produce your report/output as your final response and the system handles the rest. SILENT: If there is genuinely nothing new to report, respond with exactly \"[SILENT]\" (not…",
+  "outcome": "**HF Release Monitor — 2026-11-03 17:55Z cycle (RX 6800 16 GB / GTX 1660 6 GB filter)** Two upstream architecture merges landed mid-cycle and both open a real path on this rig. - **[Metis-1.6 Praxis + Logos — new `metis16` arch now stock llama.cpp] — HF model lineage `Lernex/Metis-1.6-*` + ggml-org/llama.cpp PR #31134 — merged 15:24Z today, so the GGUFs uploaded 2026-11-01 (which errored out before this build) now load; Praxis is a 2.94B hybrid Mamba-2/attention depth-recurrent MoE at 131k ctx with Q4_K_M **1.88 GiB** / Q8_0 3.00 GiB → fits the GTX 1660 at Q4 and the RX 6800 at Q8, while 10.39B Logos sits at Q4_K_M 6.28 / Q8_0 10.34 GiB → RX 6800 only.** Header probe confirms `general.architecture=metis16`, 346 tensors; Apache-2.0, arXiv 2610.37903, 78.80 MATH-500. Likes 0–1 on every repo — this is a provenance find, not a viral one. - **[Nemotron-3.5-Transcribe 30B-A4B no longer needs …",
+  "files": [
+    "C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon/fetch52.py",
+    "C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon/findings_2026-11-03T1755Z.json",
+    "C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon/probe53.py",
+    "C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon/probe53b.py",
+    "C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon/probe53c.py",
+    "C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon/probe53d.py",
+    "C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon/scan52.py",
+    "C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon/scan53.py",
+    "C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon/fetch51.py",
+    "C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon/findings_2026-11-03T1151Z.json"
+  ],
+  "commands": [
+    "cd C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon && ls -la scan*.py && echo \"--- head scan52 ---\" && head -5 scan52.py",
+    "cd C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon && python fetch52.py",
+    "cd C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon && python probe53.py",
+    "cd C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon && python probe53b.py",
+    "cd C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon && python probe53c.py",
+    "cd C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon && python probe53d.py",
+    "cd C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon && python scan53.py",
+    "cd C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon 2>/dev/null || mkdir -p C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon && cd C:/Use…"
+  ],
+  "tools": [
+    {
+      "name": "terminal",
+      "count": 16
+    },
+    {
+      "name": "write_file",
+      "count": 16
+    },
+    {
+      "name": "read_file",
+      "count": 4
+    },
+    {
+      "name": "skill_manage",
+      "count": 2
+    },
+    {
+      "name": "skill_view",
+      "count": 2
+    },
+    {
+      "name": "web_extract",
+      "count": 2
+    }
+  ],
+  "bytes": 183476,
+  "diary": null,
+  "seances": []
+}

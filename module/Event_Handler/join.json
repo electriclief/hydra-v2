@@ -1,0 +1,8 @@
+{
+  "name": "Event_Handler",
+  "kind": "door",
+  "port": 8126,
+  "start": "\"%LOCALAPPDATA%\\hermes\\node\\node.exe\" public/js/main.js",
+  "wiredAtBoot": false,
+  "what": "The generic event handler — register, trigger, log. ONE door for a user click and an agent's call, and the log records who fired it."
+}

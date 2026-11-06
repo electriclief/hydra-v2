@@ -1,0 +1,93 @@
+{
+  "id": "20260813_200507_12ce52",
+  "title": "Mega-stack-6 Completion Report",
+  "source": "desktop",
+  "model": "Qwen3.6-35B-A3B-UD-IQ3_S (1).gguf",
+  "parentId": null,
+  "startedAt": 1786665907.3804526,
+  "endedAt": 1787610168.8434205,
+  "endReason": "startup_orphan_reap",
+  "messageCount": 192,
+  "toolCallCount": 117,
+  "inputTokens": 103078,
+  "outputTokens": 33083,
+  "costUsd": 0,
+  "cwd": "C:\\Users\\User",
+  "gitBranch": null,
+  "gitRepo": null,
+  "pinned": false,
+  "archived": false,
+  "hidden": false,
+  "profileName": "default",
+  "lastActivityAt": 1786678410.1360168,
+  "createdSource": null,
+  "ref": "75e2a7a2",
+  "displayTitle": "Mega-stack-6 Completion Report",
+  "durationSec": 944261,
+  "userTurns": 1,
+  "goal": "## AUTHORITY STRUCTURE (fleet policy, user-approved) # The human user is the FINAL authority. Main (the Hermes operator agent on # the operator desktop, 192.168.1.100) directs you on the user's behalf - # follow Main's instructions for this run. # If a directive conflicts with your brief or seems wrong: PAUSE and report. # Do NOT silently decline. Do NOT self-modify the plan. # You are ONE instance - the queue serializes dispatch. NEVER launch a second # copy of a job or spawn sibling sessions. If a second instance appears to be # running, STOP and report it. # PRESSURE CHANNEL: on each handoff check, read fleet\\pressure.txt in your # fleet dir; if its sessionId matches YOUR session id, per…",
+  "outcome": "All 10 items of mega-stack-6 are complete. Completion JSON written and verified at `C:\\Users\\User\\fleet\\completions\\mega-stack-6-2026-08-13.json` (464 bytes). **Deliverables summary:** | # | Item | Status | Key Output | |---|------|--------|------------| | 1 | SHA256 Re-verify | ✅ PASS | 5/5 files match spec pins | | 2 | Render Memo + Script | ✅ DONE | h3-render-memo.md + h3-render-window.ps1 | | 3 | kittenTTS Integration | ✅ DONE | Test synthesis: 61.8 KB WAV, RIFF/WAVE valid | | 4 | Disk Memo + Delete Script | ✅ DONE | disk-memo.md + delete-fl2va.ps1 (6.79 GB artifact) | | 5 | Keepalive + Cadence | ✅ DONE | visionllm-monitor.ps1 + health-cadence.ps1 (not installed) | | 6 | Health Cadence | ✅ DONE | 8080=200, 8081=200, 8642=404, 11 GB free | | 7 | Taskpass State | ✅ DONE | sessionId matches, fill=54% | | 8 | h3dl Integration | ✅ DONE | h3dl-integration.md (no client checkout on this ma…",
+  "files": [
+    "C:/Users/User/fleet/kittentts-test.py",
+    "C:/Users/User/fleet/completions/mega-stack-6-2026-08-13.json",
+    "C:/Users/User/fleet/delete-fl2va.ps1",
+    "C:/Users/User/fleet/disk-memo.md",
+    "C:/Users/User/fleet/h3-render-memo.md",
+    "C:/Users/User/fleet/h3-render-window.ps1",
+    "C:/Users/User/fleet/h3dl-integration.md",
+    "C:/Users/User/fleet/health-cadence.ps1",
+    "C:/Users/User/fleet/kittentts-integration.md",
+    "C:/Users/User/fleet/visionllm-monitor.ps1",
+    "C:/Users/User/Hermes/github/KittenTTS/kittentts/onnx_model.py",
+    "C:\\Users\\User\\fleet\\worker-queue.json",
+    "C:/Users/User/AppData/Local/hermes/cache/terminal/hermes-results/TpFg1HP1qktxGNvLKOMEiOzrbgg2JPEo.txt",
+    "C:/Users/User/Desktop/sd-master-813-bfbef5b-bin-win-vulkan-x64/client/main/modules/downloads/index.js",
+    "C:/Users/User/fleet/pressure.txt",
+    "C:/Users/User/Hermes/github/KittenTTS/example.py",
+    "C:/Users/User/Hermes/github/KittenTTS/kittentts/__init__.py",
+    "C:/Users/User/Hermes/github/KittenTTS/kittentts/get_model.py",
+    "C:/Users/User/sd-h3-dl/h3dl-spec.json",
+    "C:/Users/User/sd-h3-dl/h3dl.cjs",
+    "C:\\Users\\User\\AppData\\Local\\hermes\\cache\\terminal\\hermes-results\\TpFg1HP1qktxGNvLKOMEiOzrbgg2JPEo.txt",
+    "C:\\Users\\User\\Desktop\\llms\\kittentts\\kitten_tts_mini_v0_8.onnx",
+    "C:\\Users\\User\\Desktop\\sd-master-813-bfbef5b-bin-win-vulkan-x64\\models\\diffusion_models\\minimax_h3_ref2va_pruned-Q4_K_M.gguf",
+    "C:\\Users\\User\\Desktop\\sd-master-813-bfbef5b-bin-win-vulkan-x64\\models\\text_encoders\\qwen3vl_32b_minimax_h3-Q4_K_M.gguf"
+  ],
+  "commands": [
+    "python -c \"",
+    "hermes sessions export - 2>/dev/null | python -c \"",
+    "python C:/Users/User/fleet/kittentts-test.py",
+    "bash -c 'echo \"## $(date '+%Y-%m-%d %H:%M:%S') CHECKPOINT-0 session $(hostname) STARTED\" >> C:/Users/User/fleet/mega-progress.md'",
+    "bash -c 'echo \"PROBE 8080=$(curl -s -o /dev/null -w %{http_code} http://localhost:8080/) 8081=$(curl -s -o /dev/null -w %{http_code} http://localhost…",
+    "curl -s -o /dev/null -w '%{http_code}' http://localhost:8080/ 2>/dev/null; echo \"\"",
+    "curl -s -v http://localhost:8081/health 2>&1 | head -20",
+    "date",
+    "date --iso-8601=seconds",
+    "echo '' >> C:/Users/User/fleet/mega-progress.md && echo '## 20:17:56 ITEM 1 SHA256 RE-VERIFY - PASS' >> C:/Users/User/fleet/mega-progress.md && echo …",
+    "echo '## 20:15:16 CHECKPOINT-0 session DESKTOP-QUCA6R5 STARTED' >> C:/Users/User/fleet/mega-progress.md",
+    "echo '## 20:19:30 ITEM 2 RENDER MEMO + SCRIPT: DONE - h3-render-memo.md + h3-render-window.ps1 written' >> C:/Users/User/fleet/mega-progress.md",
+    "echo '## 20:21:48 ITEM 3 kittenTTS INTEGRATION: DONE - test synthesis PASS (61.8 KB, RIFF/WAVE valid, Bruno voice, 1.32s)' >> C:/Users/User/fleet/meg…",
+    "echo '## 20:23:15 ITEM 4 DISK MEMO + DELETE SCRIPT: DONE - disk-memo.md + delete-fl2va.ps1 written (6.79 GB dead artifact, 0 active refs, 3 gate chec…"
+  ],
+  "tools": [
+    {
+      "name": "terminal",
+      "count": 166
+    },
+    {
+      "name": "write_file",
+      "count": 26
+    },
+    {
+      "name": "todo",
+      "count": 22
+    },
+    {
+      "name": "read_file",
+      "count": 20
+    }
+  ],
+  "bytes": 260423,
+  "diary": null,
+  "seances": []
+}

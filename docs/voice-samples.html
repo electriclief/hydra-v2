@@ -1,0 +1,80 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Voice samples - 980 Ti</title>
+<style>
+ body { margin:0; background:#0d1117; color:#d8dee9; font:14px/1.6 system-ui,Segoe UI,sans-serif; }
+ .wrap { max-width:900px; padding:28px 30px 70px; }
+ h1 { font-size:21px; margin:0 0 3px; }
+ h2 { font-size:12px; text-transform:uppercase; letter-spacing:.09em; color:#5ad2a0; margin:30px 0 8px; }
+ p.dim { color:#7d8998; }
+ .card { border:1px solid #212832; border-radius:9px; padding:13px 15px; margin:11px 0; background:#10151c; }
+ .head { margin-bottom:8px; }
+ .tag { font-size:11px; text-transform:uppercase; letter-spacing:.07em; color:#8fb3d9; border:1px solid #2a3442; border-radius:3px; padding:1px 6px; margin-left:6px; }
+ .meta { display:block; color:#68737f; font-size:11.5px; margin-top:4px; font-variant-numeric:tabular-nums; }
+ .said { color:#9aa7b6; font-size:13px; margin-top:8px; }
+ audio { width:100%; height:34px; }
+ .w { color:#e4ae55; }
+ table { border-collapse:collapse; margin-top:10px; width:100%; font-size:13px; }
+ th { text-align:left; font-size:11px; text-transform:uppercase; letter-spacing:.07em; color:#7d8998; padding:5px 9px; border-bottom:1px solid #232b35; }
+ td { padding:6px 9px; border-bottom:1px solid #171d25; font-variant-numeric:tabular-nums; }
+</style></head><body><div class="wrap">
+<h1>Voice samples &mdash; GTX 980 Ti, qwen3_tts VoiceDesign</h1>
+<p class="dim">Built from a description only. No reference recording, nobody's voice was cloned.</p>
+
+<div class="card">
+  <div class="head"><b>Destiny</b> <span class="tag">base</span>
+    <span class="meta">process 43.7 s &middot; audio 8.48 s &middot; RTF 2.73 &middot; median F0 92.3 Hz</span></div>
+  <audio controls preload="none" src="voice-samples/01-destiny-base.wav"></audio>
+  <div class="said">&ldquo;You keep asking what I remember. I remember the snow on the porch and I remember who was standing in it.&rdquo;</div>
+</div>
+<div class="card">
+  <div class="head"><b>Kate</b> <span class="tag">base</span>
+    <span class="meta">process 18.4 s &middot; audio 6.88 s &middot; RTF 0.75 &middot; median F0 193.5 Hz</span></div>
+  <audio controls preload="none" src="voice-samples/02-kate-base.wav"></audio>
+  <div class="said">&ldquo;You keep asking what I remember. I remember the snow and the porch, and I remember who was standing in it.&rdquo;</div>
+</div>
+<div class="card">
+  <div class="head"><b>Sophion</b> <span class="tag">base</span>
+    <span class="meta">process 13.8 s &middot; audio 8.24 s &middot; RTF 0.70 &middot; median F0 77.7 Hz</span></div>
+  <audio controls preload="none" src="voice-samples/03-sophion-base.wav"></audio>
+  <div class="said">&ldquo;You keep asking what I remember. I remember the snow on the porch, and I remember who was standing in it.&rdquo;</div>
+</div>
+<div class="card">
+  <div class="head"><b>Kate</b> <span class="tag">happy</span>
+    <span class="meta">process 9.1 s &middot; audio 3.04 s &middot; RTF 1.31 &middot; median F0 322.2 Hz <span class="w">F0 estimate unreliable (near the 400 Hz ceiling)</span></span></div>
+  <audio controls preload="none" src="voice-samples/04-kate-happy.wav"></audio>
+  <div class="said">&ldquo;Well, look at that. You actually came back.&rdquo;</div>
+</div>
+<div class="card">
+  <div class="head"><b>Destiny</b> <span class="tag">sad</span>
+    <span class="meta">process 7.7 s &middot; audio 3.12 s &middot; RTF 0.85 &middot; median F0 83.6 Hz</span></div>
+  <audio controls preload="none" src="voice-samples/05-destiny-sad.wav"></audio>
+  <div class="said">&ldquo;I waited by the door until the light went out.&rdquo;</div>
+</div>
+<div class="card">
+  <div class="head"><b>Sophion</b> <span class="tag">angry</span>
+    <span class="meta">process 8.2 s &middot; audio 3.92 s &middot; RTF 0.79 &middot; median F0 104.4 Hz</span></div>
+  <audio controls preload="none" src="voice-samples/06-sophion-angry.wav"></audio>
+  <div class="said">&ldquo;Say that again. Say it to my face.&rdquo;</div>
+</div>
+<div class="card">
+  <div class="head"><b>Kate</b> <span class="tag">laugh</span>
+    <span class="meta">process 9.0 s &middot; audio 5.2 s &middot; RTF 0.74 &middot; median F0 227.5 Hz</span></div>
+  <audio controls preload="none" src="voice-samples/07-kate-laugh.wav"></audio>
+  <div class="said">&ldquo;No. No, you do not get to ask me that.&rdquo;</div>
+</div>
+<h2>What the numbers mean</h2>
+<table>
+<tr><th>sample</th><th>process wall</th><th>audio</th><th>RTF</th><th>median F0</th><th>F0 spread</th></tr>
+<tr><td>01-destiny-base</td><td>43.7 s</td><td>8.48 s</td><td>2.73</td><td>92.3 Hz</td><td>19.2 Hz</td></tr><tr><td>02-kate-base</td><td>18.4 s</td><td>6.88 s</td><td>0.75</td><td>193.5 Hz</td><td>63.1 Hz</td></tr><tr><td>03-sophion-base</td><td>13.8 s</td><td>8.24 s</td><td>0.70</td><td>77.7 Hz</td><td>52.3 Hz</td></tr><tr><td>04-kate-happy</td><td>9.1 s</td><td>3.04 s</td><td>1.31</td><td>322.2 Hz</td><td>182.3 Hz</td></tr><tr><td>05-destiny-sad</td><td>7.7 s</td><td>3.12 s</td><td>0.85</td><td>83.6 Hz</td><td>24.1 Hz</td></tr><tr><td>06-sophion-angry</td><td>8.2 s</td><td>3.92 s</td><td>0.79</td><td>104.4 Hz</td><td>51.7 Hz</td></tr><tr><td>07-kate-laugh</td><td>9.0 s</td><td>5.2 s</td><td>0.74</td><td>227.5 Hz</td><td>148.5 Hz</td></tr>
+</table>
+<p class="dim">RTF is generation only, as the engine reports it. Process wall is what you actually wait: it adds the model
+load, 5&ndash;9 s per invocation once warm, and 43 s on the very first run while shaders compile. Ten lines in ten
+processes pays that ten times &mdash; the batch flag exists for that.</p>
+
+<h2>What the spread says</h2>
+<p>The three bases separate cleanly by pitch: Sophion <b>77.7 Hz</b>, Destiny <b>92.3 Hz</b>, Kate <b>193.5 Hz</b> &mdash; the
+instructions landed. Within a voice, emotion moves the same way a person does: Sophion angry rises
+<b>77.7 &rarr; 104.4 Hz</b>, Destiny grieving drops <b>92.3 &rarr; 83.6 Hz</b> and flattens (spread 24 Hz against 52 on the
+angry line). That is the descriptions doing work, not a filter.</p>
+<p class="dim">Caveat: the happy sample's pitch lands at the estimator's 400 Hz ceiling, so treat that one number as
+unreliable until it is re-measured with an octave-aware tracker.</p>
+</div></body></html>

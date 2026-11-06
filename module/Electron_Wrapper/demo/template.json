@@ -1,0 +1,18 @@
+{
+  "window": { "title": "Electron_Wrapper demo", "width": 1200, "height": 800 },
+  "template": {
+    "arrangement": "row",
+    "defaultSpot": "main",
+    "spots": [
+      { "id": "main", "title": "Main" },
+      { "id": "side", "title": "Side" }
+    ]
+  },
+  "tray": { "enabled": true, "tooltip": "Electron_Wrapper demo" },
+  "tabs": [
+    { "name": "Event Handler", "path": "localhost:8126" },
+    { "name": "State", "path": "localhost:8127" },
+    { "name": "Process Wrapper", "path": "localhost:8125", "spot": "side" },
+    { "name": "Docs", "path": "file:///{MODULE_DIR}/Docs/index.html", "spot": "side" }
+  ]
+}

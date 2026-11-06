@@ -1,0 +1,75 @@
+{
+  "id": "cron_6d233f41b8e5_20260803_174515",
+  "title": "Your role is a low-priority, specialized AI Releas · Aug 03 18:02",
+  "source": "cron",
+  "model": "gemma-4-E4B-it-Q5_K_M.gguf",
+  "parentId": null,
+  "startedAt": 1785793522.5101926,
+  "endedAt": 1785794572.9570427,
+  "endReason": "cron_complete",
+  "messageCount": 47,
+  "toolCallCount": 25,
+  "inputTokens": 60461,
+  "outputTokens": 7606,
+  "costUsd": 0,
+  "cwd": null,
+  "gitBranch": null,
+  "gitRepo": null,
+  "pinned": false,
+  "archived": false,
+  "hidden": false,
+  "profileName": "default",
+  "lastActivityAt": null,
+  "createdSource": null,
+  "ref": "328fe644",
+  "displayTitle": "Your role is a low-priority, specialized AI Releas · Aug 03 18:02",
+  "durationSec": 1050,
+  "userTurns": 1,
+  "goal": "[IMPORTANT: The following skill(s) were listed for this job but could not be found and were skipped: web_search, terminal. Start your response with a brief notice so the user is aware, e.g.: '⚠️ Skill(s) not found and skipped: web_search, terminal'] The user has provided the following instruction alongside the skill invocation: [IMPORTANT: You are running as a scheduled cron job. DELIVERY: Your final response will be automatically delivered to the user — do NOT use send_message or try to deliver the output yourself. Just produce your report/output as your final response and the system handles the rest. SILENT: If there is genuinely nothing new to report, respond with exactly \"[SILENT]\" (not…",
+  "outcome": "Now I have a comprehensive picture. Let me compile the findings into a focused report. --- **📡 Hugging Face Release Monitor — Hardware Relevance Scan** **Target Hardware:** RX 6800 (16GB) / GTX 1660 (6GB) — 8GB VRAM threshold, AMD/GGUF preference --- ### 🔥 Notable Trending Releases - **[Qwen3.6-27B ROCm FPX GGUF](https://huggingface.co/lmcoleman/ThinkingCap-Qwen3.6-27B-ROCmFPX-GGUF)** — *Source: Hugging Face GGUF Trending (5,467 downloads)* — **Direct AMD ROCm native FPX quantization** targeting gfx1151 (Strix Halo). This is a major release for AMD GPU inference — FPX quantization reduces VRAM pressure while maintaining quality. The 27B base with ROCm-specific kernels could run Q3/Q4 on your RX 6800. - **[Gemma 4-E4B-it GGUF](https://huggingface.co/lmstudio-community/gemma-4-E4B-it-GGUF)** — *Source: LM Studio + Google Official (682K+ downloads)* — Google's latest 4B-class vision-lang…",
+  "files": [
+    "C:\\Users\\User\\Hermes\\gemma4site\\hf_scan.py",
+    "/c/Users/User/Hermes/gemma4site/hf_scan2.py",
+    "/c/Users/User/Hermes/gemma4site/hf_scan3.py",
+    "/c/Users/User/Hermes/gemma4site/hf_scan4.py",
+    "/c/Users/User/Hermes/gemma4site/hf_scan5.py",
+    "/c/Users/User/Hermes/gemma4site/hf_scan6.py"
+  ],
+  "commands": [
+    "curl -s \"https://huggingface.co/api/models?limit=30&sort=lastModified&direction=-1\" 2>&1 | python -c \"",
+    "curl -s \"https://huggingface.co/api/models?limit=30&sort=lastModified&direction=-1\" 2>&1 | python3 -c \"",
+    "curl -s \"https://huggingface.co/api/models?limit=30&sort=trending&direction=-1\" 2>&1 | head -c 10000",
+    "curl -s \"https://huggingface.co/api/v1/papers\" 2>&1 | head -c 3000",
+    "curl -s \"https://huggingface.co/api/v1/papers\" 2>&1; echo \"---\"; curl -s \"https://huggingface.co/api/models?limit=30&sort=downloads&direction=-1\" 2>&…",
+    "curl -s https://huggingface.co/api/v1/papers 2>&1 | head -c 5000",
+    "pwd && ls /c/Users/User/Hermes/gemma4site/hf_scan.py",
+    "python ./hf_scan.py 2>&1",
+    "python ./hf_scan2.py 2>&1",
+    "python ./hf_scan3.py 2>&1",
+    "python ./hf_scan4.py 2>&1",
+    "python ./hf_scan5.py 2>&1",
+    "python ./hf_scan6.py 2>&1",
+    "python /c/Users/User/Hermes/gemma4site/hf_scan.py 2>&1"
+  ],
+  "tools": [
+    {
+      "name": "terminal",
+      "count": 30
+    },
+    {
+      "name": "write_file",
+      "count": 12
+    },
+    {
+      "name": "web_search",
+      "count": 6
+    },
+    {
+      "name": "web_extract",
+      "count": 2
+    }
+  ],
+  "bytes": 127622,
+  "diary": null,
+  "seances": []
+}

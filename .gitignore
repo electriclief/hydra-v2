@@ -1,0 +1,31 @@
+# Hydra V2 — code and plans only.
+# Runtime data never belongs in git: it is what each node generates, not what it is built from.
+node_modules/
+**/node_modules/
+
+# runtime state, logs, process wrappers
+logs/
+**/logs/
+*.log
+module/ProcessWrapper/data/
+module/SessionDiary/data/
+data/standby/
+
+# generated media and weights (immutable, huge, transported separately)
+media/
+docs/voice-samples/
+*.gguf
+*.safetensors
+*.onnx
+*.wav
+*.mp3
+*.mp4
+*.zip
+*.7z
+
+# local editor/OS noise
+.DS_Store
+Thumbs.db
+desktop.ini
+*.bak
+*.bak-*

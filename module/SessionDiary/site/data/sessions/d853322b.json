@@ -1,0 +1,58 @@
+{
+  "id": "cron_6d233f41b8e5_20260809_220732",
+  "title": "Your role is a low-priority, specialized AI Releas · Aug 09 22:21",
+  "source": "cron",
+  "model": "deepseek-v4-flash",
+  "parentId": null,
+  "startedAt": 1786327654.0528283,
+  "endedAt": 1786328494.0330896,
+  "endReason": "cron_complete",
+  "messageCount": 19,
+  "toolCallCount": 11,
+  "inputTokens": 16143,
+  "outputTokens": 8988,
+  "costUsd": 0.0053024327999999996,
+  "cwd": null,
+  "gitBranch": null,
+  "gitRepo": null,
+  "pinned": false,
+  "archived": false,
+  "hidden": false,
+  "profileName": "default",
+  "lastActivityAt": 1786328480.8460562,
+  "createdSource": null,
+  "ref": "d853322b",
+  "displayTitle": "Your role is a low-priority, specialized AI Releas · Aug 09 22:21",
+  "durationSec": 840,
+  "userTurns": 1,
+  "goal": "[IMPORTANT: The following skill(s) were listed for this job but could not be found and were skipped: web_search, terminal. Start your response with a brief notice so the user is aware, e.g.: '⚠️ Skill(s) not found and skipped: web_search, terminal'] The user has provided the following instruction alongside the skill invocation: [IMPORTANT: You are running as a scheduled cron job. DELIVERY: Your final response will be automatically delivered to the user — do NOT use send_message or try to deliver the output yourself. Just produce your report/output as your final response and the system handles the rest. SILENT: If there is genuinely nothing new to report, respond with exactly \"[SILENT]\" (not…",
+  "outcome": "Scan complete. All data pulled live from the Hugging Face API this cycle (daily papers: 50 entries; trending models: full ranked feed; file trees verified for VRAM estimates). --- ## 🤖 AI Release Monitor — Daily Briefing (Aug 9, 2026) **HF Daily Papers:** Nothing hardware-relevant this cycle — all 50 entries are robotics, agent, and 3D/vision research (no quantization, AMD, or low-VRAM themes). Skipped. **HF Trending Models — notable picks for the RX 6800 / GTX 1660 setup:** - **LiquidAI/LFM2.5-2.6B** — [Source: HF Trending Models] — Best hardware fit this cycle: an official 2.6B \"edge\" LLM from Liquid AI with an official GGUF release (Q4_K_M = **1.67 GB**, Q8_0 = 2.87 GB), so it runs comfortably on *both* cards and llama.cpp GGUF is natively AMD/ROCm-friendly; strong adoption signal (453 likes / 85K downloads base, 68K on the GGUF). - **MiniMaxAI/MiniMax-H3** — [Source: HF Trending Mo…",
+  "files": [
+    "C:\\Users\\User\\Hermes\\gemma4site\\hf_scan\\scan_models.py",
+    "C:\\Users\\User\\Hermes\\gemma4site\\hf_scan\\scan_papers.py",
+    "C:\\Users\\User\\Hermes\\gemma4site\\hf_scan\\scan_sizes.py"
+  ],
+  "commands": [
+    "curl -s \"https://huggingface.co/api/daily_papers\" -H \"Accept: application/json\" | head -c 8000",
+    "curl -s \"https://huggingface.co/api/daily_papers\" | python -c \"",
+    "curl -s \"https://huggingface.co/api/models?sort=trendingScore&direction=-1&limit=60\" -H \"Accept: application/json\" | head -c 12000",
+    "curl -s \"https://huggingface.co/api/trending\" -H \"Accept: application/json\" | head -c 8000",
+    "for m in \"LiquidAI/LFM2.5-2.6B\" \"LiquidAI/LFM2.5-2.6B-GGUF\" \"deepgrove/maple-preview\" \"inclusionAI/Ling-3.0-flash\" \"endless-frontier/BigBang-v1\" \"nvi…",
+    "python hf_scan/scan_models.py 2>&1",
+    "python hf_scan/scan_papers.py 2>&1",
+    "python hf_scan/scan_sizes.py 2>&1"
+  ],
+  "tools": [
+    {
+      "name": "terminal",
+      "count": 16
+    },
+    {
+      "name": "write_file",
+      "count": 6
+    }
+  ],
+  "bytes": 55232,
+  "diary": null,
+  "seances": []
+}

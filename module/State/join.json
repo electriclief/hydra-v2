@@ -1,0 +1,8 @@
+{
+  "name": "State",
+  "kind": "door",
+  "port": 8127,
+  "start": "\"%LOCALAPPDATA%\\hermes\\node\\node.exe\" public/js/main.js",
+  "wiredAtBoot": false,
+  "what": "The generic retainer — register any object under a dotted-path name and pull it back. Where a node registers itself as a child."
+}

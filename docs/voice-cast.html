@@ -1,0 +1,106 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Cast voices</title>
+<style>
+ body { margin:0; background:#0d1117; color:#d8dee9; font:14px/1.6 system-ui,Segoe UI,sans-serif; }
+ .wrap { max-width:880px; padding:28px 30px 70px; }
+ h1 { font-size:21px; margin:0 0 3px; }
+ h2 { font-size:14px; margin:34px 0 4px; color:#e6edf3; border-bottom:1px solid #1f2630; padding-bottom:6px; }
+ h2 .pitch { float:right; font-weight:400; color:#5ad2a0; font-size:12px; font-variant-numeric:tabular-nums; }
+ p.dim { color:#7d8998; margin:2px 0 0; }
+ p.instr { color:#68737f; font-size:12px; margin:6px 0 12px; font-style:italic; }
+ .card { border:1px solid #212832; border-radius:9px; padding:12px 14px; margin:9px 0; background:#10151c; }
+ .head { margin-bottom:7px; }
+ .head b { text-transform:capitalize; }
+ .meta { display:block; color:#68737f; font-size:11.5px; margin-top:3px; font-variant-numeric:tabular-nums; }
+ .said { color:#9aa7b6; font-size:13px; margin-top:7px; }
+ .flag { color:#d86c61; font-size:12px; margin-top:4px; }
+ audio { width:100%; height:32px; }
+</style></head><body><div class="wrap">
+<h1>Cast voices &mdash; pinned by seed</h1>
+<p class="dim">Designed from written descriptions only. No reference recording, nobody cloned. Each character carries a
+fixed instruction and a fixed seed; the same pair re-creates the same voice on any node.</p>
+
+<h2>Sophion <span class="pitch">85.1 Hz</span></h2>
+<p class="instr">A man in his early forties. Low and steady with gravel at the bottom, unhurried, close to the microphone.</p>
+<div class="card">
+  <div class="head"><b>base</b><span class="meta">6.16 s audio &middot; RTF 0.70 &middot; median F0 85.1 Hz</span></div>
+  <audio controls preload="none" src="voice-samples/30-sophion-gravel-base.wav"></audio>
+  <div class="said">&ldquo;You keep asking what I remember. I remember the snow on the porch, and I remember who was standing in it.&rdquo;</div>
+</div>
+<div class="card">
+  <div class="head"><b>happy</b><span class="meta">3.28 s audio &middot; RTF 0.83 &middot; median F0 79.2 Hz</span></div>
+  <audio controls preload="none" src="voice-samples/31-sophion-gravel-happy.wav"></audio>
+  <div class="said">&ldquo;Well look at that. You actually came back.&rdquo;</div>
+</div>
+<div class="card">
+  <div class="head"><b>sad</b><span class="meta">2.88 s audio &middot; RTF 0.88 &middot; median F0 70.0 Hz</span></div>
+  <audio controls preload="none" src="voice-samples/32-sophion-gravel-sad.wav"></audio>
+  <div class="said">&ldquo;I waited by the door until the light went out.&rdquo;</div>
+</div>
+<div class="card">
+  <div class="head"><b>angry</b><span class="meta">4.24 s audio &middot; RTF 0.78 &middot; median F0 127.4 Hz</span></div>
+  <audio controls preload="none" src="voice-samples/33-sophion-gravel-angry.wav"></audio>
+  <div class="said">&ldquo;Say that again. Say it to my face.&rdquo;</div>
+</div>
+<div class="card">
+  <div class="head"><b>laugh</b><span class="meta">4.64 s audio &middot; RTF 0.75 &middot; median F0 137.1 Hz</span></div>
+  <audio controls preload="none" src="voice-samples/34-sophion-gravel-laugh.wav"></audio>
+  <div class="said">&ldquo;Ha - no. No, you do not get to ask me that.&rdquo;</div><div class="flag">no laugh transcribed - unverified</div>
+</div>
+<h2>Kate <span class="pitch">193.5 Hz</span></h2>
+<p class="instr">A woman in her late twenties. Bright but breathy, light vibrato, close to the microphone, warm with a little sadness around the edges.  APPROVED.</p>
+<div class="card">
+  <div class="head"><b>base</b><span class="meta">6.88 s audio &middot; RTF 0.75 &middot; median F0 193.5 Hz</span></div>
+  <audio controls preload="none" src="voice-samples/02-kate-base.wav"></audio>
+  <div class="said">&ldquo;You keep asking what I remember. I remember the snow on the porch, and I remember who was standing in it.&rdquo;</div><div class="flag">heard "snow AND the porch" once - listen</div>
+</div>
+<div class="card">
+  <div class="head"><b>happy</b><span class="meta">3.04 s audio &middot; RTF 1.31 &middot; median F0 322.2 Hz</span></div>
+  <audio controls preload="none" src="voice-samples/04-kate-happy.wav"></audio>
+  <div class="said">&ldquo;Well look at that. You actually came back.&rdquo;</div>
+</div>
+<div class="card">
+  <div class="head"><b>sad</b><span class="meta">2.56 s audio &middot; RTF 0.92 &middot; median F0 215.3 Hz</span></div>
+  <audio controls preload="none" src="voice-samples/40-kate-sad.wav"></audio>
+  <div class="said">&ldquo;I waited by the door until the light went out.&rdquo;</div><div class="flag">grief raises her pitch (193 -> 215)</div>
+</div>
+<div class="card">
+  <div class="head"><b>angry</b><span class="meta">3.2 s audio &middot; RTF 0.84 &middot; median F0 320.0 Hz</span></div>
+  <audio controls preload="none" src="voice-samples/41-kate-angry.wav"></audio>
+  <div class="said">&ldquo;Say that again. Say it to my face.&rdquo;</div>
+</div>
+<div class="card">
+  <div class="head"><b>laugh</b><span class="meta">5.2 s audio &middot; RTF 0.74 &middot; median F0 227.5 Hz</span></div>
+  <audio controls preload="none" src="voice-samples/07-kate-laugh.wav"></audio>
+  <div class="said">&ldquo;Ha - no. No, you do not get to ask me that.&rdquo;</div><div class="flag">no laugh transcribed - unverified</div>
+</div>
+<h2>Destiny <span class="pitch">210.5 Hz</span></h2>
+<p class="instr">A young woman in her early twenties with an alto speaking voice. Cool and level, quick but not bright. Her voice sits just above the low chest, still an alto but not a deep one.  SEED 2024.</p>
+<div class="card">
+  <div class="head"><b>base</b><span class="meta">8.64 s audio &middot; RTF 0.32 &middot; median F0 210.5 Hz</span></div>
+  <audio controls preload="none" src="voice-samples/90-destiny-base.wav"></audio>
+  <div class="said">&ldquo;You keep asking what I remember. I remember the snow on the porch, and I remember who was standing in it.&rdquo;</div>
+</div>
+<div class="card">
+  <div class="head"><b>happy</b><span class="meta">4.08 s audio &middot; RTF 0.34 &middot; median F0 285.7 Hz</span></div>
+  <audio controls preload="none" src="voice-samples/91-destiny-happy.wav"></audio>
+  <div class="said">&ldquo;Well look at that. You actually came back.&rdquo;</div>
+</div>
+<div class="card">
+  <div class="head"><b>sad</b><span class="meta">2.64 s audio &middot; RTF 0.74 &middot; median F0 164.4 Hz</span></div>
+  <audio controls preload="none" src="voice-samples/92-destiny-sad.wav"></audio>
+  <div class="said">&ldquo;I waited by the door until the light went out.&rdquo;</div><div class="flag">drops below Kate - check it still reads as her</div>
+</div>
+<div class="card">
+  <div class="head"><b>angry</b><span class="meta">2.72 s audio &middot; RTF 0.37 &middot; median F0 363.6 Hz</span></div>
+  <audio controls preload="none" src="voice-samples/93-destiny-angry.wav"></audio>
+  <div class="said">&ldquo;Say that again. Say it to my face.&rdquo;</div>
+</div>
+<div class="card">
+  <div class="head"><b>laugh</b><span class="meta">4.08 s audio &middot; RTF 0.35 &middot; median F0 338.0 Hz</span></div>
+  <audio controls preload="none" src="voice-samples/94-destiny-laugh.wav"></audio>
+  <div class="said">&ldquo;Ha - no. No, you do not get to ask me that.&rdquo;</div><div class="flag">no laugh transcribed - unverified</div>
+</div>
+<h2>Why the seed matters</h2>
+<p class="dim">The same instruction produced 203.4, 214.3 and 244.9 Hz on three separate runs before the seed was pinned.
+Destiny is pinned at seed 2024, which lands her at 210.5 Hz &mdash; the take the operator picked, moved a touch higher.</p>
+</div></body></html>

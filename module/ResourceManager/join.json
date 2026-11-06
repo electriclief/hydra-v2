@@ -1,0 +1,8 @@
+{
+  "name": "ResourceManager",
+  "kind": "door",
+  "port": 8129,
+  "start": "\"%LOCALAPPDATA%\\hermes\\node\\node.exe\" public/js/main.js",
+  "wiredAtBoot": false,
+  "what": "The register — reads what this node has and keeps bookings. Not enforcement."
+}

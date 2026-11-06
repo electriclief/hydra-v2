@@ -1,0 +1,27 @@
+{
+  "name": "join",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Join — the shelf's SELF-DESCRIPTION and RESOLVER (per-node). Two columns kept apart: `should` (read from each module's own files — name, kind, port, start command, wiredAtBoot) and `is` (probed live). NAMES ONLY: it never forwards traffic and never decides where a thing is. Its one act is resolution — asked for something here-but-down it asks ProcessWrapper to start it and answers `is: starting`, so a lookup never reports 'not found' when the truth is 'not started yet'. It also carries the OFFERED population (the Services catalog) so 'what can this machine do?' is one question, one answer, two kinds behind it.",
+  "type": "module",
+  "main": "Join_module.js",
+  "exports": {
+    ".": "./Join_module.js",
+    "./shelf": "./public/js/shelf.js",
+    "./resolve": "./public/js/resolver.js",
+    "./declaration": "./public/js/declaration.js",
+    "./client": "./public/js/client.js",
+    "./registry": "./public/js/mcpTools.js"
+  },
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "build": "esbuild public/ts/*.ts public/ts/browser/*.ts --outdir=public/js --format=esm --platform=node --target=node20 --sourcemap",
+    "watch": "esbuild public/ts/*.ts public/ts/browser/*.ts --outdir=public/js --format=esm --platform=node --target=node20 --sourcemap --watch",
+    "dev": "npm run watch",
+    "typecheck": "tsc --noEmit",
+    "selftest": "node public/js/selftest.js",
+    "docs": "node scripts/build-docs.cjs",
+    "test": "npm run build && npm run typecheck && npm run selftest",
+    "start": "node public/js/main.js"
+  }
+}

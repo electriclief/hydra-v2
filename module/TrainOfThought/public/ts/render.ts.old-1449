@@ -1,0 +1,348 @@
+/**
+ * The human face of Train Of Thought — the page the operator actually looks at.
+ *
+ * Simple, modern, minimalist: one column, one accent, hairline rules, tabular numbers, no shadows,
+ * no gradients, no icons. Prose in a system sans, refs and counts in mono. Everything rendered on
+ * the server from the same store the API reads, so the page can never disagree with /api/next.
+ *
+ * Routes that use this: GET /  ·  GET /t/<ref>  ·  GET /archive
+ */
+
+import type { FrontierRow, ThoughtNode } from './types.js';
+import { claimLive, depsSettled, layers } from './dag.js';
+import type { ThoughtStore } from './store.js';
+import type { SessionCard } from './sessionClient.js';
+
+export const CSS = `
+  :root {
+    --bg: #0d1117; --panel: #11171e; --fg: #d8dee9; --prose: #c3cad6;
+    --dim: #7d8590; --faint: #4d5761; --line: #1b232c; --accent: #8fb3d9; --warn: #d9b08f;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
+    --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body { margin: 0; background: var(--bg); color: var(--fg); font-family: var(--sans); font-size: 15px; line-height: 1.6; }
+  a { color: inherit; text-decoration: none; }
+  .wrap { max-width: 960px; margin: 0 auto; padding: 56px 32px 120px; }
+  .kicker { font-family: var(--mono); font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--dim); }
+  h1 { margin: 10px 0 0; font-size: 22px; font-weight: 600; letter-spacing: -.01em; }
+  h2 { margin: 0 0 14px; font-size: 11px; font-weight: 500; letter-spacing: .14em; text-transform: uppercase; color: var(--dim); font-family: var(--mono); }
+  .rule { height: 1px; background: var(--line); margin: 26px 0 0; }
+  .meta { font-family: var(--mono); font-size: 11px; color: var(--faint); font-variant-numeric: tabular-nums; }
+
+  /* the one thing to do next */
+  .next { display: block; margin: 26px 0 0; padding: 20px 22px; border: 1px solid var(--line); border-left: 2px solid var(--accent); background: var(--panel); }
+  .next .label { font-family: var(--mono); font-size: 10px; letter-spacing: .16em; text-transform: uppercase; color: var(--accent); }
+  .next .title { margin: 8px 0 4px; font-size: 17px; font-weight: 550; color: #fff; }
+  .next .action { color: var(--prose); }
+  .next .why { margin-top: 6px; font-family: var(--mono); font-size: 11px; color: var(--faint); }
+  .next.empty { border-left-color: var(--warn); }
+  .next.empty .label { color: var(--warn); }
+
+  /* the list */
+  .rows { margin: 34px 0 0; }
+  .row { display: grid; grid-template-columns: 34px 1fr 132px; gap: 16px; align-items: baseline;
+         padding: 14px 6px 14px 0; border-bottom: 1px solid var(--line); transition: background .12s ease; }
+  .row:hover { background: #121922; }
+  .row.ready { border-left: 2px solid var(--accent); padding-left: 12px; }
+  .row .layer { font-family: var(--mono); font-size: 11px; color: var(--faint); font-variant-numeric: tabular-nums; }
+  .row .title { font-weight: 500; color: var(--fg); }
+  .row.ready .title { color: #fff; }
+  .row .tags { margin-left: 10px; font-family: var(--mono); font-size: 10px; color: var(--faint); letter-spacing: .06em; }
+  .row .action { display: block; margin-top: 3px; font-size: 13px; color: var(--dim); }
+  .row .side { text-align: right; font-family: var(--mono); font-size: 11px; color: var(--faint); font-variant-numeric: tabular-nums; }
+  .row .side .state { display: block; letter-spacing: .1em; text-transform: uppercase; }
+  .row .side .state.active { color: var(--accent); }
+  .row .side .state.blocked { color: var(--warn); }
+  .row .side .deps { display: block; margin-top: 2px; }
+
+  /* archive */
+  .archive { margin-top: 64px; }
+  .archive .row { grid-template-columns: 1fr 120px; color: var(--dim); }
+  .archive .summary { display: block; margin-top: 2px; font-size: 13px; color: var(--faint); }
+
+  /* thought page */
+  .back { font-family: var(--mono); font-size: 11px; color: var(--dim); letter-spacing: .06em; }
+  .back:hover { color: var(--accent); }
+  .thought h1 { margin: 14px 0 0; font-size: 26px; line-height: 1.3; }
+  .intent { margin: 18px 0 0; max-width: 64ch; color: var(--prose); font-size: 15px; line-height: 1.7; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-top: 40px; }
+  ol.steps { margin: 0; padding: 0; list-style: none; counter-reset: step; }
+  ol.steps li { counter-increment: step; padding: 9px 0 9px 34px; position: relative; border-bottom: 1px solid var(--line); color: var(--prose); }
+  ol.steps li::before { content: counter(step); position: absolute; left: 0; top: 9px; font-family: var(--mono); font-size: 11px; color: var(--faint); }
+  ol.steps li:first-child { color: #fff; }
+  ol.steps li:first-child::before { color: var(--accent); }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chip { font-family: var(--mono); font-size: 11px; color: var(--dim); border: 1px solid var(--line); padding: 3px 8px; }
+  .chip.done { color: var(--accent); border-color: #24333f; }
+  .trail { margin-top: 44px; }
+  .entry { display: grid; grid-template-columns: 92px 1fr; gap: 18px; padding: 11px 0; border-top: 1px solid var(--line); }
+  .entry .when { font-family: var(--mono); font-size: 11px; color: var(--faint); font-variant-numeric: tabular-nums; }
+  .entry .what { color: var(--prose); font-size: 14px; }
+  .entry .kind { font-family: var(--mono); font-size: 10px; letter-spacing: .1em; text-transform: uppercase; color: var(--faint); margin-right: 8px; }
+  .entry .by { color: var(--faint); font-family: var(--mono); font-size: 11px; }
+  .sessions { margin-top: 44px; }
+  .card { display: block; padding: 12px 0; border-top: 1px solid var(--line); }
+  .card .t { color: var(--fg); }
+  .card .g { display: block; color: var(--faint); font-size: 13px; margin-top: 2px; }
+  .card.down .t { color: var(--dim); }
+  .acts { margin-top: 44px; display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+  button, .btn { font-family: var(--mono); font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--fg);
+           background: transparent; border: 1px solid #26313c; padding: 9px 14px; cursor: pointer; transition: border-color .12s ease, color .12s ease; }
+  button:hover { border-color: var(--accent); color: #fff; }
+  button.quiet { color: var(--dim); }
+  input[type=text], textarea { font-family: var(--sans); font-size: 14px; color: var(--fg); background: var(--panel);
+           border: 1px solid var(--line); padding: 9px 11px; width: 100%; }
+  input:focus, textarea:focus, button:focus-visible { outline: none; border-color: var(--accent); }
+  .noteform { margin-top: 18px; display: grid; gap: 10px; max-width: 640px; }
+  .search { margin-top: 24px; max-width: 320px; }
+  .empty-note { color: var(--dim); padding: 14px 0; }
+  footer { margin-top: 72px; font-family: var(--mono); font-size: 11px; color: var(--faint); }
+  @media (max-width: 720px) {
+    .wrap { padding: 36px 18px 80px; }
+    .grid2 { grid-template-columns: 1fr; gap: 30px; }
+    .row { grid-template-columns: 24px 1fr; }
+    .row .side { display: none; }
+    .entry { grid-template-columns: 1fr; gap: 4px; }
+  }
+`;
+
+const esc = (text: string): string =>
+  text.replace(/[&<>"]/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[ch] ?? ch);
+
+const stamp = (at: number): string => new Date(at).toISOString().slice(0, 16).replace('T', ' ');
+
+const page = (title: string, body: string): string => `<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>${esc(title)}</title><style>${CSS}</style></head>
+<body><div class="wrap">${body}</div></body></html>`;
+
+/** The one action to take, or the wall that stopped it. */
+function nextBlock(store: ThoughtStore, ready: ThoughtNode[]): string {
+  if (ready.length === 0) {
+    const active = store.nodes.filter((node) => node.state === 'active').length;
+    const parked = store.nodes.filter((node) => node.state === 'parked' || node.state === 'blocked').length;
+    const waiting = store.nodes.filter((node) => node.state === 'active' && !depsSettled(store.nodes, node).ok).length;
+    const claimed = store.nodes.filter((node) => claimLive(node, store.now)).length;
+    const empty = store.nodes.filter((node) => node.state === 'active' && node.next.length === 0).length;
+    const why = [
+      `${active} active`,
+      waiting ? `${waiting} waiting on deps` : '',
+      claimed ? `${claimed} claimed` : '',
+      empty ? `${empty} with no next action` : '',
+      parked ? `${parked} parked/blocked` : '',
+    ].filter(Boolean).join(' · ');
+    return `<div class="next empty">
+      <div class="label">nothing ready</div>
+      <div class="title">The frontier is empty</div>
+      <div class="why">${esc(why || 'no nodes yet — add one')}</div>
+    </div>`;
+  }
+  const top = ready[0];
+  const others = ready.length - 1;
+  return `<div class="next">
+    <div class="label">next</div>
+    <a class="title" href="/t/${esc(top.ref)}">${esc(top.title)}</a>
+    <div class="action">${esc(top.next[0] ?? '')}</div>
+    <div class="why">${esc(top.ref)} · ${others > 0 ? `${others} more ready behind it` : 'the only ready train'}</div>
+  </div>`;
+}
+
+export function renderIndex(store: ThoughtStore, ready: ThoughtNode[]): string {
+  const readyRefs = new Set(ready.map((node) => node.ref));
+  const depth = layers(store.nodes);
+  const active = store.nodes.filter((node) => node.state !== 'done');
+
+  const rows = active
+    .slice()
+    .sort((a, b) => (depth.get(a.ref) ?? 0) - (depth.get(b.ref) ?? 0) || b.touched - a.touched)
+    .map((node) => {
+      const settled = depsSettled(store.nodes, node);
+      const isReady = readyRefs.has(node.ref);
+      const held = claimLive(node, store.now);
+      return `<a class="row${isReady ? ' ready' : ''}" href="/t/${esc(node.ref)}" data-text="${esc(`${node.title} ${node.intent} ${node.tags.join(' ')} ${node.next.join(' ')}`.toLowerCase())}">
+        <span class="layer">${depth.get(node.ref) ?? 0}</span>
+        <span>
+          <span class="title">${esc(node.title)}</span>${node.tags.length ? `<span class="tags">${node.tags.map((tag) => esc(tag)).join(' · ')}</span>` : ''}
+          <span class="action">${esc(node.next[0] ?? 'no next action recorded')}</span>
+        </span>
+        <span class="side">
+          <span class="state ${esc(node.state)}">${held ? 'held' : esc(node.state)}</span>
+          <span class="deps">${settled.total === 0 ? 'root' : `${settled.done}/${settled.total} deps`}</span>
+          <span class="deps">${stamp(node.touched)}</span>
+        </span>
+      </a>`;
+    })
+    .join('');
+
+  const archived = store.nodes
+    .filter((node) => node.state === 'done')
+    .sort((a, b) => (b.closed?.at ?? 0) - (a.closed?.at ?? 0))
+    .slice(0, 5)
+    .map(
+      (node) => `<a class="row" href="/t/${esc(node.ref)}">
+        <span class="title">${esc(node.title)}</span>
+        <span class="side">${stamp(node.closed?.at ?? node.touched)}</span>
+        <span class="summary" style="grid-column:1/-1">${esc(node.closed?.summary ?? '')}</span>
+      </a>`,
+    )
+    .join('');
+
+  const body = `
+    <div class="kicker">Train of Thought</div>
+    <h1>${active.length} ${active.length === 1 ? 'train' : 'trains'} running</h1>
+    <div class="meta">${store.nodes.length} nodes · ${ready.length} ready · ${store.nodes.filter((node) => node.state === 'done').length} archived · ${stamp(store.now)}</div>
+    ${nextBlock(store, ready)}
+    <div class="search"><input type="text" id="filter" placeholder="filter trains…" autocomplete="off" spellcheck="false"></div>
+    <div class="rows" id="rows">${rows || '<div class="empty-note">No trains yet. POST /api/thoughts to start one.</div>'}</div>
+    ${archived ? `<div class="archive"><h2>Archived</h2>${archived}
+      <div class="meta" style="margin-top:12px"><a href="/archive" style="color:var(--dim)">all archived →</a></div></div>` : ''}
+    <footer>api · <a href="/api/next">/api/next</a> · <a href="/api/thoughts">/api/thoughts</a> · <a href="/api/archive">/api/archive</a></footer>
+    <script>
+      (function () {
+        var box = document.getElementById('filter');
+        if (!box) return;
+        box.addEventListener('input', function () {
+          var q = box.value.trim().toLowerCase();
+          var rows = document.querySelectorAll('#rows .row');
+          for (var i = 0; i < rows.length; i++) {
+            var hit = !q || (rows[i].getAttribute('data-text') || '').indexOf(q) >= 0;
+            rows[i].style.display = hit ? '' : 'none';
+          }
+        });
+      })();
+    </script>`;
+  return page('Train Of Thought', body);
+}
+
+export function renderThought(store: ThoughtStore, node: ThoughtNode, cards: SessionCard[]): string {
+  const settled = depsSettled(store.nodes, node);
+  const held = claimLive(node, store.now);
+  const depth = layers(store.nodes).get(node.ref) ?? 0;
+
+  const steps = node.next.length
+    ? `<ol class="steps">${node.next.map((line) => `<li>${esc(line)}</li>`).join('')}</ol>`
+    : '<div class="empty-note">No next action recorded — a successor session would start cold.</div>';
+
+  const deps = node.deps.length
+    ? `<div class="chips">${node.deps
+        .map((ref) => {
+          const target = store.find(ref);
+          const done = target?.state === 'done';
+          return `<a class="chip${done ? ' done' : ''}" href="/t/${esc(ref)}">${done ? '✓ ' : ''}${esc(target?.title ?? ref)}</a>`;
+        })
+        .join('')}</div>`
+    : '<div class="empty-note">Root of its train — nothing to wait for.</div>';
+
+  const trail = node.trail
+    .slice()
+    .reverse()
+    .map(
+      (entry) => `<div class="entry">
+        <div class="when">${stamp(entry.at)}</div>
+        <div class="what"><span class="kind">${esc(entry.kind)}</span>${esc(entry.text)} <span class="by">· ${esc(entry.by)}</span></div>
+      </div>`,
+    )
+    .join('');
+
+  const sessionCards = cards.length
+    ? cards
+        .map((card) =>
+          card.ok
+            ? `<div class="card"><span class="t">${esc(card.title ?? card.ref)}</span>
+                 <span class="g">${esc(card.goal ?? '')}</span>
+                 <span class="g">${esc(card.ref)} · ${card.messages ?? '?'} messages · ${esc(card.model ?? '')}</span></div>`
+            : `<div class="card down"><span class="t">${esc(card.ref)}</span><span class="g">${esc(card.reason ?? 'session unavailable')}</span></div>`,
+        )
+        .join('')
+    : '<div class="empty-note">No sessions attached yet.</div>';
+
+  const actions = `
+    <div class="acts">
+      ${held ? `<button data-act="release" data-ref="${esc(node.ref)}">release (${esc(node.claimed?.by ?? '')})</button>` : `<button data-act="claim" data-ref="${esc(node.ref)}">claim 30 min</button>`}
+      <button class="quiet" data-act="state" data-ref="${esc(node.ref)}" data-state="parked">park</button>
+      <button class="quiet" data-act="state" data-ref="${esc(node.ref)}" data-state="blocked">block</button>
+      <button class="quiet" data-act="close" data-ref="${esc(node.ref)}">close…</button>
+    </div>
+    <div class="noteform">
+      <textarea id="note" rows="2" placeholder="add a line to the trail…"></textarea>
+      <div><button data-act="note" data-ref="${esc(node.ref)}">add note</button></div>
+    </div>`;
+
+  const body = `
+    <div class="thought">
+      <a class="back" href="/">← trains</a>
+      <h1>${esc(node.title)}</h1>
+      <div class="meta">${esc(node.ref)} · ${esc(node.state)}${held ? ` (held by ${esc(node.claimed?.by ?? '')})` : ''} · layer ${depth} · ${settled.total === 0 ? 'root' : `${settled.done}/${settled.total} deps`} · touched ${stamp(node.touched)}</div>
+      <div class="intent">${esc(node.intent || 'No intent recorded yet — this node says what to do but not why.')}</div>
+      <div class="grid2">
+        <div><h2>Next</h2>${steps}</div>
+        <div><h2>Waits for</h2>${deps}</div>
+      </div>
+      ${actions}
+      <div class="trail"><h2>Trail</h2>${trail || '<div class="empty-note">Nothing yet.</div>'}</div>
+      <div class="sessions"><h2>Sessions</h2>${sessionCards}</div>
+      ${node.state === 'done' && node.closed ? `<div class="next" style="border-left-color:var(--accent)"><div class="label">closed</div><div class="title">${esc(node.closed.summary)}</div><div class="why">${stamp(node.closed.at)}</div></div>` : ''}
+      <footer>${esc(node.ref)} · POST /api/thoughts/${esc(node.ref)}/trail to add a line</footer>
+    </div>
+    <script>
+      function act(name, ref, extra) {
+        var path = '/api/thoughts/' + ref + '/' + name;
+        var body = Object.assign({ by: 'user' }, extra || {});
+        fetch(path, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) })
+          .then(function (r) { return r.json(); })
+          .then(function (j) {
+            if (!j.ok) { alert(j.error.code + ': ' + j.error.message); return; }
+            location.reload();
+          })
+          .catch(function (e) { alert('request failed: ' + e.message); });
+      }
+      document.addEventListener('click', function (event) {
+        var el = event.target.closest('button[data-act]');
+        if (!el) return;
+        var ref = el.getAttribute('data-ref');
+        var what = el.getAttribute('data-act');
+        if (what === 'note') {
+          var box = document.getElementById('note');
+          var text = (box && box.value || '').trim();
+          if (!text) { alert('write something first'); return; }
+          act('trail', ref, { kind: 'note', text: text });
+        } else if (what === 'close') {
+          var summary = prompt('Why is this train done? (one line — it becomes the archive entry)');
+          if (!summary) return;
+          act('close', ref, { summary: summary });
+        } else if (what === 'state') {
+          act('state', ref, { state: el.getAttribute('data-state') });
+        } else {
+          act(what, ref, {});
+        }
+      });
+    </script>`;
+  return page(`${node.title} · Train Of Thought`, body);
+}
+
+export function renderArchive(store: ThoughtStore): string {
+  const rows = store.nodes
+    .filter((node) => node.state === 'done')
+    .sort((a, b) => (b.closed?.at ?? 0) - (a.closed?.at ?? 0))
+    .map(
+      (node) => `<a class="row" href="/t/${esc(node.ref)}">
+        <span class="title">${esc(node.title)}</span>
+        <span class="side">${stamp(node.closed?.at ?? node.touched)}</span>
+        <span class="summary" style="grid-column:1/-1">${esc(node.closed?.summary ?? '')}</span>
+      </a>`,
+    )
+    .join('');
+
+  const body = `
+    <a class="back" href="/">← trains</a>
+    <div class="kicker" style="margin-top:18px">Archived</div>
+    <h1>Done, and why</h1>
+    <div class="meta">${store.nodes.filter((node) => node.state === 'done').length} closed trains · each line is the sentence that closed it</div>
+    <div class="rows" style="margin-top:26px">${rows || '<div class="empty-note">Nothing archived yet.</div>'}</div>`;
+  return page('Archived · Train Of Thought', body);
+}
+
+/** A row the API hands out; kept here so the page and JSON never drift. */
+export type { FrontierRow };

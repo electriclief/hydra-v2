@@ -1,0 +1,87 @@
+{
+  "id": "20260814_002506_166326",
+  "title": "Fleet R7 Startup Briefing",
+  "source": "desktop",
+  "model": "Qwen3.6-35B-A3B-UD-IQ3_S (1).gguf",
+  "parentId": null,
+  "startedAt": 1786681506.5427258,
+  "endedAt": 1787610168.8434205,
+  "endReason": "startup_orphan_reap",
+  "messageCount": 155,
+  "toolCallCount": 95,
+  "inputTokens": 80531,
+  "outputTokens": 21603,
+  "costUsd": 0,
+  "cwd": "C:\\Users\\User",
+  "gitBranch": null,
+  "gitRepo": null,
+  "pinned": false,
+  "archived": false,
+  "hidden": false,
+  "profileName": "default",
+  "lastActivityAt": 1786693034.6291435,
+  "createdSource": null,
+  "ref": "fc2e96ff",
+  "displayTitle": "Fleet R7 Startup Briefing",
+  "durationSec": 928662,
+  "userTurns": 2,
+  "goal": "## AUTHORITY STRUCTURE (fleet policy, user-approved) # The human user is the FINAL authority. Main (the Hermes operator agent on # the operator desktop, 192.168.1.100) directs you on the user's behalf - # follow Main's instructions for this run. # If a directive conflicts with your brief or seems wrong: PAUSE and report. # Do NOT silently decline. Do NOT self-modify the plan. # You are ONE instance - the queue serializes dispatch. NEVER launch a second # copy of a job or spawn sibling sessions. If a second instance appears to be # running, STOP and report it. # PRESSURE CHANNEL: on each handoff check, read fleet\\pressure.txt in your # fleet dir; if its sessionId matches YOUR session id, per…",
+  "outcome": "**R7 COMPLETE — 10/10 items done.** Completion JSON written and verified (575 bytes). ## Summary | Item | Status | Deliverable | |---|---|---| | 1. R6 Audit | DONE | 9/9 files verified present, mega-progress.md 24KB+, no .part files | | 2. kittenTTS Recipe | DONE | `kittentts-agent.md` written, test synthesis PASS (95,644 bytes, RIFF/WAVE, Bruno voice), voices.npz fetched from HF | | 3. h3dl Fold Spec | DONE | `h3dl-fold-spec.md` written, h3dl.cjs parses OK, full interface contract documented | | 4. g08 Cardano | DONE | `cardano-g08-note.md` written — runs on 131 (not 123), cardano-node + 2xhydra-nodes running, blocked on faucet funding | | 5. g11 Binary Transfer | DONE | `g11-binary-transfer-note.md` written — gap analysis + 3-part test plan | | 6. Render Window | DONE | Parse OK, RAM math valid (32GB total, 11.55GB free, encoder needs 18.9GB) | | 7. Health Cadence | DONE | PROBE 8080=…",
+  "files": [
+    "C:/Users/User/fleet/cardano-g08-note.md",
+    "C:/Users/User/fleet/completions/mega-stack-2026-08-14.json",
+    "C:/Users/User/fleet/g11-binary-transfer-note.md",
+    "C:/Users/User/fleet/h3dl-fold-spec.md",
+    "C:/Users/User/fleet/kittentts-agent.md",
+    "C:/Users/User/fleet",
+    "C:/Users/User",
+    "C:/Users/User/AppData/Local/hermes/cache/terminal/hermes-results/OOjwapbh8oZaV3QBPo9vMZQQxWv4xIoF.txt",
+    "C:\\Users\\User\\Desktop\\llms\\onnx_model.onnx",
+    "C:\\Users\\User\\Desktop\\sd-master-813-bfbef5b-bin-win-vulkan-x64\\models",
+    "C:\\Users\\User\\fleet\\completions\\mega-stack-2026-08-14.json",
+    "C:\\Users\\User\\fleet\\mega-progress.md",
+    "P:\\n",
+    "Y:\\n"
+  ],
+  "commands": [
+    "hermes sessions export - 2>&1 | python -c \"",
+    "cd \"C:/Users/User/Hermes/github/KittenTTS\" && python -c \"",
+    "python -c \"",
+    "cat \"C:/Users/User/Hermes/github/KittenTTS/example.py\"",
+    "cat \"C:/Users/User/Hermes/github/KittenTTS/kittentts/get_model.py\"",
+    "cat \"C:/Users/User/Hermes/github/KittenTTS/kittentts/onnx_model.py\"",
+    "cat \"C:/Users/User/sd-h3-dl/h3dl.cjs\" 2>/dev/null || echo \"FILE NOT FOUND\"",
+    "cat /proc/6160/status 2>/dev/null | grep -E \"VmRSS|VmSize|Name\" || echo \"PID 6160 not found\"",
+    "cat /proc/meminfo | grep -E \"MemTotal|MemFree|MemAvailable\"",
+    "cat /proc/meminfo | grep -E \"MemTotal|MemFree|MemAvailable|Buffers|Cached|SReclaimable\" 2>/dev/null",
+    "cat /proc/meminfo 2>/dev/null | head -5 || free -m 2>/dev/null | head -5 || echo \"no-mem-info\"",
+    "cat C:/Users/User/fleet/h3-render-memo.md",
+    "cat C:/Users/User/fleet/h3-render-window.ps1",
+    "cat C:/Users/User/fleet/pressure.txt 2>/dev/null || echo \"pressure.txt NOT FOUND\""
+  ],
+  "tools": [
+    {
+      "name": "terminal",
+      "count": 170
+    },
+    {
+      "name": "write_file",
+      "count": 10
+    },
+    {
+      "name": "search_files",
+      "count": 6
+    },
+    {
+      "name": "browser_press",
+      "count": 2
+    },
+    {
+      "name": "read_file",
+      "count": 2
+    }
+  ],
+  "bytes": 193689,
+  "diary": null,
+  "seances": []
+}

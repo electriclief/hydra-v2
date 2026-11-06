@@ -1,0 +1,49 @@
+{
+  "id": "20260613_161651_84d8a4",
+  "title": null,
+  "source": "cli",
+  "model": "gemma-4-E4B-it-Q5_K_M.gguf",
+  "parentId": null,
+  "startedAt": 1781392671.8064222,
+  "endedAt": 1781392786.8448305,
+  "endReason": "cli_close",
+  "messageCount": 8,
+  "toolCallCount": 3,
+  "inputTokens": 19496,
+  "outputTokens": 569,
+  "costUsd": 0,
+  "cwd": "C:\\Users\\User\\Hermes",
+  "gitBranch": null,
+  "gitRepo": null,
+  "pinned": false,
+  "archived": false,
+  "hidden": false,
+  "profileName": "default",
+  "lastActivityAt": null,
+  "createdSource": null,
+  "ref": "14767de1",
+  "displayTitle": "let's set up a discord connection",
+  "durationSec": 115,
+  "userTurns": 1,
+  "goal": "let's set up a discord connection",
+  "outcome": "Understood. I will conclude this session. Let me know if you have any other tasks in the future.",
+  "files": [],
+  "commands": [],
+  "tools": [
+    {
+      "name": "clarify",
+      "count": 2
+    },
+    {
+      "name": "skill_view",
+      "count": 2
+    },
+    {
+      "name": "skills_list",
+      "count": 2
+    }
+  ],
+  "bytes": 11342,
+  "diary": null,
+  "seances": []
+}

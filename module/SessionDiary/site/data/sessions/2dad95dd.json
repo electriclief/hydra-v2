@@ -1,0 +1,68 @@
+{
+  "id": "20260813_010507_e5dcfc",
+  "title": "KittenTTS Asset Preparation Report",
+  "source": "desktop",
+  "model": "Qwen3.6-35B-A3B-UD-IQ3_S (1).gguf",
+  "parentId": null,
+  "startedAt": 1786597507.3807313,
+  "endedAt": 1787610168.8434205,
+  "endReason": "startup_orphan_reap",
+  "messageCount": 63,
+  "toolCallCount": 34,
+  "inputTokens": 35819,
+  "outputTokens": 6618,
+  "costUsd": 0,
+  "cwd": "C:\\Users\\User",
+  "gitBranch": null,
+  "gitRepo": null,
+  "pinned": false,
+  "archived": false,
+  "hidden": false,
+  "profileName": "default",
+  "lastActivityAt": 1786599618.4994657,
+  "createdSource": null,
+  "ref": "2dad95dd",
+  "displayTitle": "KittenTTS Asset Preparation Report",
+  "durationSec": 1012661,
+  "userTurns": 1,
+  "goal": "[Agent: 123 on DESKTOP-QUCA6R5] Coordinator dispatch - OFFLOAD BATCH #2 (job 4/5): g21 kittenTTS module asset prep. You are the worker agent on 123. Goal g21: kittenTTS as the default TTS voice for the agent (changeable via services). Prepare the assets: 1. Read the release info: curl -s -m 15 @url:`https://api.github.com/repos/KittenML/KittenTTS/releases` - find the latest v0.8.x release and the kitten-tts-mini asset URL (ONNX model, ~80MB, CPU-only). 2. Download it to a NEW folder C:\\Users\\User\\Desktop\\llms\\kittentts\\ using curl -L -o (follow redirects; HF-hosted assets need -L). 3. Verify: Get-FileHash -Algorithm SHA256 on the downloaded file; report size in MB and the sha256. Compare ag…",
+  "outcome": "Now I have all the data. Let me compile the report. --- ## 📋 Asset Report: KittenTTS Mini (v0.8.1) | Field | Value | |---|---| | **Release** | v0.8.1 (Feb 24, 2026) — latest v0.8.x | | **HF Model Repo** | `KittenML/kitten-tts-mini-0.8` | | **ONNX Model URL** | `https://huggingface.co/KittenML/kitten-tts-mini-0.8/resolve/main/kitten_tts_mini_v0_8.onnx` | | **Local Path** | `C:\\Users\\User\\Desktop\\llms\\kittentts\\kitten_tts_mini_v0_8.onnx` | | **Size** | 78,268,016 bytes (**74.64 MB**) | | **SHA256** | `0f5bbae4fc4800c98dbc544a87ecfa79510de2fb8222db30d12e5bfe9177df91` | **Voice comparison:** The LFS object hash in the HF repo manifest is `0f5bbae4fc4800c98dbc544a87ecfa79510de2fb8222db30d12e5bfe9177df91` — **matches the computed SHA256 exactly.** ✅ **Available Voices (8 built-in):** - Bella, Jasper, Luna, Bruno, Rosie, Hugo, Kiki, Leo **Note:** The README's API default for `voice` is `\"expr…",
+  "files": [
+    "C:\\Users\\User\\AppData\\Local\\hermes\\hermes-agent\\venv\\Scripts\\python.exe",
+    "C:\\Users\\User\\Desktop\\llms\\kittentts",
+    "C:\\Users\\User\\Desktop\\llms\\kittentts\\kitten_tts_mini_v0_8.onnx"
+  ],
+  "commands": [
+    "\"C:\\Users\\User\\AppData\\Local\\hermes\\hermes-agent\\venv\\Scripts\\python.exe\" -c \"",
+    "mkdir -p \"C:\\Users\\User\\Desktop\\llms\\kittentts\"",
+    "(Get-Item \"C:\\Users\\User\\Desktop\\llms\\kittentts\\kitten_tts_mini_v0_8.onnx\").Length / 1MB",
+    "cat \"C:/Users/User/Desktop/llms/kittentts/onnx_model.onnx\"",
+    "curl -L -m 60 -o \"/c/Users/User/Desktop/llms/kittentts/onnx_model.onnx\" \"https://huggingface.co/KittenML/kitten-tts-mini-0.8/resolve/main/onnx_model.…",
+    "curl -L -m 60 -o \"C:/Users/User/Desktop/llms/kittentts/onnx_model.onnx\" \"https://huggingface.co/KittenML/kitten-tts-mini-0.8/resolve/main/onnx_model.…",
+    "curl -L -o \"C:/Users/User/Desktop/llms/kittentts/kitten_tts_mini_v0_8.onnx\" \"https://huggingface.co/KittenML/kitten-tts-mini-0.8/resolve/main/kitten_…",
+    "curl -s -L -m 10 \"https://huggingface.co/KittenML/kitten-tts-mini-0.8\" 2>&1 | grep -i -E \"404|not found|error\" | head -5",
+    "curl -s -L -m 10 \"https://huggingface.co/KittenML/kitten-tts-mini-0.8\" 2>&1 | grep -i -E \"title|error|not found\" | head -10",
+    "curl -s -L -m 10 \"https://raw.githubusercontent.com/KittenML/KittenTTS/main/README.md\" 2>&1 | head -200",
+    "curl -s -m 15 \"https://huggingface.co/api/models?search=kitten-tts&limit=20\" 2>&1",
+    "curl -s -m 15 \"https://huggingface.co/api/models/KittenML/kitten-tts-mini-0.8\" 2>&1 | python3 -c \"import sys,json; d=json.load(sys.stdin); print(json…",
+    "curl -s -m 15 \"https://huggingface.co/api/models/KittenML/kitten-tts-mini-0.8/tree/main\" 2>&1",
+    "curl -s -m 15 \"https://huggingface.co/api/models/KittenML/kitten-tts-mini\" 2>&1 | python3 -c \"import sys,json; d=json.load(sys.stdin); print(json.dum…"
+  ],
+  "tools": [
+    {
+      "name": "terminal",
+      "count": 54
+    },
+    {
+      "name": "web_search",
+      "count": 10
+    },
+    {
+      "name": "web_extract",
+      "count": 4
+    }
+  ],
+  "bytes": 64072,
+  "diary": null,
+  "seances": []
+}

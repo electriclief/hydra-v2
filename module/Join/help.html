@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Join — the shelf's self-description</title>
+<style>
+  :root { color-scheme: dark; --bg:#111318; --panel:#191c23; --border:#303541; --text:#e5e7eb; --muted:#a1a8b7; --accent:#8ab4f8; }
+  * { box-sizing: border-box; }
+  body { margin:0; padding:32px; background:var(--bg); color:var(--text);
+         font:15px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif; max-width:78ch; }
+  h1 { margin:0 0 4px; font-size:24px; font-weight:600; letter-spacing:-.01em; }
+  h2 { margin:32px 0 10px; font-size:13px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; color:var(--muted); }
+  .kicker { margin:0 0 28px; color:var(--muted); font-size:13px; }
+  p { margin:0 0 12px; }
+  code { font:13px/1.5 ui-monospace,Consolas,monospace; background:#0b0d11; border:1px solid var(--border);
+         border-radius:5px; padding:1px 5px; color:#cfd6e4; }
+  pre { background:#0b0d11; border:1px solid var(--border); border-radius:8px; padding:12px 14px; overflow:auto; }
+  table { width:100%; border-collapse:collapse; margin:6px 0 16px; font-size:14px; }
+  th, td { text-align:left; padding:7px 10px; border-bottom:1px solid var(--border); vertical-align:top; }
+  th { color:var(--muted); font-weight:600; font-size:12px; letter-spacing:.06em; text-transform:uppercase; }
+  .note { color:var(--muted); font-size:13px; }
+  .lede { font-size:16px; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Join</h1>
+  <p class="kicker">the shelf's self-description and resolver · door on :8131 · wired at boot · names only, carries no traffic</p>
+</header>
+
+<section id="summary">
+  <p class="lede">Join answers one question about this box: what is here, and where does it answer? It reads the
+  <code>join.json</code> each module writes about itself, probes the ports those files claim, and keeps two columns
+  that never merge — <code>should</code> (what the files say) and <code>is</code> (what answered just now). Its one
+  act is resolution: asked for something declared but not answering, it asks ProcessWrapper to start it and answers
+  <code>starting</code>, so a lookup never says "not found" when the truth is "not started yet".</p>
+</section>
+
+<section id="concepts">
+  <h2>How it holds together</h2>
+  <p><b>A declaration is five facts, and the module writes them itself.</b> <code>name</code>, <code>kind</code>,
+  <code>port</code>, <code>start</code>, <code>wiredAtBoot</code> come out of <code>join.json</code>; one human
+  sentence (<code>what</code>) may come from <code>package.json</code> and from nowhere else. Join never guesses an
+  identity. A fact that is absent stays visible in the row's <code>missing</code> list, and a module with no
+  <code>join.json</code> at all is still listed — inferred, with <code>kind: "door"</code>, <code>port: null</code>
+  and its gaps named. A folder name is never turned into a port.</p>
+  <p><b>The kind decides what a thing is allowed to claim.</b> There are eleven built-ins — <code>door</code>,
+  <code>shell</code>, <code>catalog</code>, <code>service</code>, <code>agent</code>, <code>app</code>,
+  <code>tool</code>, <code>plugin</code>, <code>mcp</code>, <code>node</code>, <code>storage</code> — and any extra
+  lives in <code>Join/data/kinds.json</code>, merged on load with no code change. A kind answers only two questions:
+  may it have a port, and does it have a start command. So an <code>Electron_Wrapper</code> that declares a port has
+  it refused, and the refusal is recorded in that fact's <code>sources</code> entry rather than silently dropped. An
+  unknown kind is accepted as declared and marked <code>kindKnown: false</code>, because the shelf grows by adding
+  things, not by editing the resolver.</p>
+  <p><b>Two columns, because "declared" and "answering" are different facts.</b> A probe is
+  <code>GET http://127.0.0.1:&lt;port&gt;/health</code> with a 1500 ms deadline, and a 200 <em>or</em> a 404 counts
+  as answering — a 404 still means something is listening and speaking the door's dialect. The liveness vocabulary
+  is <code>up</code>, <code>down</code>, <code>starting</code>, <code>offered</code>, <code>absent</code>. A
+  declared-but-dead module keeps its <code>should.port</code> and reads <code>is: "down"</code> with a
+  <code>detail</code> that says "declared on 8130, not answering". Nothing is cached as a green tick.</p>
+  <table>
+    <tr><th>resolve returns</th><th>when</th><th>what it did</th></tr>
+    <tr><td><code>up</code></td><td>the port answered</td><td>nothing — answers with the port</td></tr>
+    <tr><td><code>starting</code></td><td>here, declared, port silent</td><td>asked ProcessWrapper to start it; <code>found: true</code></td></tr>
+    <tr><td><code>offered</code></td><td>in the Services catalog, not on this shelf</td><td>nothing; no port, no start — it runs when it is run</td></tr>
+    <tr><td><code>absent</code></td><td>no declaration and no catalog entry</td><td>refused (HTTP 404) and handed the list of what <em>is</em> here</td></tr>
+  </table>
+  <p><b>The lazy load goes through ProcessWrapper, never through a spawn.</b> Join itself starts nothing. It posts
+  <code>/api/events/trigger</code> to <code>http://127.0.0.1:8125</code> with the event
+  <code>add Process Console Display</code> and a payload of <code>{name: "console-&lt;module&gt;", command, cwd}</code>,
+  expects HTTP 202, and then says so honestly: a 202 is fire-and-forget, so the reason line reads "asked
+  ProcessWrapper to start it" rather than claiming the process is up. With <code>--dry</code> or
+  <code>JOIN_DRY=1</code> it still answers <code>starting</code> but the reason says it was told not to start anything.
+  There is exactly one place a process can live, and Join is not it.</p>
+  <p><b>A member is a thing with no folder.</b> A remote node, an MCP door, a share, an app on another machine:
+  those are <em>joined</em>, not installed, so they are registered into <code>Join/data/members.json</code> — a
+  single JSON file written atomically (temp file, then rename). The stored record carries
+  <code>name, kind, port, url, start, what, probe, deps, provides, tags, meta, registeredAt, updatedAt</code>, and it
+  becomes a <code>Declaration</code> with <code>origin: "registered"</code>, so the resolver needs no second code
+  path. A registered row beats a file row of the same name: an explicit runtime registration is a later, more
+  deliberate statement than a file on disk.</p>
+  <p><b>Order comes from declared deps, and the hard cases are named.</b> <code>/api/plan</code> runs Kahn's
+  algorithm over <code>deps[]</code>. A dependency on something not on the shelf is reported under
+  <code>blocked</code> with the missing name; a loop is reported under <code>cycles</code>. Neither is silently
+  smoothed over, and neither prevents the rest of the order from being useful.</p>
+  <p><b>The door has one face for two audiences.</b> A person gets the page at <code>/</code>; an agent gets
+  <code>POST /mcp</code> speaking JSON-RPC (<code>initialize</code>, <code>tools/list</code>, <code>tools/call</code>,
+  SSE framing when the caller asks for <code>text/event-stream</code>). The guard, when a token is configured,
+  covers <code>/api/*</code> and <code>/mcp</code> only — static files stay open so the operator can load the page.
+  With no token the door trusts loopback, and it binds <code>127.0.0.1</code> by default.</p>
+</section>
+
+<section id="wiring">
+  <h2>Wiring, for humans</h2>
+  <p>What Join needs before it can be honest:</p>
+  <table>
+    <thead><tr><th>needs</th><th>from</th><th>required</th></tr></thead>
+    <tbody>
+      <tr><td>the shelf folder it describes</td><td><code>--shelf</code> / <code>JOIN_SHELF_ROOT</code>, default the parent of <code>module/Join</code></td><td>yes — no folder, nothing to resolve</td></tr>
+      <tr><td>each module's <code>join.json</code></td><td>the module folders themselves</td><td>no — a module without one is inferred and marked <code>missing</code></td></tr>
+      <tr><td>ProcessWrapper, to start a declared-but-down door</td><td><code>:8125</code> (<code>JOIN_PW_URL</code>)</td><td>no — without it the answer is still <code>starting</code>, with "ProcessWrapper refused" in the reason</td></tr>
+      <tr><td>the offered catalog</td><td>Services <code>:8128</code> (<code>JOIN_SERVICES_URL</code>)</td><td>no — an absent catalog is an empty list, not an error</td></tr>
+      <tr><td>a place to keep registered members</td><td><code>module/Join/data/members.json</code></td><td>no for reading, yes for <code>POST /api/members</code> (created on first write)</td></tr>
+      <tr><td>a shared token</td><td><code>--token</code> / <code>JOIN_TOKEN</code></td><td>no — absent means loopback trust, the module default</td></tr>
+    </tbody>
+  </table>
+  <p>What it gives back:</p>
+  <table>
+    <thead><tr><th>gives</th><th>to</th><th>shape</th></tr></thead>
+    <tbody>
+      <tr><td><code>GET /health</code></td><td>anyone</td><td><code>{ok, module:"join", shelfRoot, dry, surfaces{gui,api,mcp}}</code></td></tr>
+      <tr><td><code>GET /api/shelf</code></td><td>a reader with no context</td><td><code>{modules[], offered[], root, kinds}</code> — each module row has <code>should{}</code> beside <code>is</code></td></tr>
+      <tr><td><code>GET /api/resolve/&lt;name&gt;</code></td><td>wiring, scripts, agents</td><td><code>{ok, name, found, kind, port, liveness, reason, alternatives[]}</code> — 200 or 404</td></tr>
+      <tr><td><code>GET /api/plan</code></td><td>a start-up script</td><td><code>{order[], blocked[{name,missing[]}], cycles[][]}</code></td></tr>
+      <tr><td><code>GET /api/kinds</code></td><td>anything that filters by kind</td><td><code>{kinds:[{name, hasPort, hasStart, what, source}]}</code></td></tr>
+      <tr><td><code>GET · POST /api/members</code>, <code>DELETE /api/members/&lt;name&gt;</code></td><td>a node joining itself</td><td>one member record; POST is 201, a bad row is 400 with the reason</td></tr>
+      <tr><td><code>POST /mcp</code></td><td>an agent</td><td>JSON-RPC 2.0 — <code>initialize</code>, <code>tools/list</code>, <code>tools/call</code></td></tr>
+      <tr><td><code>GET /</code></td><td>the operator</td><td>the page and its CSS/JS, served without a token</td></tr>
+      <tr><td><code>Join/data/members.json</code></td><td>the next process that boots</td><td><code>{members:[{name, kind, port, url, start, what, probe, deps, provides, tags, meta, registeredAt, updatedAt}]}</code></td></tr>
+    </tbody>
+  </table>
+  <p class="note">This is wiring in words, not a type. The exact shapes live in <code>public/ts/declaration.ts</code>,
+  <code>public/ts/resolver.ts</code> and <code>public/ts/members.ts</code>; if this page and those files disagree,
+  the code is right and this page is a bug.</p>
+</section>
+
+<script type="application/json" id="contract">
+{
+  "module": "Join",
+  "port": 8131,
+  "kind": "door",
+  "needs": [
+    { "name": "shelf root", "from": "--shelf / JOIN_SHELF_ROOT, default module/", "required": true },
+    { "name": "join.json per module", "from": "each module folder", "required": false },
+    { "name": "process wrapper", "from": "ProcessWrapper :8125 (JOIN_PW_URL)", "required": false },
+    { "name": "offered catalog", "from": "Services :8128 (JOIN_SERVICES_URL)", "required": false },
+    { "name": "member store", "from": "Join/data/members.json", "required": false },
+    { "name": "door token", "from": "JOIN_TOKEN / --token", "required": false }
+  ],
+  "gives": [
+    { "name": "/health", "to": "anyone", "kind": "http" },
+    { "name": "/api/shelf", "to": "readers and agents", "kind": "http" },
+    { "name": "/api/resolve/{name}", "to": "wiring and agents", "kind": "http" },
+    { "name": "/api/plan", "to": "start-up scripts", "kind": "http" },
+    { "name": "/api/kinds", "to": "readers", "kind": "http" },
+    { "name": "/api/members", "to": "joining nodes", "kind": "http" },
+    { "name": "/mcp", "to": "agents", "kind": "jsonrpc" },
+    { "name": "Join/data/members.json", "to": "the next boot", "kind": "file" }
+  ]
+}
+</script>
+
+</body>
+</html>

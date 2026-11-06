@@ -1,0 +1,49 @@
+{
+  "id": "cron_6d233f41b8e5_20261020_110217",
+  "title": "Your role is a low-priority, specialized AI Releas · Oct 20 11:03",
+  "source": "cron",
+  "model": "deepseek-flash",
+  "parentId": null,
+  "startedAt": 1792508544.7510834,
+  "endedAt": 1792508599.595108,
+  "endReason": "cron_complete",
+  "messageCount": 22,
+  "toolCallCount": 11,
+  "inputTokens": 21857,
+  "outputTokens": 5664,
+  "costUsd": 0.007423446,
+  "cwd": "C:\\Users\\User\\Hermes\\gemma4site",
+  "gitBranch": null,
+  "gitRepo": null,
+  "pinned": false,
+  "archived": false,
+  "hidden": false,
+  "profileName": "default",
+  "lastActivityAt": null,
+  "createdSource": "cron",
+  "ref": "b150523d",
+  "displayTitle": "Your role is a low-priority, specialized AI Releas · Oct 20 11:03",
+  "durationSec": 55,
+  "userTurns": 1,
+  "goal": "[IMPORTANT: The following skill(s) were listed for this job but could not be found and were skipped: web_search, terminal. Start your response with a brief notice so the user is aware, e.g.: '⚠️ Skill(s) not found and skipped: web_search, terminal'] The user has provided the following instruction alongside the skill invocation: [IMPORTANT: You are running as a scheduled cron job. DELIVERY: Your final response will be automatically delivered to the user — do NOT use send_message or try to deliver the output yourself. Just produce your report/output as your final response and the system handles the rest. SILENT: If there is genuinely nothing new to report, respond with exactly \"[SILENT]\" (not…",
+  "outcome": "**HF Release Scan — Tue Oct 20, 2026** *(No data payload was attached to the job, so I pulled the HF Daily Papers and Trending Models APIs live; GGUF/quant files are sizes verified from the repos, not estimates.)* **Models** - **Ternary-Bonsai-2-9B (Prism ML, ternary GGUF)** — *HF Trending Models* — a 9B vision-language model (Qwen3.5-9B backbone) packed to **2.00–2.56 GB**, which is the single best VRAM-per-capability item in this cycle: it runs entirely inside your GTX 1660's 6 GB even with the 0.62 GB vision tower, and keeps the full 262K context. Caveat: the ternary kernels are in a PrismML llama.cpp fork and the card lists **CUDA/Metal/CPU only**, so on the RX 6800 you'd be on CPU or Vulkan rather than ROCm. - **LiquidAI LFM2.5-24B-A2B + unsloth GGUF** — *HF Trending Models* — 24B total, **2.45B active** MoE reasoning model built for on-device agents; the unsloth **UD-Q4_K_XL is 14…",
+  "files": [],
+  "commands": [],
+  "tools": [
+    {
+      "name": "browser_exec",
+      "count": 14
+    },
+    {
+      "name": "execute_code",
+      "count": 4
+    },
+    {
+      "name": "web_extract",
+      "count": 4
+    }
+  ],
+  "bytes": 79929,
+  "diary": null,
+  "seances": []
+}

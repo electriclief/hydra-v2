@@ -1,0 +1,986 @@
+{
+  "version": 1,
+  "nodes": [
+    {
+      "ref": "5a5525ad",
+      "title": "Add nodes and intent to the LAN database",
+      "intent": "One roster where every machine carries what it IS FOR, not just its address: role, ready_for[], and the door it answers on. Done means fleetctl scan reports intent per node, Join resolves each one by name, and a node can be picked for a job without reading the desktop.",
+      "state": "active",
+      "deps": [],
+      "next": [
+        "re-probe .112 and .139 into roster.json with real hardware lines",
+        "give every row a role and ready_for[] instead of free-text notes",
+        "register the fleet page as a Join member on :8137"
+      ],
+      "tags": [
+        "lan",
+        "fleet"
+      ],
+      "trail": [
+        {
+          "at": 1793562205616,
+          "kind": "state",
+          "text": "created",
+          "by": "hermes"
+        },
+        {
+          "at": 1793562205629,
+          "kind": "session",
+          "text": "ssh door + host inventory for the LAN nodes",
+          "by": "hermes",
+          "sessionRef": "8e3720cf"
+        }
+      ],
+      "created": 1793562205616,
+      "touched": 1793562205629
+    },
+    {
+      "ref": "294cd029",
+      "title": "Build modules for Hydra V2",
+      "intent": "Every door holds its own data, its own gate and its own page, so the shelf grows by writing data rather than by editing code. Done means a new module is a folder with a join.json and a passing selftest, and the window picks it up from tabs.json alone.",
+      "state": "done",
+      "deps": [],
+      "next": [
+        "restart the 8135 door so /api/login, /api/logout and /api/seats go live",
+        "wire the Thoughts tab into the window (stop the hand-started doors first so ProcessWrapper owns them)",
+        "write README.md to match SessionDiary, including the seat vocabulary"
+      ],
+      "tags": [
+        "hydra",
+        "modules"
+      ],
+      "trail": [
+        {
+          "at": 1793562205663,
+          "kind": "state",
+          "text": "created",
+          "by": "hermes"
+        },
+        {
+          "at": 1793562205676,
+          "kind": "session",
+          "text": "built SessionDiary and its 51-assert gate",
+          "by": "hermes",
+          "sessionRef": "e971fb0e"
+        },
+        {
+          "at": 1793564641993,
+          "kind": "note",
+          "text": "session b4f898de: built TrainOfThought (DAG store, frontier, archive, cycle seam, lazy session client), its door on 8135, the drawn map page + per-thought page, a folder per thought with junction/hardlink attach, and login/logout/seats (63 asserts). Page restarted four times; last bundle (login/logout) is built and green but the running door still serves the previous one.",
+          "by": "hermes",
+          "sessionRef": "b4f898de"
+        },
+        {
+          "at": 1793564642837,
+          "kind": "note",
+          "text": "edited by hermes",
+          "by": "hermes"
+        },
+        {
+          "at": 1793678501673,
+          "kind": "session",
+          "text": "verify the session-start ritual",
+          "by": "session",
+          "sessionRef": "local-test-001"
+        },
+        {
+          "at": 1793680418994,
+          "kind": "session",
+          "text": "multi-ref smoke test",
+          "by": "session",
+          "sessionRef": "local-multi-001"
+        },
+        {
+          "at": 1793981192404,
+          "kind": "note",
+          "text": "door live on 8135 (/health, /api/seats verified), Thoughts tab wired in DOOR_TABLE, README.md written to match SessionDiary incl. seat vocabulary",
+          "by": "agent"
+        },
+        {
+          "at": 1793981192445,
+          "kind": "state",
+          "text": "closed — All three items done: the 8135 door answers (/api/seats ok), the window owns the tab via DOOR_TABLE, and README.md now documents the tree, seats, API and gate.",
+          "by": "agent"
+        }
+      ],
+      "created": 1793562205663,
+      "touched": 1793981192445,
+      "closed": {
+        "at": 1793981192445,
+        "summary": "All three items done: the 8135 door answers (/api/seats ok), the window owns the tab via DOOR_TABLE, and README.md now documents the tree, seats, API and gate.",
+        "sessionRefs": []
+      }
+    },
+    {
+      "ref": "04bf6852",
+      "title": "Salvage main",
+      "intent": "Data to be reclaimed and a reboot headache: .100 powers off after a few minutes and its sshd service object is flagged for deletion. Done means the kits worth keeping are off the box, sshd survives a reboot by itself, and nothing on that machine is the only copy of anything.",
+      "state": "blocked",
+      "deps": [],
+      "next": [
+        "pull the three dead model kits off .100 before the next cold boot",
+        "prove sshd comes back after a reboot (sshd-ensure, no operator)",
+        "sha256 the survivors and delete the local duplicates"
+      ],
+      "tags": [
+        "main",
+        "salvage"
+      ],
+      "trail": [
+        {
+          "at": 1793562205687,
+          "kind": "state",
+          "text": "created",
+          "by": "hermes"
+        },
+        {
+          "at": 1793562205699,
+          "kind": "state",
+          "text": "state -> blocked",
+          "by": "hermes"
+        },
+        {
+          "at": 1793562205711,
+          "kind": "session",
+          "text": "salvaged the node and set up the SSH door on main",
+          "by": "hermes",
+          "sessionRef": "8e3720cf"
+        },
+        {
+          "at": 1793578571475,
+          "kind": "note",
+          "text": "main (.100) has been up since 2026-11-01 15:37:21 - about 3.5 h, far past the ~4 min power-off behaviour in its roster note - and sshd answers (DESKTOP-8811C7D, leafdriving). NOT fully backed up: E:\\Salvage holds 9 top-level sets (_songs, ComfyOutput, datacenter, picoclaw, Profile, sdcpp-desktop, stick, Wan2GP, YuE) against ~80 top-level directories in C:\\Users\\Leafdriving, so this is a name-level partial salvage (file counts for E: were not collected this session).",
+          "by": "hermes"
+        }
+      ],
+      "created": 1793562205687,
+      "touched": 1793578571475
+    },
+    {
+      "ref": "954deebc",
+      "title": "Wire the Thoughts tab into the window",
+      "intent": "The door answers; the window still has to raise it and show it as a tab owned by ProcessWrapper, so no console is ever loose on the desktop.",
+      "state": "active",
+      "deps": [
+        "294cd029"
+      ],
+      "next": [
+        "stop the hand-started doors before launch so ProcessWrapper owns them",
+        "relaunch the window and confirm the Thoughts tab loads"
+      ],
+      "tags": [
+        "hydra"
+      ],
+      "trail": [
+        {
+          "at": 1793562681546,
+          "kind": "state",
+          "text": "created",
+          "by": "hermes"
+        }
+      ],
+      "created": 1793562681546,
+      "touched": 1793562681546
+    },
+    {
+      "ref": "109e3f84",
+      "title": "Prove sshd survives a cold start on main",
+      "intent": "The service object is flagged for deletion; until a cold start brings sshd back with no operator present, the box is not salvaged.",
+      "state": "active",
+      "deps": [
+        "04bf6852"
+      ],
+      "next": [
+        "recreate the sshd service object with sc create",
+        "cold start .100 and log in with nobody at the keyboard"
+      ],
+      "tags": [
+        "main"
+      ],
+      "trail": [
+        {
+          "at": 1793562681561,
+          "kind": "state",
+          "text": "created",
+          "by": "hermes"
+        }
+      ],
+      "created": 1793562681561,
+      "touched": 1793562681561
+    },
+    {
+      "ref": "0e535747",
+      "title": "Snapshot the ReadyNAS NV+ before archiving to it",
+      "intent": "Nothing is written to the NV+ until its contents are indexed, so an archive never duplicates what is already there and never overwrites the only copy of anything. Done means a Level-0 snapshot (path, size, mtime) of the whole NAS exists in three places, a per-session diff proves what is new, the E: salvage has been pushed and verified by size, and the NAS is only powered on, used and shut down inside that ritual.",
+      "state": "active",
+      "deps": [
+        "04bf6852"
+      ],
+      "next": [
+        "power the NAS on cabled to one host on a private /30 - never the router, never the LAN",
+        "probe 21/80/139/445 and use FTP; SMB1 never gets enabled on Windows 11",
+        "run nas_snapshot.py snapshot -> SNAPSHOT-<date>.tsv into this node, E:\\Salvage and C:\\AI\\fleet\\nas",
+        "diff E:\\Salvage against the snapshot, push only non-duplicates, verify every file by size",
+        "write the archived sets and their checksums back into this node"
+      ],
+      "tags": [
+        "nas",
+        "salvage",
+        "backup",
+        "ftp"
+      ],
+      "trail": [
+        {
+          "at": 1793576194166,
+          "kind": "state",
+          "text": "created",
+          "by": "hermes"
+        },
+        {
+          "at": 1793576194183,
+          "kind": "session",
+          "text": "built C:\\AI\\fleet\\nas_snapshot.py (snapshot / diff / push over FTP) and proved it end to end: 66 real files (36.0 MB Ableton projects), 1 pre-seeded duplicate skipped, 65 uploaded and verified, remote 66 files / 35,998,556 bytes vs local 66 / 35,998,556 - 0 missing, 0 size mismatch, second push idempotent (66 duplicates, 0 uploads).",
+          "by": "hermes"
+        },
+        {
+          "at": 1793576194195,
+          "kind": "note",
+          "text": "NAS not reachable: full sweep of 192.168.1.0/24 for 21/80/139/445/2049/548/5000/443 - no host answers FTP. Box is off or unplugged, so no Level-0 snapshot exists yet. Everything else is ready.",
+          "by": "hermes"
+        },
+        {
+          "at": 1793576248070,
+          "kind": "note",
+          "text": "node folder 0e535747 holds: LOCAL-E-salvage-index-20261101-1836.tsv (23,162 files / 27.33 GB, the source side for the dedupe diff), nas_snapshot.py, EVIDENCE-nas_snapshot-selftest-20261101-1836.txt (RESULT: PASS) and README.md with the ritual and the exact commands. SNAPSHOT-nas-*.tsv is the one missing piece.",
+          "by": "hermes"
+        },
+        {
+          "at": 1793578571461,
+          "kind": "note",
+          "text": "user, 2026-11-01: \"I panicked, and will try on my own\". Ethernet had been put on static 192.168.1.222/24 (naslink.ps1) to reach the NAS at 192.168.1.122 on a direct cable; the user aborted and it was reverted to DHCP (192.168.1.123/24, gw 192.168.1.1, internet verified 200). NAS at .122 answers SMB1 negotiate with status 0x00570001 / WordCount 0 and FTP anonymous sees 0 shares, so the snapshot ritual has NOT run. NAS is the user's to do now.",
+          "by": "hermes"
+        }
+      ],
+      "created": 1793576194166,
+      "touched": 1793578571461,
+      "dir": "thoughts/0e535747"
+    },
+    {
+      "ref": "f2e2deb0",
+      "title": "Every new session starts from the frontier",
+      "intent": "Done means a session that starts on this box - with every door down - reads the frontier brief, says which ref it serves, and that link is visible in the session manager. The store stays the truth; no daemon is required to know what is next.",
+      "state": "active",
+      "deps": [
+        "294cd029"
+      ],
+      "next": [
+        "read module/TrainOfThought/data/frontier.md at session start",
+        "run TrainOfThought/scripts/session-start.mjs --session <id> --take <ref>",
+        "surface 'serving' on the diary page, not only in /api/sessions"
+      ],
+      "tags": [
+        "hydra",
+        "tot",
+        "session",
+        "frontier"
+      ],
+      "trail": [
+        {
+          "at": 1793678998820,
+          "kind": "state",
+          "text": "created",
+          "by": "agent"
+        },
+        {
+          "at": 1793678998835,
+          "kind": "note",
+          "text": "frontier.md + frontier.json are generated on every store save (store.save -> writeFiles), served at GET :8135/api/frontier, and readable with no door at all via `node public/js/frontier.js`. scripts/session-start.mjs prints the brief, appends SessionDiary/data/session-links.jsonl, and posts a session trail line when :8135 answers. SessionDiary exposes GET /api/links and adds `serving` to /api/sessions rows and the single-session response. Gates: ToT 63/63, SessionDiary 51/51, tsc clean.",
+          "by": "agent",
+          "sessionRef": "local-bfbe1d16bcb26e9d0a70dfef77c15b3da120b1c49faf8945560279703cbce5df"
+        },
+        {
+          "at": 1793678998849,
+          "kind": "claim",
+          "text": "claimed for 30 min",
+          "by": "local-bfbe1d16bcb26e9d0a70dfef77c15b3da120b1c49faf8945560279703cbce5df"
+        },
+        {
+          "at": 1793679004484,
+          "kind": "session",
+          "text": "wired the frontier brief into session start (owner of this session)",
+          "by": "session",
+          "sessionRef": "local-bfbe1d16bcb26e9d0a70dfef77c15b3da120b1c49faf8945560279703cbce5df"
+        },
+        {
+          "at": 1793680418971,
+          "kind": "session",
+          "text": "multi-ref smoke test",
+          "by": "session",
+          "sessionRef": "local-multi-001"
+        },
+        {
+          "at": 1793681643458,
+          "kind": "session",
+          "text": "frontier brief + state tree design (Phoenix as heartbeat)",
+          "by": "session",
+          "sessionRef": "local-bfbe1d16bcb26e9d0a70dfef77c15b3da120b1c49faf8945560279703cbce5df"
+        },
+        {
+          "at": 1793980921834,
+          "kind": "claim",
+          "text": "seat expired (was local-bfbe1d16bcb26e9d0a70dfef77c15b3da120b1c49faf8945560279703cbce5df)",
+          "by": "system"
+        }
+      ],
+      "created": 1793678998820,
+      "touched": 1793681643458,
+      "dir": "thoughts/f2e2deb0"
+    },
+    {
+      "ref": "64a4cbb3",
+      "title": "State tree: each node registers its subtree, readers pull with marks",
+      "intent": "One object, addressed by path: state.nodes.<ref>.<child>. Each node registers its OWN subtree in its OWN State registry; readers take the member list from Join and pull each member with their own marks, assembling the tree locally. Done means a node's subtree exists at boot at N=1, a reader assembles N peers in parallel without hanging on a dead one, and the Menu shows every head with its Phoenix cycle counter. No central server, no push, no lease, no TTL.",
+      "state": "active",
+      "deps": [],
+      "next": [
+        "register the node's own subtree at boot from node.json (makes the object exist at N=1)",
+        "write the reader: members -> parallel pull with marks + per-peer timeout -> one assembled view",
+        "decide marks on disk vs fresh each boot (open question 1 in NOTES-2026-11-03-state-tree.md)",
+        "Menu strip: heads seen, Phoenix cycle counter, stalled vs unreachable, pressure where known",
+        "gate: synthetic peer that advances its cycle, then stalls, then goes silent - prove the three states"
+      ],
+      "tags": [
+        "hydra",
+        "state",
+        "lan",
+        "phoenix",
+        "design"
+      ],
+      "trail": [
+        {
+          "at": 1793681627959,
+          "kind": "state",
+          "text": "created",
+          "by": "agent"
+        },
+        {
+          "at": 1793681627973,
+          "kind": "note",
+          "text": "Design settled in conversation: nested object + pull-with-marks, not a unifying server. Phoenix cycle number is the heartbeat: liveness = the counter advanced between two pulls, measured at the reader (State law 6, no clocks). Absence reads as absence, so no purge path exists. Rejected: push/lease/TTL mirrors - they store what pull never stores and need clocks State refuses. Notes: C:\\AI\\hydra-local\\NOTES-2026-11-03-state-tree.md",
+          "by": "agent",
+          "sessionRef": "local-bfbe1d16bcb26e9d0a70dfef77c15b3da120b1c49faf8945560279703cbce5df"
+        },
+        {
+          "at": 1793681643490,
+          "kind": "session",
+          "text": "frontier brief + state tree design (Phoenix as heartbeat)",
+          "by": "session",
+          "sessionRef": "local-bfbe1d16bcb26e9d0a70dfef77c15b3da120b1c49faf8945560279703cbce5df"
+        },
+        {
+          "at": 1793682060697,
+          "kind": "decision",
+          "text": "Broker boundary fixed: it does not exist yet and when it does it carries two verbs only - advertise (the minimal projection: ref, cycle, services{}) and job in/out (a service the RECEIVER already has, by slug and declared mode, inputs only). Never argv/env/paths/code/state-tree. The receiver validates locally and refuses with typed codes (unknown_service, bad_inputs, not_ready, over_karma). Core must not depend on the broker: in-LAN peers pull each other directly.",
+          "by": "agent",
+          "sessionRef": "local-bfbe1d16bcb26e9d0a70dfef77c15b3da120b1c49faf8945560279703cbce5df"
+        },
+        {
+          "at": 1793684077430,
+          "kind": "session",
+          "text": "state tree design + the night build (Core/Mirror/Menu/Scheduler)",
+          "by": "session",
+          "sessionRef": "local-bfbe1d16bcb26e9d0a70dfef77c15b3da120b1c49faf8945560279703cbce5df"
+        }
+      ],
+      "created": 1793681627959,
+      "touched": 1793684077430,
+      "dir": "thoughts/64a4cbb3"
+    },
+    {
+      "ref": "bfd6aba0",
+      "title": "LAN view: Core publishes, Mirror reads, the Menu shows every node",
+      "intent": "Every node publishes its own subtree in its own State; any node reads them and renders one LAN. Done means: Core registers node.<ref>.{id,doors,cycle,services,scheduler} at boot, Mirror serves /api/lan.json + lan.md from those registries with alive/stalled/gone verdicts, the Menu renders a peer section under the local list, and a booking made on one node is visible on the other without asking it anything.",
+      "state": "active",
+      "deps": [
+        "64a4cbb3"
+      ],
+      "next": [
+        "make peer rows actionable: the job envelope (service slug + declared mode + inputs) and a typed refusal path",
+        "Ward: run each module's gate and publish node.<ref>.health so a degraded node says so before it is asked",
+        "unify the two hosts: Core/Mirror are app doors on 123 but scheduled tasks on jims",
+        "decide marks on disk for Mirror (full pull per boot is fine at N=2, not at N=10)",
+        "add a DOM-level check for the LAN section (the Menu gate tests the page, not the inline client)",
+        "Bench: measured capacity per node, so work is routed by stat'd numbers instead of guesses"
+      ],
+      "tags": [
+        "hydra",
+        "state",
+        "lan",
+        "core",
+        "mirror",
+        "menu",
+        "built"
+      ],
+      "trail": [
+        {
+          "at": 1793684056197,
+          "kind": "state",
+          "text": "created",
+          "by": "agent"
+        },
+        {
+          "at": 1793684072068,
+          "kind": "note",
+          "text": "Built and verified: Core :8136 (gate 30/30), Mirror :8137 (gate 25/25), Menu LAN section, Scheduler publisher (gate 51/51). Live: 123 sees Jims Laptop (4 services) and Jim's box sees 123 (4 services); peer gate proves alive->stalled->gone. Four bugs found by verifying: inverted drop condition, fetch that never settled on a destroyed socket, null-node crash swallowed by the interval catch, ref resolved one directory too high. Notes: C:/AI/hydra-local/NOTES-2026-11-03-night-build.md",
+          "by": "agent",
+          "sessionRef": "local-bfbe1d16bcb26e9d0a70dfef77c15b3da120b1c49faf8945560279703cbce5df"
+        },
+        {
+          "at": 1793684077456,
+          "kind": "session",
+          "text": "state tree design + the night build (Core/Mirror/Menu/Scheduler)",
+          "by": "session",
+          "sessionRef": "local-bfbe1d16bcb26e9d0a70dfef77c15b3da120b1c49faf8945560279703cbce5df"
+        }
+      ],
+      "created": 1793684056197,
+      "touched": 1793684077456,
+      "dir": "thoughts/bfd6aba0"
+    },
+    {
+      "ref": "2629893c",
+      "title": "Service definitions carry an install face (schema v2)",
+      "intent": "Done means every service definition reads with schema 2, carries an install block whose steps each have a mechanical verify, and every behaviour change shows a credited installer_history entry. The loader side is green already; what remains is content, so any node can pick this up from the DAG without a session.",
+      "state": "active",
+      "deps": [],
+      "next": [
+        "write the install block + first installer_history entry into yue-music as the pattern, using the measured audio.cpp numbers",
+        "roll the same shape into llama-chat, qwen-image-2.1 and minimax-h3 - mark verified:false wherever no run backs the claim",
+        "add chatterbox-tts, qwen3-tts-voicedesign and piper-tts with install faces and measured RTF",
+        "run export-library.mjs and confirm the library gate holds with the new fields present",
+        "document schema / revision / installer_history / install in the authoring contract so the next author inherits it"
+      ],
+      "tags": [
+        "hydra",
+        "services",
+        "schema",
+        "install"
+      ],
+      "trail": [
+        {
+          "at": 1793920269366,
+          "kind": "state",
+          "text": "created",
+          "by": "hermes-agent"
+        },
+        {
+          "at": 1793920269419,
+          "kind": "note",
+          "text": "loader shipped: schema 2, revision, installer_history[] and install{} validated as WARNINGS only. module/Services npm test: serviceSchema 29/29 (was 18), gate 10/10 modules green.",
+          "by": "hermes-agent"
+        },
+        {
+          "at": 1793920269434,
+          "kind": "decision",
+          "text": "a bump with no installer_history WARNS, never refuses - operator call: malleable software made for the future instance of echidna.",
+          "by": "hermes-agent"
+        },
+        {
+          "at": 1793920269447,
+          "kind": "decision",
+          "text": "two version axes kept separate: schema = the shape (drives migration), revision = this definition history (drives trust in the install face).",
+          "by": "hermes-agent"
+        },
+        {
+          "at": 1793920330553,
+          "kind": "note",
+          "text": "yue-music is the pattern: schema 2, revision 1, one credited installer_history entry, install{} with 4 steps each carrying a verify (file / exit0 / sha256), 2 hints and 2 exceptions.",
+          "by": "hermes-agent"
+        },
+        {
+          "at": 1793920330567,
+          "kind": "event",
+          "text": "catalog re-read: yue-music ok true, 0 warnings. The other three still warn on schema only - honest v1 files, nothing broken. export-library.mjs: 4 exported, 0 refused.",
+          "by": "hermes-agent"
+        },
+        {
+          "at": 1793920330580,
+          "kind": "note",
+          "text": "the validator caught its own author: the chatterbox exception shipped without reconsider and warned. Fixed by naming the design-family alternative (qwen3_tts VoiceDesign) rather than deleting the rule.",
+          "by": "hermes-agent"
+        },
+        {
+          "at": 1793920417042,
+          "kind": "event",
+          "text": "chatterbox measured on GTX 1660 SUPER via audio.cpp Vulkan: clone from our own piper reference, wav 7.32 s audio in 31.31 s wall -> RTF 4.28 (0.23x realtime), peak rss 1131 MB, 24 kHz mono. Round-trip through whisper tiny.en returned all 24 words exactly. Verdict: batch only, not live.",
+          "by": "hermes-agent"
+        },
+        {
+          "at": 1793921864809,
+          "kind": "event",
+          "text": "qwen3_tts VoiceDesign measured on GTX 1660 SUPER (audio.cpp Vulkan, Q8 2687 MiB): 7.44 s audio in 14.92 s wall -> RTF 2.00 (0.50x realtime), peak rss 3902 MB, 24 kHz mono. No reference audio used - timbre came from --instruct only. Whisper tiny.en round-trip: all 15 words exact. Median F0 189.0 Hz (p10 173.9 / p90 221.4) vs chatterbox clone 184.6 Hz (p10 135.6 / p90 247.4): the narrow spread is the \"measured, unhurried\" instruction actually landing. Verdict: batch-grade at 2x realtime cost; chatterbox is 2.2x slower for the same 7 s line.",
+          "by": "hermes-agent"
+        }
+      ],
+      "created": 1793920269366,
+      "touched": 1793921864809,
+      "dir": "thoughts/2629893c"
+    },
+    {
+      "ref": "cd60ec6e",
+      "title": "Deferred questions: ask them when the operator is ready",
+      "intent": "No question that was asked and deferred gets lost. Each is captured at the moment it is deferred, listed under this ref, and answered once into a decision trail line. The operator triggers the backlog with \"Train of Thought - I am ready for outstanding questions\".",
+      "state": "active",
+      "deps": [],
+      "next": [
+        "ask: test the CUDA build on the 980 Ti (about 1 GB) or keep Vulkan as the recorded rule, marked verified:false",
+        "ask: does the install executor become a door that shells out over SSH, or stay agent-driven with the door as ledger",
+        "ask: permanent home for TTS - ReX while its plug is in, or 123 where 16 cores are already powered",
+        "ask: what floor does each audio service declare - 6 GB Turing, 2 GB GCN, or CPU-only",
+        "ritual: every session that defers a question appends one next[] line here with the date and why it was deferred"
+      ],
+      "tags": [
+        "operator",
+        "questions",
+        "ritual"
+      ],
+      "trail": [
+        {
+          "at": 1793920269385,
+          "kind": "state",
+          "text": "created",
+          "by": "hermes-agent"
+        },
+        {
+          "at": 1793920269462,
+          "kind": "note",
+          "text": "opened from the 2026-11-05 session: five questions were asked and deferred in one sitting, which is the reason this node exists at all.",
+          "by": "hermes-agent"
+        },
+        {
+          "at": 1793920330593,
+          "kind": "note",
+          "text": "first backlog entry from tonight: which service takes the install-face pattern - answered by doing yue-music, so it is removed from next[] rather than re-asked.",
+          "by": "hermes-agent"
+        },
+        {
+          "at": 1793924370553,
+          "kind": "decision",
+          "text": "Standing rule: work the operator raises faster than it can be answered gets a node or a next[] line in this DAG before the session ends. Nothing is allowed to exist only in chat. The DAG is the reminder mechanism - quote the ref back to him later.",
+          "by": "operator"
+        }
+      ],
+      "created": 1793920269385,
+      "touched": 1793924370553,
+      "dir": "thoughts/cd60ec6e"
+    },
+    {
+      "ref": "1e31aeda",
+      "title": "An installer executes a service.json install block",
+      "intent": "Done means a node can be handed a service name and a target and the install runs from the definition steps with nobody driving: claim, execute, verify, record evidence, close. A failed verify leaves an honest red - never a green that nobody measured.",
+      "state": "active",
+      "deps": [
+        "2629893c"
+      ],
+      "next": [
+        "settle the executor boundary: door shells out, or agent drives and the door records - write the answer into the node",
+        "fix the record shape: claim lease, step index, evidence kinds, close summary",
+        "prove one service end to end on a small node - piper-tts is the cheapest true case (60 MB voice, no GPU)",
+        "publish node.<self>.provision.jobs.<ref>.state so other nodes see an install in flight"
+      ],
+      "tags": [
+        "hydra",
+        "installer",
+        "provision",
+        "design"
+      ],
+      "trail": [
+        {
+          "at": 1793920269402,
+          "kind": "state",
+          "text": "created",
+          "by": "hermes-agent"
+        },
+        {
+          "at": 1793920269476,
+          "kind": "note",
+          "text": "depends on the schema node. Not started; the boundary question is first because it decides whether anything new needs SSH reach.",
+          "by": "hermes-agent"
+        }
+      ],
+      "created": 1793920269402,
+      "touched": 1793920269476,
+      "dir": "thoughts/1e31aeda"
+    },
+    {
+      "ref": "db39b286",
+      "title": "Idle Service: the Scheduler decides when a node is idle",
+      "intent": "Done means the Scheduler - the one thing that knows whether a job is queued, running or finished - is the single authority on idle. After N idle minutes (default 30, a config value) it starts the node standby claim; the moment a job is booked it stops the claim, waits for the process to actually leave the card, and only then launches. Mining stays addressable directly, and no other door keeps its own idea of idle.",
+      "state": "parked",
+      "deps": [],
+      "next": [
+        "standby{label,start,stop,verify,after,pinned} in node.json - node data, read by the Scheduler, never a service definition",
+        "Scheduler owns idleSince computed from its own book: no queued job, no running job, now - lastJobEnd > after",
+        "on book: stop the standby through ProcessWrapper, poll until the process is gone, then launch - a timeout is blocked, never a half-run",
+        "on idle: start the standby and verify it (miner API answers or the process is in PW table) before reporting green",
+        "direct control: POST /api/standby {action:start|stop|pin} on the Scheduler so mining is addressable without a job",
+        "publish node.<self>.scheduler.idle.state so every node can see who is earning and who is busy",
+        "prove end to end on one node: idle 30 min -> miner starts and verifies, book a job -> miner gone in seconds, release -> miner returns"
+      ],
+      "tags": [
+        "hydra",
+        "standby",
+        "mining",
+        "scheduler"
+      ],
+      "trail": [
+        {
+          "at": 1793923776255,
+          "kind": "state",
+          "text": "created",
+          "by": "hermes-agent"
+        },
+        {
+          "at": 1793923776274,
+          "kind": "decision",
+          "text": "idle service is a booking rule inside ResourceManager, not a new door: it owns no data beyond one config block and would duplicate ProcessWrapper knowledge of what is running.",
+          "by": "hermes-agent"
+        },
+        {
+          "at": 1793923776288,
+          "kind": "note",
+          "text": "module map generated from source at C:/AI/hydra-local/docs/module-map.html - 14 modules, 13 doors on this node, 18 edges read out of code. Only 3 doors are wiredAtBoot (ProcessWrapper, Join, Electron); the other 10 start on demand through Join asking ProcessWrapper.",
+          "by": "hermes-agent"
+        },
+        {
+          "at": 1793923789889,
+          "kind": "note",
+          "text": "edited by agent",
+          "by": "agent"
+        },
+        {
+          "at": 1793923789903,
+          "kind": "decision",
+          "text": "CORRECTION (operator): idle is determined by the SCHEDULER, not ResourceManager. The Scheduler keeps the book of jobs, so it is the only door that can know queued/running/finished without a second opinion. RM records bookings; ProcessWrapper executes; Scheduler decides.",
+          "by": "operator"
+        },
+        {
+          "at": 1793923789915,
+          "kind": "note",
+          "text": "design rewritten around Scheduler ownership: idleSince from its own book, standby block in node.json, /api/standby for direct control with pin, publish node.<self>.scheduler.idle.state.",
+          "by": "hermes-agent"
+        },
+        {
+          "at": 1793924370521,
+          "kind": "note",
+          "text": "Operator: 30 min idle-service design is NOT the moment. Parked deliberately - the DAG holds it so it is not lost and does not need re-deriving. Remind with ref db39b286 when the fleet work settles.",
+          "by": "operator"
+        },
+        {
+          "at": 1793924370539,
+          "kind": "state",
+          "text": "state -> parked",
+          "by": "hermes-agent"
+        }
+      ],
+      "created": 1793923776255,
+      "touched": 1793924370539,
+      "dir": "thoughts/db39b286"
+    },
+    {
+      "ref": "291eac93",
+      "title": "Character voices from a description (Sophion, Destiny, Kate)",
+      "intent": "Three distinct, repeatable character voices that need nobody elses recording: the timbre comes from an instruction string, so the same text recreates the same voice on any node. Done means each character has a fixed instruction kept in a file, an expressive sample set (neutral / happy / sad / angry / laugh) measured for RTF and pitch, and one engine chosen with numbers rather than adjectives.",
+      "state": "active",
+      "deps": [],
+      "next": [
+        "pick the path per sample after listening: the three bases must be told apart with eyes closed",
+        "lock each voice to a file (voice-destiny.txt, voice-kate.txt, voice-sophion.txt) so a re-run reproduces the timbre",
+        "test whether emotion belongs in the instruction or in the engine (chatterbox has explicit emotion control; qwen3 vdes does not)",
+        "measure warm-cache RTF properly: the 1660 numbers were cold-start and are not comparable to the 980 Ti warm runs",
+        "decide the serving node once warm RTF is known on the RX 6800 - it is the only card that could make this realtime",
+        "build the episode 2 dialogue bed from these voices and compare against ep01 v4 by ear"
+      ],
+      "tags": [
+        "voice",
+        "tts",
+        "cast",
+        "episode"
+      ],
+      "trail": [
+        {
+          "at": 1793923913697,
+          "kind": "state",
+          "text": "created",
+          "by": "hermes-agent"
+        },
+        {
+          "at": 1793924050093,
+          "kind": "event",
+          "text": "7 samples on GTX 980 Ti (qwen3_tts VoiceDesign Q8, Vulkan, fp16:0): generation RTF 0.70-0.85 warm (0.79 angry, 0.85 sad, 0.74 laugh, 0.70 sophion base), 2.73 on the very first cold run. Process wall adds 5-9 s of load once warm, 43 s on first run. Pitch: Sophion 77.7 Hz, Destiny 92.3, Kate 193.5 - the three instructions separate cleanly.",
+          "by": "hermes-agent"
+        },
+        {
+          "at": 1793924050108,
+          "kind": "event",
+          "text": "emotion moves pitch the way a person moves: Sophion angry 77.7 -> 104.4 Hz; Destiny grieving 92.3 -> 83.6 Hz and flatter (spread 24 vs 52 Hz on the angry line). Kate happy and laugh both sit high (227-322 Hz).",
+          "by": "hermes-agent"
+        },
+        {
+          "at": 1793924050121,
+          "kind": "note",
+          "text": "whisper tiny.en round-trip: 6 of 7 exact. Kate base returned \"the snow AND the porch\" against the scripted \"snow ON the porch\" - a real enunciation artifact or a transcription miss, unresolved. The laugh sample transcribed with no \"ha\" at all, so the laugh is unverified by machine and needs a human ear.",
+          "by": "hermes-agent"
+        },
+        {
+          "at": 1793924050134,
+          "kind": "decision",
+          "text": "the 1660 SUPER numbers (RTF 4.28 chatterbox, 2.00 vdes) were COLD-START and are not comparable to these warm runs. Any node comparison has to be warm, same sample, same model, or it is noise.",
+          "by": "hermes-agent"
+        },
+        {
+          "at": 1793924201871,
+          "kind": "decision",
+          "text": "WARM node comparison, same model/voice/line, three runs each: GTX 980 Ti RTF 0.70-0.85 (process wall 8-14 s) vs GTX 1660 SUPER RTF 1.476/1.478/1.518 (process wall 13-16 s). The older card is ~2x faster. Both have ~336 GB/s bandwidth so bandwidth does not explain it; the 1660 had 3476 MiB already resident at start and that confound is not cleared. Practical call: the 980 Ti is the voice node.",
+          "by": "hermes-agent"
+        },
+        {
+          "at": 1793930118395,
+          "kind": "decision",
+          "text": "Casting as of this session: KATE approved as-is (193.5 Hz). The male gravel voice first rendered as \"destiny\" is SOPHION (85.1 Hz, now with a full five-state set). DESTINY is a young woman, not a child - the first girl voice (333.3 Hz) was too young and rejected. Four takes of the same line are in docs/voice-samples/destiny-compare.wav for the operator to pick from: girl 333.3, d2a mid-range 226.4, d2b husky 187.5, d2c alto 203.4.",
+          "by": "operator"
+        },
+        {
+          "at": 1793930118411,
+          "kind": "note",
+          "text": "Pitch separation matters more than absolute pitch: d2b (187.5) and d2c (203.4) sit within ~10-17 Hz of Kate (193.5) and would read as the same actress in a scene. d2a at 226.4 keeps a 33 Hz gap above Kate and 107 Hz below the child.",
+          "by": "hermes-agent"
+        },
+        {
+          "at": 1793934269758,
+          "kind": "decision",
+          "text": "VOICE DESIGN IS STOCHASTIC - corrected a wrong belief from earlier in this session. The identical instruction and line produced 203.4, 214.3 and 244.9 Hz on separate runs; a six-seed hunt for one instruction spanned 181.8-233.0 Hz. Reproducing a character voice needs instruction PLUS --seed. Destiny is now pinned at seed 2024 -> base 210.5 Hz, which is the pitch the operator asked for (take 4 was 203.4, he wanted it a tiny bit higher).",
+          "by": "hermes-agent"
+        },
+        {
+          "at": 1793934269779,
+          "kind": "note",
+          "text": "Destiny seeded set rendered: base 210.5 (p10 186 p90 257), happy 285.7, sad 164.4, angry 363.6, laugh 338.0. The emotion clauses move her a long way - sad drops below Kate. Audition file docs/voice-samples/destiny-seeded.wav. STT word-check is PENDING: whisper lives only on ReX (192.168.1.148) and its sshd is down (ping ok, port 22 times out).",
+          "by": "hermes-agent"
+        }
+      ],
+      "created": 1793923913697,
+      "touched": 1793934269779,
+      "dir": "thoughts/291eac93"
+    },
+    {
+      "ref": "86fb7fea",
+      "title": "Hydra V2 gains a verb layer over MCP (fleet_run, tts_speak, tot_file)",
+      "intent": "Every existing MCP tool in Hydra V2 is a READ or a REGISTER: services_list, state_pull, rm_bookings, join_resolve. Nothing can start a job, deploy a service or write an intention from outside. Done means three verbs exist and are callable from any node: fleet_run(service,node), tts_speak(text,voice,emotion) and tot_file(intent,next).",
+      "state": "active",
+      "deps": [
+        "1e31aeda"
+      ],
+      "next": [
+        "fleet_run first - it needs the executor boundary from the installer node, and everything else is trivial beside it",
+        "tts_speak wraps whichever engine wins, returns audio plus RTF, hides the engine from the caller",
+        "tot_file/tot_next so an agent can read and write the DAG without a session",
+        "decide whether each verb lives on its own door or all three on one \"verbs\" door - one door is easier to find, three is easier to own"
+      ],
+      "tags": [
+        "hydra",
+        "mcp",
+        "tools"
+      ],
+      "trail": [
+        {
+          "at": 1793924370491,
+          "kind": "state",
+          "text": "created",
+          "by": "hermes-agent"
+        }
+      ],
+      "created": 1793924370491,
+      "touched": 1793924370491,
+      "dir": "thoughts/86fb7fea"
+    },
+    {
+      "ref": "a41a9db8",
+      "title": "Wrap the voice engine as a Hydra V2 service",
+      "intent": "Done means a node can pick \"speak this line in Kate voice\" from the Menu, the Scheduler books the GPU, the miner is stood down, the line comes back as a wav with its RTF recorded, and the service definition carries the install face so a new node can adopt it without a chat log.",
+      "state": "active",
+      "deps": [
+        "291eac93",
+        "2629893c"
+      ],
+      "next": [
+        "service definition qwen3-tts-vdes (schema 2) with engine, steps, hints and the measured 980 Ti numbers",
+        "fix the three character instructions in files so a re-run reproduces the timbre",
+        "decide emotion as instruction text (portable) versus engine emotion control (chatterbox, needs a reference voice)",
+        "one node at a time: the 980 Ti answers first, the RX 6800 only if batch speed becomes the bottleneck"
+      ],
+      "tags": [
+        "voice",
+        "hydra",
+        "service",
+        "tts"
+      ],
+      "trail": [
+        {
+          "at": 1793924370507,
+          "kind": "state",
+          "text": "created",
+          "by": "hermes-agent"
+        },
+        {
+          "at": 1793925775592,
+          "kind": "event",
+          "text": "RX 6800 (node 123) measured, same voice and line as the other two cards: RTF 0.3167 and 0.3157 warm (2.56 s and 2.40 s for 8.08 s and 7.60 s of audio), 1.285 on the cold first run, peak commit ~4.0 GB. That is 2.4x the GTX 980 Ti (0.75) and 4.7x the GTX 1660 SUPER (1.48). The 6800 is the fastest voice node; the 980 Ti stays the dedicated one.",
+          "by": "hermes-agent"
+        },
+        {
+          "at": 1793925775607,
+          "kind": "decision",
+          "text": "Mining yields to AI work automatically on 123. Demonstrated end to end: YIELD 19:40:50 on audiocpp_cli, RESUME 19:42:05 (jobs plus a 45 s grace and the 15 s poll). The guard is declared in Basic_App/electron/main.cjs WATCHDOG_TABLE, raised through ProcessWrapper with tag watch, visible in the Process tab and killed by the window closing - never a scheduled task or Startup script.",
+          "by": "hermes-agent"
+        },
+        {
+          "at": 1793925875257,
+          "kind": "decision",
+          "text": "Warm process wall on the RX 6800 is 7.55-7.69 s for 2.40-2.56 s of audio: about 5.1 s of every run is MODEL LOAD, not synthesis. Consequence for the service design: tts_speak must keep the model resident and answer requests, not spawn audiocpp_cli per line - otherwise two thirds of every episode is spent loading weights.",
+          "by": "hermes-agent"
+        }
+      ],
+      "created": 1793924370507,
+      "touched": 1793925875257,
+      "dir": "thoughts/a41a9db8"
+    },
+    {
+      "ref": "49e30c7a",
+      "title": "Shelf revisions: nodes pull, never get pushed",
+      "intent": "",
+      "state": "active",
+      "deps": [],
+      "next": [
+        "Bootstrap, not update: NO other node carries a shelf at all (.149, .134, .147 all Test-Path False). First use is install-from-zero - needs a bundle (tar/zip of the code scope) plus a one-command installer that verifies the archive hash.",
+        "Models stay out of the manifest: 2.8 GB weights travel by peer HTTP now, torrent only when the broker leaves the house.",
+        "No rollback yet: keep one previous generation per file (,shelf/prev/<rev>) so a bad revision is one word away."
+      ],
+      "tags": [],
+      "trail": [
+        {
+          "at": 1793968956885,
+          "kind": "state",
+          "text": "created",
+          "by": "agent"
+        },
+        {
+          "at": 1793981198333,
+          "kind": "note",
+          "text": "edited by agent",
+          "by": "agent"
+        },
+        {
+          "at": 1793981203741,
+          "kind": "note",
+          "text": "edited by agent",
+          "by": "agent"
+        },
+        {
+          "at": 1793981203778,
+          "kind": "note",
+          "text": "this session: node.<ref>.shelf note written by Services on every applied pull ({rev,files,bytes,pulledFrom,at,fetched,refused}) and shelf.pulled/shelf.refused fired through Event_Handler. Menu row + idle-service entry also built (LAN row reads standby via Mirror). next[] now holds only what is genuinely still owed: bootstrap, models, rollback, a Shelf tab with Apply.",
+          "by": "agent"
+        }
+      ],
+      "created": 1793968956885,
+      "touched": 1793981203778,
+      "dir": "thoughts/49e30c7a"
+    },
+    {
+      "ref": "8793886c",
+      "title": "State is a bulletin board with per-owner branches, never a hub",
+      "intent": "",
+      "state": "active",
+      "deps": [],
+      "next": [
+        "LAN row still missing: Core.observePeer pulls only node.<peer>.cycle. It must also carry standby, Mirror must expose it, and the Menu must render \"Idle Service · mining\" per node - then Jim shows mining.",
+        "The guard file data/standby/guard.state.json stays as a local fallback only (used when State cannot answer); it is never the LAN truth.",
+        "Any new module (file transfer) declares its own branch namespace and must not write .scheduler or .standby."
+      ],
+      "tags": [],
+      "trail": [
+        {
+          "at": 1793973521904,
+          "kind": "state",
+          "text": "created",
+          "by": "agent"
+        }
+      ],
+      "created": 1793973521904,
+      "touched": 1793973521904,
+      "dir": "thoughts/8793886c"
+    },
+    {
+      "ref": "44ff5033",
+      "title": "Events go through Event_Handler; State holds metadata notes, never payloads",
+      "intent": "",
+      "state": "active",
+      "deps": [],
+      "next": [
+        "Jim's laptop publishes no node.jims.standby - its box predates the guard; the shelf pull is the fix.",
+        "Decide whether the palette is owned by the shell (for out-of-process producers) or by each module at boot."
+      ],
+      "tags": [],
+      "trail": [
+        {
+          "at": 1793974074494,
+          "kind": "state",
+          "text": "created",
+          "by": "agent"
+        },
+        {
+          "at": 1793981198269,
+          "kind": "note",
+          "text": "edited by agent",
+          "by": "agent"
+        },
+        {
+          "at": 1793981198301,
+          "kind": "note",
+          "text": "built this session: Services notes node.<ref>.shelf {rev,files,bytes,pulledFrom,at} and fires shelf.pulled/refused; Scheduler fires job.submitted/job.done (proven: one of each, no duplicates, job j1 queued->running->done); guard fires standby.pin on change (proven true then false).",
+          "by": "agent"
+        }
+      ],
+      "created": 1793974074494,
+      "touched": 1793981198301,
+      "dir": "thoughts/44ff5033"
+    },
+    {
+      "ref": "e093f426",
+      "title": "Hydra V2 design — what is built, what is open",
+      "intent": "",
+      "state": "active",
+      "deps": [],
+      "next": [
+        "Answer Q3 (node order) so the LAN rows stop saying \"no report\".",
+        "Decide Q2 (Idle Service owner) before more standby logic is written.",
+        "Decide Q4 (module map in help) - the generator exists, the link does not."
+      ],
+      "tags": [
+        "design"
+      ],
+      "trail": [
+        {
+          "at": 1793978566417,
+          "kind": "state",
+          "text": "created",
+          "by": "agent"
+        }
+      ],
+      "created": 1793978566417,
+      "touched": 1793978566417,
+      "dir": "thoughts/e093f426"
+    }
+  ]
+}

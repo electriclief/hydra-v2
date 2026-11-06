@@ -1,0 +1,35 @@
+/* Docs/index.css — style ONLY. Agents read index.html; humans appreciate the calm. */
+:root { color-scheme: dark; }
+html { background: #14161a; }
+body {
+  margin: 0 auto;
+  max-width: 980px;
+  padding: 28px 22px 60px;
+  color: #d7dbe0;
+  font: 15px/1.55 "Segoe UI", system-ui, sans-serif;
+}
+h1 { font-size: 26px; margin: 0 0 4px; color: #f2f4f7; }
+h2 { font-size: 18px; margin: 34px 0 10px; padding-bottom: 6px; border-bottom: 1px solid #2a2f36; color: #e8ebef; }
+h3 { font-size: 15px; margin: 26px 0 8px; color: #cdd3da; }
+.sub { color: #8a929c; margin: 0 0 18px; }
+p { margin: 8px 0; }
+code { background: #1d2126; padding: 1px 5px; border-radius: 4px; font-size: 13px; }
+pre {
+  background: #1a1e23;
+  border: 1px solid #262c33;
+  border-radius: 6px;
+  padding: 10px 12px;
+  overflow-x: auto;
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+pre.dts { color: #b8c4d0; }
+.caption { color: #7d858f; font-size: 12px; margin: 10px 0 4px; text-transform: lowercase; }
+table { border-collapse: collapse; width: 100%; margin-top: 6px; }
+th, td { text-align: left; vertical-align: top; border-bottom: 1px solid #262c33; padding: 7px 10px; font-size: 14px; }
+th { color: #aab2bc; font-weight: 600; }
+a { color: #6fb3ff; text-decoration: none; }
+a:hover { text-decoration: underline; }
+.tag { color: #7d858f; font-size: 12px; font-weight: 400; margin-left: 8px; }
+.purpose p { color: #c3cad2; }
+footer { margin-top: 40px; color: #6b737d; font-size: 12px; border-top: 1px solid #262c33; padding-top: 10px; }

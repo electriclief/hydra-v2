@@ -1,0 +1,76 @@
+{
+  "id": "local-755897cda47bf6ae29c5e42c54f614e234b4801d2cbdb3c508165bc646312f18",
+  "title": "Your role is a low-priority, specialized AI Releas · Nov 04 07:07",
+  "source": "cron",
+  "model": "deepseek-flash",
+  "parentId": null,
+  "startedAt": 1793793884.867031,
+  "endedAt": 1793794031.473184,
+  "endReason": "cron_complete",
+  "messageCount": 41,
+  "toolCallCount": 20,
+  "inputTokens": 58779,
+  "outputTokens": 17526,
+  "costUsd": 0.022660577999999994,
+  "cwd": "C:\\Users\\User\\Hermes\\gemma4site",
+  "gitBranch": null,
+  "gitRepo": null,
+  "pinned": false,
+  "archived": false,
+  "hidden": false,
+  "profileName": "default",
+  "lastActivityAt": 1793794011.8622043,
+  "createdSource": "cron",
+  "ref": "755897cd",
+  "displayTitle": "Your role is a low-priority, specialized AI Releas · Nov 04 07:07",
+  "durationSec": 147,
+  "userTurns": 1,
+  "goal": "[IMPORTANT: The following skill(s) were listed for this job but could not be found and were skipped: web_search, terminal. Start your response with a brief notice so the user is aware, e.g.: '⚠️ Skill(s) not found and skipped: web_search, terminal'] The user has provided the following instruction alongside the skill invocation: [IMPORTANT: You are running as a scheduled cron job. DELIVERY: Your final response will be automatically delivered to the user — do NOT use send_message or try to deliver the output yourself. Just produce your report/output as your final response and the system handles the rest. SILENT: If there is genuinely nothing new to report, respond with exactly \"[SILENT]\" (not…",
+  "outcome": "⚠️ Skill(s) not found and skipped: web_search, terminal — both were available as built-in tools and used instead. [Agent: 123 on 192.168.1.123] **Scan complete. No highly notable, hardware-relevant releases found in this cycle.** (2026-11-04 17:05Z, ~11 h after the 06:01Z run) **Findings (all flags, no fits):** - **Swift-1.5-Flash-Next-Heretic-ReverseEngineer** — HF Trending Models (entered top-80, 63 likes / 6,021 dl) — 180B `qwen3_8` MoE whose *smallest* quant is 80.5 GiB (IQ3_S-85G; IQ4_XS-plus 94.7, IQ4_NL 108.9 GB, explicitly sized for a 3×32 GB V100 rig), so it is 5× past the RX 6800 and 13× past the 1660 — do not download. - **zlabs-digital/Hrida-Hybrid-35B** — HF newest uploads (only model at ≥3 likes in the 2.98 h window) — 35.5B 256-expert MoE in a custom `HridaHybridForCausalLM` arch with `custom_code` and 66.16 GiB bf16, no GGUF and no llama.cpp architecture — un-runnable an…",
+  "files": [
+    "C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon/fetch56.py",
+    "C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon/findings_2026-11-04T1705Z.json",
+    "C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon/probe_20261104T1710.py",
+    "C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon/probe2_20261104T1715.py",
+    "C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon/probe3_20261104T1720.py",
+    "C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon/scan_20261104T1705.py",
+    "C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon/scan56.py",
+    "C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon/scan57.py",
+    "C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon/fetch54.py"
+  ],
+  "commands": [
+    "cd \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon\" && python fetch56.py 2>&1 | tail -20",
+    "cd \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon\" && python probe_20261104T1710.py 2>&1",
+    "cd \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon\" && python probe2_20261104T1715.py 2>&1",
+    "cd \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon\" && python probe3_20261104T1720.py 2>&1",
+    "cd \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon\" && python scan_20261104T1705.py 2>&1",
+    "cd \"C:/Users/User/AppData/Local/hermes/skills/research/hf-release-monitor\" && grep -n \"## Pitfalls\" SKILL.md; echo ---; sed -n '/## Pitfalls/,-8p' SK…",
+    "date -u; echo \"---\"; curl -s \"https://huggingface.co/api/daily_papers?limit=30\" -o \"$TMPDIR/papers.json\"; echo \"papers bytes: $(wc -c < \"$TMPDIR/pape…",
+    "mkdir -p \"$HOME/AppData/Local/hermes/cache/scratch/hfmon\" && cd \"$HOME/AppData/Local/hermes/cache/scratch/hfmon\" && ls -la | head -40; echo \"---\"; D=…"
+  ],
+  "tools": [
+    {
+      "name": "terminal",
+      "count": 16
+    },
+    {
+      "name": "write_file",
+      "count": 16
+    },
+    {
+      "name": "skill_manage",
+      "count": 4
+    },
+    {
+      "name": "read_file",
+      "count": 2
+    },
+    {
+      "name": "skill_view",
+      "count": 2
+    }
+  ],
+  "bytes": 160150,
+  "diary": null,
+  "seances": []
+}

@@ -1,0 +1,84 @@
+{
+  "id": "local-9f9ea3efafc16424743e0c252a8b9d9263d0bc578d0855420f6a19c6eb087f97",
+  "title": "Your role is a low-priority, specialized AI Releas · Nov 02 02:40",
+  "source": "cron",
+  "model": "deepseek-flash",
+  "parentId": null,
+  "startedAt": 1793605068.280222,
+  "endedAt": 1793605236.6004214,
+  "endReason": "cron_complete",
+  "messageCount": 56,
+  "toolCallCount": 27,
+  "inputTokens": 58031,
+  "outputTokens": 14937,
+  "costUsd": 0.022006434,
+  "cwd": "C:\\Users\\User\\Hermes\\gemma4site",
+  "gitBranch": null,
+  "gitRepo": null,
+  "pinned": false,
+  "archived": false,
+  "hidden": false,
+  "profileName": "default",
+  "lastActivityAt": 1793605195.1495552,
+  "createdSource": "cron",
+  "ref": "9f9ea3ef",
+  "displayTitle": "Your role is a low-priority, specialized AI Releas · Nov 02 02:40",
+  "durationSec": 168,
+  "userTurns": 1,
+  "goal": "[IMPORTANT: The following skill(s) were listed for this job but could not be found and were skipped: web_search, terminal. Start your response with a brief notice so the user is aware, e.g.: '⚠️ Skill(s) not found and skipped: web_search, terminal'] The user has provided the following instruction alongside the skill invocation: [IMPORTANT: You are running as a scheduled cron job. DELIVERY: Your final response will be automatically delivered to the user — do NOT use send_message or try to deliver the output yourself. Just produce your report/output as your final response and the system handles the rest. SILENT: If there is genuinely nothing new to report, respond with exactly \"[SILENT]\" (not…",
+  "outcome": "**HF Release Monitor — 2026-11-02 07:38Z** - **[Spark-X2.6-1.7B]** — HF Trending Models (newly trending; 68 likes / 1.9k dl, upstream repo created 2026-10-19) — 1.71B on-device agent model whose official GGUFs are Q8_0 **1.70 GiB** / Q4_K_M 1.65 GiB / F16 3.19 GiB, header-probes as stock `spark2_5` (28 blocks, 8/2 heads, sliding window 512, 1M ctx) and `LLM_ARCH_SPARK2_5` is already in llama.cpp master, so it runs whole on **both** the 6 GB 1660 and the RX 6800 — take Q8_0, since it's only ~49 MiB bigger than Q4_K_M. - **Papers feed** — HF Daily Papers (18 new titles, max date advanced to 2026-10-30) — **no hardware-relevant find**: the only low-bit paper is TernScope (2610.29617, 0 upvotes), a 0.25M-param ternary segmentation net co-designed for 45 nm systolic-array silicon, i.e. an ASIC area story with no GPU/VRAM or GGUF path for your rig. - **llama.cpp** — ggml-org PR feed (4 merges…",
+  "files": [
+    "C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon/fetch35.py",
+    "C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon/findings_2026-11-02T0738Z.json",
+    "C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon/probe35.py",
+    "C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon/probe35b.py",
+    "C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon/probe35c.py",
+    "C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon/probe35d.py",
+    "C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon/probe35e.py",
+    "C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon/probe35f.py",
+    "C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon/probe35g.py",
+    "C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon/scan35.py",
+    "C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon/scan35b.py",
+    "C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon/scan35c.py",
+    "C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon/fetch29.py"
+  ],
+  "commands": [
+    "cd C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon && python fetch35.py",
+    "cd C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon && python probe35.py",
+    "cd C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon && python probe35b.py",
+    "cd C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon && python probe35c.py 2>&1 | head -40",
+    "cd C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon && python probe35d.py 2>&1 | head -60",
+    "cd C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon && python probe35e.py 2>&1 | head -60",
+    "cd C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon && python probe35f.py 2>&1 | tail -40",
+    "cd C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon && python probe35g.py",
+    "cd C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon && python scan35.py",
+    "cd C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon && python scan35b.py",
+    "cd C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon && python scan35c.py",
+    "cd C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon 2>/dev/null && ls -la | head -50; date -u"
+  ],
+  "tools": [
+    {
+      "name": "terminal",
+      "count": 24
+    },
+    {
+      "name": "write_file",
+      "count": 24
+    },
+    {
+      "name": "read_file",
+      "count": 2
+    },
+    {
+      "name": "skill_manage",
+      "count": 2
+    },
+    {
+      "name": "skill_view",
+      "count": 2
+    }
+  ],
+  "bytes": 141150,
+  "diary": null,
+  "seances": []
+}

@@ -1,0 +1,82 @@
+{
+  "id": "local-9fb43385a5d80a228de945e1f9c1accdba920359d300fac17fd46505923cefb3",
+  "title": "Your role is a low-priority, specialized AI Releas · Nov 04 01:03",
+  "source": "cron",
+  "model": "deepseek-flash",
+  "parentId": null,
+  "startedAt": 1793772044.847075,
+  "endedAt": 1793772227.8749003,
+  "endReason": "cron_complete",
+  "messageCount": 52,
+  "toolCallCount": 25,
+  "inputTokens": 66374,
+  "outputTokens": 17745,
+  "costUsd": 0.025345116,
+  "cwd": "C:\\Users\\User\\Hermes\\gemma4site",
+  "gitBranch": null,
+  "gitRepo": null,
+  "pinned": false,
+  "archived": false,
+  "hidden": false,
+  "profileName": "default",
+  "lastActivityAt": 1793772171.2286763,
+  "createdSource": "cron",
+  "ref": "9fb43385",
+  "displayTitle": "Your role is a low-priority, specialized AI Releas · Nov 04 01:03",
+  "durationSec": 183,
+  "userTurns": 1,
+  "goal": "[IMPORTANT: The following skill(s) were listed for this job but could not be found and were skipped: web_search, terminal. Start your response with a brief notice so the user is aware, e.g.: '⚠️ Skill(s) not found and skipped: web_search, terminal'] The user has provided the following instruction alongside the skill invocation: [IMPORTANT: You are running as a scheduled cron job. DELIVERY: Your final response will be automatically delivered to the user — do NOT use send_message or try to deliver the output yourself. Just produce your report/output as your final response and the system handles the rest. SILENT: If there is genuinely nothing new to report, respond with exactly \"[SILENT]\" (not…",
+  "outcome": "**HF Release Monitor — 2026-11-04 06:01Z** (last pull 2026-11-03 17:55Z, ~12 h) - **Chatterbox TTS is now stock llama.cpp** — *llama.cpp PR #30993, merged 2026-11-03T22:47Z* (ResembleAI/chatterbox: 1888 likes / 2.24M downloads, plus a 703-like Turbo variant) — new `tools/tts` + `tools/mtmd` chatterbox backend means `llama-tts -m chatterbox.gguf -mm mmproj-chatterbox.gguf` runs a full 23-language TTS in roughly 2.8 GiB f16 (~1.5–2 GiB quantized) from Turbo's 1.78 GiB talker + 0.99 GiB s3gen — fits both the RX 6800 and the 6 GB 1660. Caveats: the PR body still says \"WIP\", you must convert the upstream checkpoints yourself (no `config.json` shipped, no llama.cpp-layout GGUF published yet — the existing small chatterbox GGUFs are audio.cpp/codec.cpp/crispasr layouts), and multilingual CFG only works in `llama-tts`, not `llama-server`. - **Gemma-4 E2B/E4B prefill fix** — *llama.cpp PR #31356…",
+  "files": [
+    "C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon/scan55.py",
+    "C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon/scan56.py",
+    "C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon/scan57.py",
+    "C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon/scan58.py",
+    "C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon/scan59.py",
+    "C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon/scan60.py",
+    "C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon/scan61.py",
+    "C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon/scan62.py",
+    "C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon/scan63.py",
+    "C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon/scan64.py",
+    "C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon/scan53.py"
+  ],
+  "commands": [
+    "cd C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon && ls -la *.json | tail -25 && ls scan*.py | tail -5",
+    "cd C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon && python scan55.py",
+    "cd C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon && python scan56.py 2>&1 | head -150",
+    "cd C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon && python scan57.py 2>&1 | head -140",
+    "cd C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon && python scan58.py 2>&1 | head -120",
+    "cd C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon && python scan59.py 2>&1 | head -110",
+    "cd C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon && python scan60.py 2>&1 | head -90",
+    "cd C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon && python scan61.py 2>&1 | head -80",
+    "cd C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon && python scan62.py 2>&1 | head -60",
+    "cd C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon && python scan63.py 2>&1 | head -70",
+    "cd C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon && python scan64.py",
+    "cd C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon 2>/dev/null && ls -la | tail -40; date -u"
+  ],
+  "tools": [
+    {
+      "name": "terminal",
+      "count": 24
+    },
+    {
+      "name": "write_file",
+      "count": 20
+    },
+    {
+      "name": "read_file",
+      "count": 2
+    },
+    {
+      "name": "skill_manage",
+      "count": 2
+    },
+    {
+      "name": "skill_view",
+      "count": 2
+    }
+  ],
+  "bytes": 174235,
+  "diary": null,
+  "seances": []
+}

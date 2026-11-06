@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Join — the shelf's self-description</title>
+<link rel="stylesheet" href="/css/gui.css">
+</head>
+<body data-base="">
+  <header>
+    <h1>Join <span class="dim">— the shelf's self-description</span></h1>
+    <p class="sub">
+      NAMES ONLY. It says where a thing is; it never carries traffic and never decides.
+      Two columns are kept apart on purpose: <strong>should</strong> (what a module's own
+      files declare) and <strong>is</strong> (what is answering right now).
+      Asking for something declared but not answering makes Join ask ProcessWrapper to start it.
+    </p>
+  </header>
+
+  <section id="lookup-bar">
+    <label for="lookup">resolve a name</label>
+    <input id="lookup" type="text" placeholder="State · Basic_App · chat · anything" autocomplete="off" spellcheck="false">
+    <button id="go" type="button">resolve</button>
+  </section>
+
+  <pre id="answer" aria-live="polite"></pre>
+
+  <main>
+    <div id="rows"></div>
+  </main>
+
+  <footer>
+    <span class="dim">the page reloads every 3s · the door is /api/shelf · the agent door is POST /mcp</span>
+  </footer>
+
+  <script type="module" src="/js/browser/gui.js"></script>
+</body>
+</html>

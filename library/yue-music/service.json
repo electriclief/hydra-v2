@@ -1,0 +1,247 @@
+{
+  "name": "yue-music",
+  "version": "0.2.0",
+  "schema": 2,
+  "revision": 1,
+  "installer_history": [
+    {
+      "rev": 1,
+      "at": "2026-11-05",
+      "by": "hermes-agent",
+      "hardware": "RX 6800 16 GB (torch route) - GTX 980 Ti 6 GB (audio.cpp route, download in flight)",
+      "note": "install face added: requirements, mechanical verifies, and the reason a 12 GB torch route is not the only route to this song",
+      "verified": false
+    }
+  ],
+  "task": "text-to-audio",
+  "tasks": [
+    "text-to-audio"
+  ],
+  "advert": {
+    "what": "Style and lyrics become a finished song with vocals - structure markers honoured ([Verse], [Chorus], [Guitar Solo]), a few minutes of audio, saved as a playable file. One run = one song; nothing stays running afterwards.",
+    "time": "about 90 minutes for a song of roughly five minutes on this node, one at a time. Song length comes from the lyrics, not from a seconds field.",
+    "karma": 4
+  },
+  "provider": {
+    "name": "YuE (YuE2-3B)",
+    "repo": "https://github.com/multimodal-art-projection/YuE",
+    "launch": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File C:/AI/hydra-local/launchers/yue-song.ps1 -Style \"{{style}}\" -Lyrics \"{{lyrics}}\" -Seed {{seed}} -Cot {{cot}} -Budget {{budget}} -Title \"{{title}}\"",
+    "probe": "C:/AI/yue-venv/Scripts/python.exe -c \"import yue2; print(yue2.__file__)\"",
+    "note": "yue-song.ps1 writes the request JSON the CLI wants, sets the env the model needs (PYTHONPATH, HF_HOME, expandable segments, UTF-8), runs \"python -m yue2.cli generate\" once, and copies audio.flac into the songs folder. No port, no server.",
+    "update": "git pull in C:/AI/YuE, reinstall into C:/AI/yue-venv; the launcher and the songs folder stay as they are"
+  },
+  "models": [
+    {
+      "family": "YuE2-3B",
+      "quant": null,
+      "file": "model.safetensors",
+      "sha256": "1d55c42c1a9875c34f5d736e15078449992b044e807ce2a138e6cf289a1e59e9",
+      "bytes": 7261441640,
+      "role": "the song model",
+      "vramGb": 12,
+      "inputs": {
+        "checkpoint": "YuE2-3B"
+      },
+      "note": "the xcodec that turns audio into tokens ships beside it in C:/AI/hf; the song file is a FLAC in the songs folder."
+    }
+  ],
+  "variables": {
+    "init": [
+      {
+        "name": "songsDir",
+        "label": "Songs folder",
+        "type": "text",
+        "default": "C:/Users/User/Desktop/make_music/songs"
+      }
+    ],
+    "input": [
+      {
+        "name": "style",
+        "label": "Style (genre, instruments, voice, BPM)",
+        "type": "textarea",
+        "required": true,
+        "full": true,
+        "default": "English, 1980s hard rock, arena rock anthem, distorted electric guitar riff, twin guitar harmonies, pounding drums, driving bass, high raspy male lead vocal, gang backing vocals, blistering guitar solo, analog tape warmth, 122 BPM, E minor",
+        "help": "Everything about the sound lives here: genre, instruments, voice, BPM, key. The model reads it as one paragraph."
+      },
+      {
+        "name": "lyrics",
+        "label": "Lyrics ([Verse] [Chorus] markers = song structure)",
+        "type": "textarea",
+        "required": true,
+        "full": true,
+        "default": "[Verse]\nThere's a room down the hall with the door shut tight\nWhere the king of this house never sees the light\n[Pre-Chorus]\nHe sold my back to the man in the hall\nNow the devil's got a servant and the servant's got to crawl\n[Chorus]\nFRANK IS DANNY'S BITCH NOW - and the devil takes the rent\nFRANK IS DANNY'S BITCH NOW - bow down, you're his again\n[Guitar Solo]\n[Outro]\nBitch now... FRANK IS DANNY'S BITCH NOW",
+        "help": "Song length comes from the lyrics: there is no seconds field. Roughly 2.5-3 s of audio per line; [Guitar Solo] / [Instrumental Break] / [Outro] add time without words."
+      },
+      {
+        "name": "seed",
+        "label": "Seed",
+        "type": "number",
+        "default": 1985,
+        "help": "Same seed and same words make the same take. Any other number is a different take of the same song."
+      },
+      {
+        "name": "title",
+        "label": "Title (names the file)",
+        "type": "text",
+        "default": "",
+        "help": "Names the .flac in Desktop\\make_music\\songs; not sent to the model. Empty lets the runner name it."
+      },
+      {
+        "name": "cot",
+        "label": "Mode (cot) - how it composes",
+        "type": "select",
+        "default": "full",
+        "options": [
+          "full",
+          "melody",
+          "off"
+        ],
+        "help": "full = plan + melody first, then sing (best; the planning stage alone is ~25 min). melody = skip the written plan, faster, structure looser. off = straight to audio (fastest, for auditioning a sound)."
+      },
+      {
+        "name": "budget",
+        "label": "Budget - VRAM ceiling (GiB)",
+        "type": "select",
+        "default": "16",
+        "options": [
+          "16",
+          "14",
+          "12",
+          "10"
+        ],
+        "help": "The torch allocator ceiling, not the song length. 16 = 13.98 GiB usable on this card (the pipeline keeps a 2 GiB reserve); 14 = 12 GiB, 12 = 10 GiB, 10 = 8 GiB for small tests."
+      }
+    ],
+    "files": []
+  },
+  "modes": [
+    {
+      "name": "full-song",
+      "fits": {
+        "vramGbMin": "12",
+        "note": "plan + melody pass - the best mode, and the slowest; 16 GiB ceiling proven here"
+      },
+      "karma": 4,
+      "models": [
+        {
+          "path": "C:/AI/hf/YuE2-3B",
+          "note": "the 3B model, HF cache"
+        },
+        {
+          "path": "C:/AI/hf/yue-vae",
+          "note": "the audio VAE"
+        }
+      ],
+      "install": {
+        "steps": [
+          "C:/AI/yue-venv holds the python; C:/AI/YuE holds the app (src/yue2 is the package).",
+          "HF_HOME=C:/AI/hf-cache or the model re-downloads.",
+          "Probe: python -c \"import yue2\" in the venv names the package path."
+        ],
+        "note": "No server and no port: each run exits when the song is written. One at a time - one GPU."
+      }
+    }
+  ],
+  "needs": {
+    "gpu": true,
+    "vramGb": 14,
+    "ramMb": 24000,
+    "cores": 6,
+    "diskGb": 25
+  },
+  "install": {
+    "engine": "YuE2-3B under torch in C:/AI/yue-venv; audio.cpp GGUF route for any card under 12 GB",
+    "requires": [
+      "windows",
+      "python==3.11",
+      "git"
+    ],
+    "steps": [
+      {
+        "id": "app",
+        "do": "git clone https://github.com/multimodal-art-projection/YuE C:/AI/YuE",
+        "verify": "file:C:/AI/YuE/src/yue2"
+      },
+      {
+        "id": "venv",
+        "do": "python -m venv C:/AI/yue-venv, then pip install -e C:/AI/YuE inside it",
+        "verify": "exit0:C:/AI/yue-venv/Scripts/python.exe -c \"import yue2\"",
+        "retry": 1
+      },
+      {
+        "id": "weights",
+        "do": "HF_HOME=C:/AI/hf-cache; fetch YuE2-3B (7,261,441,640 B) and yue-vae",
+        "verify": "sha256:1d55c42c1a9875c34f5d736e15078449992b044e807ce2a138e6cf289a1e59e9"
+      },
+      {
+        "id": "smoke",
+        "do": "one run at cot=off, budget=10, about eight lyric lines - the cheapest true test",
+        "verify": "file:C:/Users/User/Desktop/make_music/songs"
+      }
+    ],
+    "hints": [
+      {
+        "when": "the card is under 12 GB",
+        "do": "take the audio.cpp Q4_0 route (yue2-3b-q4_0.gguf, 2.67 GB) instead of torch",
+        "why": "the torch route wants a 12 GB ceiling and the whole card; the GGUF route runs inside 6 GB",
+        "reconsider": "a card of 12 GB or more should use torch - it is the better quality ceiling, so do not route a big card through Q4",
+        "verified": false,
+        "learned": "2026-11-05: weights downloading on a GTX 980 Ti, no run yet - the RTF is unknown, not good"
+      },
+      {
+        "when": "the model card says diffusers or torch-only",
+        "do": "check the audio.cpp family list before ruling the node out",
+        "why": "the pure ggml binary reaches cards the torch stack cannot address at all (Maxwell reports fp16:0)",
+        "reconsider": "if a modern CUDA card is free, torch has the better ceiling and the newer model - ggml is the floor, not the goal",
+        "verified": true,
+        "evidence": "audiocpp_cli --list-devices on GTX 980 Ti (fp16:0) and GTX 1660 SUPER (fp16:1, no matrix cores)"
+      }
+    ],
+    "exceptions": [
+      {
+        "when": "driving PowerShell 5.1 over ssh",
+        "do": "upload a .ps1 and run it with -File; never inline -Command",
+        "why": "inline quoting splits on names with = or :, and $_ is eaten by the shell before PowerShell sees it",
+        "reconsider": "pwsh 7 on both ends removes both problems"
+      },
+      {
+        "when": "chatterbox is the chosen family instead of yue2",
+        "do": "pass --voice-ref - it has no default voice",
+        "why": "audio.cpp answers \"Chatterbox prepare requires speaker reference audio\" and exits 1",
+        "reconsider": "a design-family model (qwen3_tts VoiceDesign) needs no reference at all - reach for cloning only when a recorded voice is the point",
+        "verified": true,
+        "evidence": "exit 1 on GTX 1660 SUPER, 2026-11-05"
+      }
+    ],
+    "evidence": [
+      "sha256",
+      "exit0",
+      "file",
+      "version"
+    ]
+  },
+  "output": {
+    "kind": "file",
+    "location": "C:/Users/User/Desktop/make_music/songs - <title>__YuE2-3B.flac",
+    "description": "one FLAC per run; the full pipeline log stays in the run output (plan pass, song pass, token rates)"
+  },
+  "update": {
+    "command": "git pull in C:/AI/YuE, then reinstall into C:/AI/yue-venv",
+    "note": "WHEN is the operator call."
+  },
+  "pages": {
+    "ad": "<style>\n  html, body { margin: 0; background: #0d1117; }\n  .sv { font: 14px/1.65 system-ui, -apple-system, Segoe UI, sans-serif; color: #d8dee9; background: #0d1117; padding: 18px 24px 30px; }\n  .sv h1 { font-size: 21px; font-weight: 600; margin: 16px 0 2px; letter-spacing: -0.01em; }\n  .sv h2 { font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: #5ad2a0; margin: 22px 0 6px; }\n  .sv p { margin: 6px 0; } .sv .dim { color: #7d8998; }\n  .sv ul { margin: 6px 0 6px 18px; padding: 0; } .sv li { margin: 3px 0; }\n  .sv .num { font-variant-numeric: tabular-nums; color: #e6edf3; }\n  .sv .k { border: 1px solid #2a323d; border-radius: 3px; padding: 0 6px; font-size: 12px; color: #c9d3df; }\n  .sv .rule { height: 1px; background: #1c232c; margin: 18px 0; }\n  .sv p, .sv ul { max-width: 720px; }\n</style>\n<div class=\"sv\">\n          <svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 56 900 150\" width=\"100%\" role=\"img\" aria-label=\"Six musical notes dancing across a drawn staff\">\n    <defs>\n      <radialGradient id=\"ntvign\" cx=\"50%\" cy=\"46%\" r=\"70%\">\n        <stop offset=\"0%\" stop-color=\"#0d1117\" stop-opacity=\"0\"/>\n        <stop offset=\"62%\" stop-color=\"#0d1117\" stop-opacity=\"0\"/>\n        <stop offset=\"100%\" stop-color=\"#0d1117\" stop-opacity=\".95\"/>\n      </radialGradient>\n      <radialGradient id=\"ntglow\" cx=\"50%\" cy=\"50%\" r=\"50%\">\n        <stop offset=\"0%\" stop-color=\"#8fb3d9\" stop-opacity=\".16\"/>\n        <stop offset=\"70%\" stop-color=\"#8fb3d9\" stop-opacity=\".04\"/>\n        <stop offset=\"100%\" stop-color=\"#8fb3d9\" stop-opacity=\"0\"/>\n      </radialGradient>\n      <clipPath id=\"ntclip\"><rect x=\"0\" y=\"0\" width=\"900\" height=\"150\"/></clipPath>\n    </defs>\n    <style>\n\n      .nt { transform-box: fill-box; transform-origin: 50% 55%; }\n      .n1 { animation: nDance1 3.6s cubic-bezier(.37,0,.63,1) infinite; }\n      .n2 { animation: nDance2 4.3s cubic-bezier(.37,0,.63,1) infinite; }\n      .n3 { animation: nDance3 3.2s cubic-bezier(.37,0,.63,1) infinite; }\n      .n4 { animation: nDance4 4.6s cubic-bezier(.37,0,.63,1) infinite; }\n      .n5 { animation: nDance5 3.9s cubic-bezier(.37,0,.63,1) infinite; }\n      .n6 { animation: nDance6 4.4s cubic-bezier(.37,0,.63,1) infinite; }\n      .staff { animation: staffPulse 8s ease-in-out infinite; }\n\n      @keyframes nDance1 {\n        0%   { transform: translate(0,0) rotate(-6deg) scale(1,1); }\n        25%  { transform: translate(12px,-26px) rotate(7deg) scale(1.05,.94); }\n        50%  { transform: translate(24px,2px) rotate(-3deg) scale(.95,1.07); }\n        75%  { transform: translate(12px,-12px) rotate(5deg) scale(1.03,.97); }\n        100% { transform: translate(0,0) rotate(-6deg) scale(1,1); }\n      }\n      @keyframes nDance2 {\n        0%   { transform: translate(0,0) scale(1,1) scaleX(1); }\n        30%  { transform: translate(-16px,-32px) scale(.92,1.1) scaleX(1); }\n        55%  { transform: translate(-8px,4px) scale(1.1,.9) scaleX(-1); }\n        80%  { transform: translate(2px,-8px) scale(1,1) scaleX(-1); }\n        100% { transform: translate(0,0) scale(1,1) scaleX(1); }\n      }\n      @keyframes nDance3 {\n        0%   { transform: translate(0,0) rotate(0); }\n        20%  { transform: translate(0,-36px) rotate(-13deg); }\n        40%  { transform: translate(16px,-10px) rotate(9deg); }\n        60%  { transform: translate(0,6px) rotate(-6deg) scale(1.06,.94); }\n        80%  { transform: translate(-12px,-16px) rotate(11deg) scale(.95,1.05); }\n        100% { transform: translate(0,0) rotate(0); }\n      }\n      @keyframes nDance4 {\n        0%   { transform: translate(0,0) scaleX(1) scale(1,1); }\n        22%  { transform: translate(8px,-18px) scaleX(-1) scale(1.05,.95); }\n        48%  { transform: translate(20px,-4px) scaleX(-1) scale(.95,1.05); }\n        72%  { transform: translate(10px,-28px) scaleX(1) scale(1.02,.98); }\n        100% { transform: translate(0,0) scaleX(1) scale(1,1); }\n      }\n      @keyframes nDance5 {\n        0%   { transform: translate(0,0) rotate(4deg) scale(1,1); }\n        35%  { transform: translate(-14px,-22px) rotate(-8deg) scale(.92,1.08); }\n        65%  { transform: translate(-24px,2px) rotate(6deg) scale(1.07,.93); }\n        100% { transform: translate(0,0) rotate(4deg) scale(1,1); }\n      }\n      @keyframes nDance6 {\n        0%   { transform: translate(0,0) rotate(-3deg); }\n        30%  { transform: translate(10px,-26px) rotate(11deg) scale(1.05,.95); }\n        55%  { transform: translate(-8px,-4px) rotate(-9deg) scale(.95,1.05); }\n        78%  { transform: translate(6px,-14px) rotate(7deg) scale(1.02,.98); }\n        100% { transform: translate(0,0) rotate(-3deg); }\n      }\n      @keyframes staffPulse { 0%,100% { opacity: .12; } 50% { opacity: .2; } }\n\n    </style>\n    <g clip-path=\"url(#ntclip)\">\n      <rect width=\"900\" height=\"260\" fill=\"#0d1117\"/>\n\n      <ellipse cx=\"450\" cy=\"130\" rx=\"360\" ry=\"110\" fill=\"url(#ntglow)\"/>\n    \n      <g class=\"staff\" stroke=\"#8fb3d9\" stroke-width=\"1.4\">\n        <path d=\"M110,84 h680\"/><path d=\"M110,104 h680\"/><path d=\"M110,124 h680\"/><path d=\"M110,144 h680\"/><path d=\"M110,164 h680\"/>\n      </g>\n      <g transform=\"translate(196,128) scale(1.15)\">\n          <g class=\"nt n1\">\n            <ellipse cx=\"-10\" cy=\"13\" rx=\"9.5\" ry=\"6.8\" transform=\"rotate(-20 -10 13)\" fill=\"#cfe3ff\"/>\n            <rect x=\"0\" y=\"-28\" width=\"3\" height=\"40\" fill=\"#cfe3ff\"/>\n            <path d=\"M3,-28 C17,-24 19,-13 12,-4 C15,-15 11,-21 3,-22 Z\" fill=\"#cfe3ff\"/>\n          </g>\n        </g><g transform=\"translate(306,128) scale(1.05)\">\n          <g class=\"nt n2\">\n            <ellipse cx=\"-10\" cy=\"13\" rx=\"9.5\" ry=\"6.8\" transform=\"rotate(-20 -10 13)\" fill=\"#cfe3ff\"/>\n            <rect x=\"0\" y=\"-28\" width=\"3\" height=\"40\" fill=\"#cfe3ff\"/>\n            <path d=\"M3,-28 C17,-24 19,-13 12,-4 C15,-15 11,-21 3,-22 Z\" fill=\"#cfe3ff\"/>\n          </g>\n        </g><g transform=\"translate(420,130) scale(1.2)\">\n          <g class=\"nt n3\">\n            <ellipse cx=\"-10\" cy=\"13\" rx=\"9.5\" ry=\"6.8\" transform=\"rotate(-20 -10 13)\" fill=\"#cfe3ff\"/>\n            <rect x=\"0\" y=\"-28\" width=\"3\" height=\"40\" fill=\"#cfe3ff\"/>\n            <path d=\"M3,-28 C17,-24 19,-13 12,-4 C15,-15 11,-21 3,-22 Z\" fill=\"#cfe3ff\"/>\n          </g>\n        </g><g transform=\"translate(534,128) scale(1.1)\">\n          <g class=\"nt n4\">\n            <ellipse cx=\"-10\" cy=\"13\" rx=\"9.5\" ry=\"6.8\" transform=\"rotate(-20 -10 13)\" fill=\"#cfe3ff\"/>\n            <rect x=\"0\" y=\"-28\" width=\"3\" height=\"40\" fill=\"#cfe3ff\"/>\n            <path d=\"M3,-28 C17,-24 19,-13 12,-4 C15,-15 11,-21 3,-22 Z\" fill=\"#cfe3ff\"/>\n          </g>\n        </g><g transform=\"translate(648,130) scale(1.15)\">\n          <g class=\"nt n5\">\n            <ellipse cx=\"-10\" cy=\"13\" rx=\"9.5\" ry=\"6.8\" transform=\"rotate(-20 -10 13)\" fill=\"#cfe3ff\"/>\n            <rect x=\"0\" y=\"-28\" width=\"3\" height=\"40\" fill=\"#cfe3ff\"/>\n            <path d=\"M3,-28 C17,-24 19,-13 12,-4 C15,-15 11,-21 3,-22 Z\" fill=\"#cfe3ff\"/>\n          </g>\n        </g><g transform=\"translate(762,128) scale(1.05)\">\n          <g class=\"nt n6\">\n            <ellipse cx=\"-10\" cy=\"13\" rx=\"9.5\" ry=\"6.8\" transform=\"rotate(-20 -10 13)\" fill=\"#cfe3ff\"/>\n            <rect x=\"0\" y=\"-28\" width=\"3\" height=\"40\" fill=\"#cfe3ff\"/>\n            <path d=\"M3,-28 C17,-24 19,-13 12,-4 C15,-15 11,-21 3,-22 Z\" fill=\"#cfe3ff\"/>\n          </g>\n        </g>    <rect width=\"900\" height=\"260\" fill=\"url(#ntvign)\"/>\n    </g>\n  </svg>\n<h1>YuE &mdash; words become a song</h1>\n<p class=\"dim\">YuE2-3B &middot; RX 6800 &middot; one song per run &middot; this node</p>\n<p>Give it a genre and lyrics. It sings them, with a band, and honours the structure markers you write. <b>Karma</b> <span class=\"k\">4</span></p>\n\n<h2>What it makes</h2>\n<p>One complete song &mdash; vocals plus instruments &mdash; as a FLAC in the songs folder. Length is your lyrics' doing, not a setting: about 2.5&ndash;3 s of audio per line.</p>\n\n<h2>What it needs here</h2>\n<ul><li>The RX 6800 for the whole run, and <b>nobody else on it</b>: stop the image or video service first.</li>\n<li>24 GB of RAM; the predictor is memory-hungry at mode <b>full</b>.</li>\n<li>The venv at <code>C:/AI/yue-venv</code> and the model at <code>C:/AI/hf/YuE2-3B</code>.</li></ul>\n\n<h2>What it costs</h2>\n<p><span class=\"num\">~90 minutes</span> for a ~5 minute song in full mode. Melody mode is faster and thinner; off is direct and thinnest. There is no queue &mdash; one run at a time.</p>\n\n<h2>Where the output lands</h2>\n<p><code>Desktop\\\\make_music\\\\songs\\\\&lt;title&gt;__YuE2-3B.flac</code></p>\n\n<div class=\"rule\"></div>\n<h2>How to start it</h2>\n<p><b>Prepare this serve</b>, paste style and lyrics, press run. The old studio server at :8090 is retired &mdash; this page is that page now.</p>\n</div>",
+    "inputs": "    <style>\n      html, body { margin: 0; background: #0d1117; }\n      .sv { font: 14px/1.6 system-ui, -apple-system, Segoe UI, sans-serif; color: #d8dee9; background: #0d1117; padding: 20px 24px 30px; }\n      .sv h2 { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .1em; color: #5ad2a0; margin: 22px 0 6px; }\n      .sv h2:first-child { margin-top: 0; }\n      .sv p { margin: 6px 0; max-width: 760px; }\n      .sv .dim { color: #7d8998; }\n      .sv pre { background: #0e1016; border-radius: 8px; padding: 11px; overflow: auto; font: 11.5px/1.55 ui-monospace, Consolas, monospace; color: #9fb0c9; margin: 8px 0; }\n      .sv code { font: 11.5px ui-monospace, Consolas, monospace; color: #c9d3df; }\n      .sv .box { border-left: 2px solid #2a323d; background: rgba(255,255,255,.02); padding: 9px 12px; margin: 10px 0; max-width: 760px; }\n      .sv .warn { color: #ffd479; }\n    </style>\n    <div class=\"sv\">\n    <h2>What a run does</h2>\n    <pre>yue-song.ps1 -Style ... -Lyrics ... -Seed ... -Cot ... -Budget ... -Title ...\n      -&gt; writes outputs&lt;job&gt;.request.json\n      -&gt; python -m yue2.cli generate --model C:&#92;AI&#92;hf&#92;YuE2-3B --vae C:&#92;AI&#92;hf&#92;yue-vae --budget 16 --offload-ar\n      -&gt; outputs&lt;job&gt;&lt;job&gt;&#92;audio.flac\n      -&gt; copies to Desktop&#92;make_music&#92;songs&lt;title&gt;__YuE2-3B.flac</pre>\n    <p class=\"dim\">The studio page is gone as a server; this is the same six knobs, one run per song. Nothing stays running afterwards.</p>\n\n    <h2>Reading the run</h2>\n    <p>The pipeline prints <code>[YuE2] Running &lt;stage&gt;: N tokens, X tokens/s, elapsed</code> per stage, then <code>Completed: 300.4s audio in ...</code>. The run is over when the FLAC lands.</p>\n\n    <h2>Before you press run</h2>\n    <div class=\"box\">Close the browser and stop any miner, <b>llama-server</b> or <b>sd-server</b>. YuE wants the whole card and a lot of RAM &mdash; a second GPU user does not make it slower, it makes it fail.</div>\n    <p class=\"warn\">One song at a time. A second run is refused until the first ends.</p>\n    </div>"
+  },
+  "progress": {
+    "how": "yue2.cli prints \"[YuE2] Running <stage>: N tokens, X tokens/s, elapsed\" per stage, then \"Completed: <seconds>s audio in <seconds>s\", then the copy line",
+    "source": "stdout",
+    "pattern": "Completed"
+  },
+  "library": {
+    "sha256": "437696e85ad212f198020d9a90e50b490163e405f2712ee7b09100b173f99c66",
+    "from": "yue-music.js",
+    "note": "Generated by scripts/export-library.mjs from the sandboxed service file. Do not hand-edit: edit the .js and re-export."
+  }
+}

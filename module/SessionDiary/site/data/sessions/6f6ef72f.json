@@ -1,0 +1,66 @@
+{
+  "id": "cron_6d233f41b8e5_20261025_024432",
+  "title": "Your role is a low-priority, specialized AI Releas · Oct 25 02:46",
+  "source": "cron",
+  "model": "deepseek-flash",
+  "parentId": null,
+  "startedAt": 1792910685.2249622,
+  "endedAt": 1792910779.026912,
+  "endReason": "cron_complete",
+  "messageCount": 36,
+  "toolCallCount": 17,
+  "inputTokens": 36963,
+  "outputTokens": 8765,
+  "costUsd": 0.012571001999999996,
+  "cwd": "C:\\Users\\User\\Hermes\\gemma4site",
+  "gitBranch": null,
+  "gitRepo": null,
+  "pinned": false,
+  "archived": false,
+  "hidden": false,
+  "profileName": "default",
+  "lastActivityAt": 1792910743.7665553,
+  "createdSource": "cron",
+  "ref": "6f6ef72f",
+  "displayTitle": "Your role is a low-priority, specialized AI Releas · Oct 25 02:46",
+  "durationSec": 94,
+  "userTurns": 1,
+  "goal": "[IMPORTANT: The following skill(s) were listed for this job but could not be found and were skipped: web_search, terminal. Start your response with a brief notice so the user is aware, e.g.: '⚠️ Skill(s) not found and skipped: web_search, terminal'] The user has provided the following instruction alongside the skill invocation: [IMPORTANT: You are running as a scheduled cron job. DELIVERY: Your final response will be automatically delivered to the user — do NOT use send_message or try to deliver the output yourself. Just produce your report/output as your final response and the system handles the rest. SILENT: If there is genuinely nothing new to report, respond with exactly \"[SILENT]\" (not…",
+  "outcome": "**HF Release Monitor — cycle 2026-10-25 06:45 UTC** (previous run ~10 h earlier) **Models** - **KittenML/kitten-tts-2** — newly trending (183 likes, 50.2k downloads, trending 77; created 2026-09-30 but files updated 2026-10-23) — 1.7B ternary TTS with in-context voice cloning and 16 languages whose actual load is 910 MiB LM + 37 MiB decoder (~0.95 GB; the `emb4` packing is 469 MB), and it runs CPU-first, so it costs effectively zero VRAM on either the RX 6800 or the GTX 1660. - **unsloth/NVIDIA-Nemotron-3.5-Bolt-E4B-GGUF** — new quant ladder (2026-10-23, 92 likes, 17.5k dl) — verified arch `gemma4`, 8.0B params, 65k ctx; UD-Q4_K_XL 4.71 GiB + mmproj-Q8_0 0.52 GiB = ~5.2 GiB puts the whole vision model inside the 6 GB 1660, while UD-Q8_K_XL 7.63 GiB is the RX 6800 option (official `nvidia/NVIDIA-Nemotron-3.5-Bolt-E4B-4GB` repo already ships a Q4_K_M GGUF, so llama.cpp support is upstream…",
+  "files": [
+    "C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon/findings_2026-10-25b.json"
+  ],
+  "commands": [
+    "cd \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon\" && cat findings_2026-10-25.json && echo \"=== KITTEN README ===\" && curl -s \"https://huggi…",
+    "cd \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon\" && cat scan.py && echo \"=== DIFF ===\" && python -c \"",
+    "cd \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon\" && curl -s \"https://huggingface.co/api/models?sort=createdAt&direction=-1&limit=1000\" -o …",
+    "cd \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon\" && curl -s \"https://huggingface.co/KittenML/kitten-tts-2/raw/main/README.md\" -o kitten.md…",
+    "cd \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon\" && curl -sL -r 0-1500000 \"https://huggingface.co/nvidia/NVIDIA-Nemotron-3.5-Bolt-E4B-4GB/…",
+    "cd \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon\" && echo \"=== chinoll/Moss-Image-Edit ===\" && curl -s \"https://huggingface.co/api/models/c…",
+    "cd \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon\" && echo \"=== kitten-tts-2 ===\" && curl -s \"https://huggingface.co/api/models/KittenML/kit…",
+    "cd \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon\" && for id in \"unsloth/NVIDIA-Nemotron-3.5-Bolt-E4B-GGUF\" \"nvidia/NVIDIA-Nemotron-3.5-Bolt…",
+    "cd \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon\" && for q in \"author=leejet&sort=createdAt\" \"search=rocm&sort=createdAt\" \"search=ternary&s…",
+    "cd \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon\" && ls -la && date -u",
+    "cd \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon\" && mv models_new.json models_prev.json 2>/dev/null; mv papers100.json papers_prev.json 2>…",
+    "cd \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon\" && mv models_prev.json models_2026-10-24T20.json && ls -la *.json",
+    "cd \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon\" && mv models_trending.json models_new.json && python scan.py 2>&1 | head -80",
+    "cd \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon\" && python -c \""
+  ],
+  "tools": [
+    {
+      "name": "terminal",
+      "count": 30
+    },
+    {
+      "name": "skill_view",
+      "count": 2
+    },
+    {
+      "name": "write_file",
+      "count": 2
+    }
+  ],
+  "bytes": 77404,
+  "diary": null,
+  "seances": []
+}

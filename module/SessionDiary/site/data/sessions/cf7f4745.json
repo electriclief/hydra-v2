@@ -1,0 +1,71 @@
+{
+  "id": "cron_6d233f41b8e5_20261020_230817",
+  "title": "Your role is a low-priority, specialized AI Releas · Oct 20 23:09",
+  "source": "cron",
+  "model": "deepseek-flash",
+  "parentId": null,
+  "startedAt": 1792552105.7975364,
+  "endedAt": 1792552192.9050999,
+  "endReason": "cron_complete",
+  "messageCount": 36,
+  "toolCallCount": 17,
+  "inputTokens": 36502,
+  "outputTokens": 9201,
+  "costUsd": 0.012656315999999999,
+  "cwd": "C:\\Users\\User\\Hermes\\gemma4site",
+  "gitBranch": null,
+  "gitRepo": null,
+  "pinned": false,
+  "archived": false,
+  "hidden": false,
+  "profileName": "default",
+  "lastActivityAt": 1792552164.5883265,
+  "createdSource": "cron",
+  "ref": "cf7f4745",
+  "displayTitle": "Your role is a low-priority, specialized AI Releas · Oct 20 23:09",
+  "durationSec": 87,
+  "userTurns": 1,
+  "goal": "[IMPORTANT: The following skill(s) were listed for this job but could not be found and were skipped: web_search, terminal. Start your response with a brief notice so the user is aware, e.g.: '⚠️ Skill(s) not found and skipped: web_search, terminal'] The user has provided the following instruction alongside the skill invocation: [IMPORTANT: You are running as a scheduled cron job. DELIVERY: Your final response will be automatically delivered to the user — do NOT use send_message or try to deliver the output yourself. Just produce your report/output as your final response and the system handles the rest. SILENT: If there is genuinely nothing new to report, respond with exactly \"[SILENT]\" (not…",
+  "outcome": "⚠️ Note: the job listed `web_search`/`terminal` skills as missing — I ran the scan with the live tools instead. **HF Release Monitor — Oct 20, 2026, 23:08 EDT** (6 h since last cycle) **Trending models: no new entrants.** The 60-model trending list is identical to the 17:05 cycle (DeepSeek-V4.1-Flash still #1 at ts 1774, flux-3-image-klein-comfy #2 at 830). The 500-newest feed covered only a ~2.4 h spam-heavy window with zero org-whitelist and zero `likes>=3` hits; `leejet/*` unchanged since Oct 18. **New papers with signal — but nothing runnable on your cards:** - **MemT-1.0: Towards Memory-Native Evolution** — HF Daily Papers (146 upvotes, #1 in feed; arXiv 2610.26825; `MemTensor/MemT-1.0-Nano` 57 likes) — biggest signal of the cycle and directly about the constraint you hit: 128K history gives 1.86× end-to-end speedup and **66× less persistent storage than a full-context KV cache**, …",
+  "files": [
+    "C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon/an21.py",
+    "C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon/an22.py",
+    "C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon/an23.py",
+    "C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon/findings_20261020_2308.json",
+    "C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon/fetch20.py",
+    "C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon/findings_20261020_1705.json"
+  ],
+  "commands": [
+    "cd \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon\" && cp models.json models_prev1705.json && cp papers.json papers_prev1705.json && python f…",
+    "cd \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon\" && curl -s \"https://huggingface.co/api/models?search=MemT&sort=likes&direction=-1&limit=2…",
+    "cd \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon\" && curl -sL \"https://huggingface.co/liana313/tokengate-biodexr-qwen3-1.7b/raw/main/README…",
+    "cd \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon\" && curl -sL \"https://raw.githubusercontent.com/tokengate-models/TokenGate/main/README.md\"…",
+    "cd \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon\" && for M in MemTensor/MemT-1.0-Nano MemTensor/MemT-1.0-Flash liana313/tokengate-biodexr-q…",
+    "cd \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon\" && grep -l -i \"kromoss\" findings_*.json ; echo \"---kromoss mentions above---\" ; curl -s -…",
+    "cd \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon\" && ls -la | head -40 && echo \"---\" && date",
+    "cd \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon\" && python an21.py",
+    "cd \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon\" && python an22.py",
+    "cd \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon\" && python an23.py"
+  ],
+  "tools": [
+    {
+      "name": "terminal",
+      "count": 20
+    },
+    {
+      "name": "write_file",
+      "count": 8
+    },
+    {
+      "name": "read_file",
+      "count": 4
+    },
+    {
+      "name": "skill_view",
+      "count": 2
+    }
+  ],
+  "bytes": 94947,
+  "diary": null,
+  "seances": []
+}

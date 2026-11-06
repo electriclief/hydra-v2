@@ -1,0 +1,85 @@
+{
+  "id": "cron_6d233f41b8e5_20260812_105807",
+  "title": "Your role is a low-priority, specialized AI Releas · Aug 12 11:06",
+  "source": "cron",
+  "model": "deepseek-v4-flash",
+  "parentId": null,
+  "startedAt": 1786546689.5384471,
+  "endedAt": 1786547218.8904247,
+  "endReason": "cron_complete",
+  "messageCount": 48,
+  "toolCallCount": 24,
+  "inputTokens": 21769,
+  "outputTokens": 15077,
+  "costUsd": 0.0088684008,
+  "cwd": null,
+  "gitBranch": null,
+  "gitRepo": null,
+  "pinned": false,
+  "archived": false,
+  "hidden": false,
+  "profileName": "default",
+  "lastActivityAt": 1786547192.669372,
+  "createdSource": null,
+  "ref": "b8025eb1",
+  "displayTitle": "Your role is a low-priority, specialized AI Releas · Aug 12 11:06",
+  "durationSec": 529,
+  "userTurns": 1,
+  "goal": "[IMPORTANT: The following skill(s) were listed for this job but could not be found and were skipped: web_search, terminal. Start your response with a brief notice so the user is aware, e.g.: '⚠️ Skill(s) not found and skipped: web_search, terminal'] The user has provided the following instruction alongside the skill invocation: [IMPORTANT: You are running as a scheduled cron job. DELIVERY: Your final response will be automatically delivered to the user — do NOT use send_message or try to deliver the output yourself. Just produce your report/output as your final response and the system handles the rest. SILENT: If there is genuinely nothing new to report, respond with exactly \"[SILENT]\" (not…",
+  "outcome": "Scan complete. All data verified against actual model file sizes (GGUF quant sizes fetched from each repo's file tree) and paper upvote counts. --- # 🤖 AI Release Monitor — Daily Briefing **Date:** 2026-08-12 · **Target hardware:** RX 6800 (16GB) / GTX 1660 (6GB) · ⚠️ Skills `web_search`/`terminal` were skipped (not found); scan executed via direct HF API calls with verified file-size checks. ## 🏆 Notable & Hardware-Relevant Releases ### Trending Models - **LiquidAI/LFM2.5-2.6B-GGUF** — [Hugging Face Trending Models] — Official LiquidAI GGUF pack of their 2.6B edge-LLM; Q4_K_M is just **1.67GB** (Q8_0 = 2.87GB), so it runs fully on either card, even the GTX 1660. - **meta-models/Muse-Glimmer-30B-GGUF** — [Hugging Face Trending Models] — Brand-new official Meta vision-language model (trending #0, 1.2K+ likes, also mirrored by unsloth); its **kquant-17gb = 16.76GB** variant fits the RX …",
+  "files": [
+    "C:\\Users\\User\\Hermes\\gemma4site\\hfmon\\scan_full.py",
+    "C:\\Users\\User\\Hermes\\gemma4site\\hfmon\\scan_probe.py",
+    "C:\\Users\\User\\Hermes\\gemma4site\\paper_detail.py",
+    "C:\\Users\\User\\Hermes\\gemma4site\\parse_models.py",
+    "C:\\Users\\User\\Hermes\\gemma4site\\parse_papers.py",
+    "C:\\Users\\User\\Hermes\\gemma4site\\rank.py",
+    "C:\\Users\\User",
+    "C:\\Users\\User\\Hermes\\gemma4site",
+    "C:\\Users\\User\\Hermes\\gemma4site\\hfmon",
+    "C:\\Users\\User\\Hermes\\gemma4site\\hfmon_data",
+    "C:\\Users\\User\\Hermes\\gemma4site\\hfmon_data\\scan_out_20260811.txt"
+  ],
+  "commands": [
+    "cd \"C:/Users/User/Hermes/gemma4site\" && curl -s --max-time 60 \"https://huggingface.co/api/daily_papers\" -o hf_papers.json ; echo \"PAPERS_EXIT=$? SIZE…",
+    "cd \"C:/Users/User/Hermes/gemma4site\" && ls -la hfmon hfmon_data hf_scan 2>&1 && cat scan_trending.py scan_sizes.py verify_repos.py 2>&1 | head -80",
+    "cd \"C:/Users/User/Hermes/gemma4site\" && python -c \"",
+    "cd \"C:/Users/User/Hermes/gemma4site\" && python paper_detail.py 2>&1 | head -60",
+    "cd \"C:/Users/User/Hermes/gemma4site\" && python parse_papers.py 2>&1 | head -40 && echo \"-----MODELS-----\" && python parse_models.py 2>&1 | head -40",
+    "cd \"C:/Users/User/Hermes/gemma4site\" && python rank.py 2>&1 | head -50",
+    "cd \"C:/Users/User/Hermes/gemma4site\" && rm -f hf_papers.json hf_models.json parse_papers.py parse_models.py rank.py paper_detail.py && ls -la",
+    "cd \"C:/Users/User/Hermes/gemma4site/hfmon\" && python scan_full.py 2>&1 | head -100",
+    "cd \"C:/Users/User/Hermes/gemma4site/hfmon\" && python scan_probe.py 2>&1 | head -80",
+    "cd \"C:/Users/User/Hermes/gemma4site/hfmon\" && rm -f scan_probe.py && ls",
+    "curl -s --max-time 60 \"https://huggingface.co/api/daily_papers\" -o /tmp/hf_papers.json && echo \"PAPERS OK $(wc -c < /tmp/hf_papers.json)\" ; curl -s -…"
+  ],
+  "tools": [
+    {
+      "name": "terminal",
+      "count": 22
+    },
+    {
+      "name": "write_file",
+      "count": 12
+    },
+    {
+      "name": "search_files",
+      "count": 8
+    },
+    {
+      "name": "execute_code",
+      "count": 2
+    },
+    {
+      "name": "read_file",
+      "count": 2
+    },
+    {
+      "name": "web_extract",
+      "count": 2
+    }
+  ],
+  "bytes": 77810,
+  "diary": null,
+  "seances": []
+}

@@ -1,0 +1,88 @@
+{
+  "id": "cron_6d233f41b8e5_20260809_155718",
+  "title": "Your role is a low-priority, specialized AI Releas · Aug 09 16:07",
+  "source": "cron",
+  "model": "deepseek-v4-flash",
+  "parentId": null,
+  "startedAt": 1786305441.3545809,
+  "endedAt": 1786306023.3292854,
+  "endReason": "cron_complete",
+  "messageCount": 70,
+  "toolCallCount": 36,
+  "inputTokens": 25422,
+  "outputTokens": 17433,
+  "costUsd": 0.011386009600000002,
+  "cwd": null,
+  "gitBranch": null,
+  "gitRepo": null,
+  "pinned": false,
+  "archived": false,
+  "hidden": false,
+  "profileName": "default",
+  "lastActivityAt": 1786306016.3313556,
+  "createdSource": null,
+  "ref": "f523b6c0",
+  "displayTitle": "Your role is a low-priority, specialized AI Releas · Aug 09 16:07",
+  "durationSec": 582,
+  "userTurns": 1,
+  "goal": "[IMPORTANT: The following skill(s) were listed for this job but could not be found and were skipped: web_search, terminal. Start your response with a brief notice so the user is aware, e.g.: '⚠️ Skill(s) not found and skipped: web_search, terminal'] The user has provided the following instruction alongside the skill invocation: [IMPORTANT: You are running as a scheduled cron job. DELIVERY: Your final response will be automatically delivered to the user — do NOT use send_message or try to deliver the output yourself. Just produce your report/output as your final response and the system handles the rest. SILENT: If there is genuinely nothing new to report, respond with exactly \"[SILENT]\" (not…",
+  "outcome": "Scan complete. Here is the daily briefing: --- ## 🤖 HF Release Monitor — Daily Briefing (Aug 9, 2026) **Data sources:** HF Trending Models API (`recentlyTrending`, 30 repos) + HF Daily Papers API (50 papers). Verified file sizes, configs, and model cards for all candidates before including them. ### ✅ Notable & hardware-relevant - **LiquidAI/LFM2.5-2.6B** — [HF Trending Models] — **Top pick:** official 2.6B agentic model (128K context) with native GGUF/ONNX/MLX builds that runs in **under 2.5GB memory** (~113 tok/s on AMD Ryzen CPU), so it fits both your GTX 1660 (6GB) via llama.cpp Vulkan and the RX 6800 with headroom — 447 likes / 85K downloads in 2 days, competitive with models 4× its size on tool use. - **deepgrove/maple-preview** — [HF Trending Models] — DeepGrove's **20B-A1B ternary-weight MoE** reasoning model (MIT license, 5.31GB checkpoint, 131K context, 200+ tok/s on-device) …",
+  "files": [
+    "C:\\Users\\User\\Hermes\\gemma4site\\davidau_sizes.py",
+    "C:\\Users\\User\\Hermes\\gemma4site\\analyze_papers.py",
+    "C:\\Users\\User\\Hermes\\gemma4site\\analyze_trending.py",
+    "C:\\Users\\User\\Hermes\\gemma4site\\detail_trending.py",
+    "C:\\Users\\User\\Hermes\\gemma4site\\detail2.py",
+    "C:\\Users\\User\\Hermes\\gemma4site\\inspect_papers.py",
+    "C:\\Users\\User\\Hermes\\gemma4site\\sizes.py",
+    "C:\\Users\\User\\Hermes\\gemma4site",
+    "C:\\Users\\User\\Hermes\\gemma4site\\ds4flash_config.json",
+    "C:\\Users\\User\\Hermes\\gemma4site\\lfm_readme.md",
+    "C:\\Users\\User\\Hermes\\gemma4site\\maple_readme.md"
+  ],
+  "commands": [
+    "cd \"$HOME/Hermes/gemma4site\" && curl -s --max-time 90 \"https://huggingface.co/api/models/DavidAU/Qwen3.6-27B-Fable-Fusion-711-Uncensored-Heretic-NM-D…",
+    "cd \"$HOME/Hermes/gemma4site\" && python davidau_sizes.py 2>&1 | head -30",
+    "cd \"$HOME/Hermes/gemma4site\" && curl -s --max-time 60 \"https://huggingface.co/api/daily_papers\" -o hf_papers.json && echo \"OK papers $(wc -c < hf_pap…",
+    "cd \"$HOME/Hermes/gemma4site\" && curl -s --max-time 60 \"https://huggingface.co/api/trending\" -o hf_trending.json && echo \"OK trending $(wc -c < hf_tre…",
+    "cd \"$HOME/Hermes/gemma4site\" && curl -s --max-time 60 \"https://huggingface.co/deepgrove/maple-preview/raw/main/README.md\" -o maple_readme.md && curl …",
+    "cd \"$HOME/Hermes/gemma4site\" && for r in \"MiniMaxAI/MiniMax-H3\" \"Comfy-Org/MiniMax-H3\" \"moonshotai/Kimi-K3\"; do fn=$(echo \"$r\" | tr '/' '_'); curl -s…",
+    "cd \"$HOME/Hermes/gemma4site\" && for r in \"unsloth/DeepSeek-V4-Flash-0731-GGUF\" \"deepgrove/maple-preview\" \"LiquidAI/LFM2.5-2.6B\" \"Comfy-Org/MiniMax-H3…",
+    "cd \"$HOME/Hermes/gemma4site\" && for r in \"unsloth/DeepSeek-V4-Flash-0731-GGUF\" \"LiquidAI/LFM2.5-2.6B\" \"deepgrove/maple-preview\"; do fn=$(echo \"$r\" | …",
+    "cd \"$HOME/Hermes/gemma4site\" && ls -la *.json *.py *.md 2>/dev/null | head -40",
+    "cd \"$HOME/Hermes/gemma4site\" && python analyze_papers.py 2>&1 | head -90",
+    "cd \"$HOME/Hermes/gemma4site\" && python analyze_trending.py 2>&1 | head -80",
+    "cd \"$HOME/Hermes/gemma4site\" && python davidau_sizes.py 2>&1 | head -20",
+    "cd \"$HOME/Hermes/gemma4site\" && python detail_trending.py 2>&1 | head -120",
+    "cd \"$HOME/Hermes/gemma4site\" && python detail2.py 2>&1 | head -200"
+  ],
+  "tools": [
+    {
+      "name": "terminal",
+      "count": 44
+    },
+    {
+      "name": "write_file",
+      "count": 14
+    },
+    {
+      "name": "read_file",
+      "count": 6
+    },
+    {
+      "name": "patch",
+      "count": 4
+    },
+    {
+      "name": "execute_code",
+      "count": 2
+    },
+    {
+      "name": "search_files",
+      "count": 2
+    }
+  ],
+  "bytes": 88171,
+  "diary": null,
+  "seances": []
+}

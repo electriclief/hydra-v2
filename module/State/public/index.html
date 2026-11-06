@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>State</title>
+<link rel="stylesheet" href="./css/gui.css">
+</head>
+<body>
+<header>
+  <h1>State</h1>
+  <p class="sub">register · pull · discover · relay — the generic retainer and retriever</p>
+  <div id="st-status" class="status">connecting…</div>
+</header>
+<main>
+  <section class="pane">
+    <h2 class="filters">
+      Held state <span id="st-count" class="dim">0</span>
+      <input id="st-query" class="filter" placeholder="filter: path · leaf · parent">
+      <label class="filter"><input type="checkbox" id="st-live" checked> live</label>
+      <button id="st-refresh">refresh</button>
+    </h2>
+    <table>
+      <thead><tr><th>path</th><th>since</th><th>declares</th><th></th></tr></thead>
+      <tbody id="st-table"></tbody>
+    </table>
+  </section>
+  <section class="pane">
+    <h2>Pull</h2>
+    <label class="field">name (a path, or the leaf when unique)
+      <input id="st-name" class="filter wide" placeholder="ClientName">
+    </label>
+    <label class="field">marks (JSON, optional — what you already hold)
+      <textarea id="st-marks" rows="2" placeholder='{"log": 812}'></textarea>
+    </label>
+    <p><button id="st-pull">pull</button></p>
+    <div id="st-output" class="output"><div class="line dim">the answer lands here — FULL, or the DELTA past your marks</div></div>
+  </section>
+</main>
+<script type="module" src="./js/browser/gui.js"></script>
+</body>
+</html>

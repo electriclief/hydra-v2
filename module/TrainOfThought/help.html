@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TrainOfThought — the frontier of work</title>
+<style>
+  :root { color-scheme: dark; --bg:#111318; --panel:#191c23; --border:#303541; --text:#e5e7eb; --muted:#a1a8b7; --accent:#8ab4f8; }
+  * { box-sizing: border-box; }
+  body { margin:0; padding:32px; background:var(--bg); color:var(--text);
+         font:15px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif; max-width:78ch; }
+  h1 { margin:0 0 4px; font-size:24px; font-weight:600; letter-spacing:-.01em; }
+  h2 { margin:32px 0 10px; font-size:13px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; color:var(--muted); }
+  .kicker { margin:0 0 28px; color:var(--muted); font-size:13px; }
+  p { margin:0 0 12px; }
+  code { font:13px/1.5 ui-monospace,Consolas,monospace; background:#0b0d11; border:1px solid var(--border);
+         border-radius:5px; padding:1px 5px; color:#cfd6e4; }
+  pre { background:#0b0d11; border:1px solid var(--border); border-radius:8px; padding:12px 14px; overflow:auto; }
+  table { width:100%; border-collapse:collapse; margin:6px 0 16px; font-size:14px; }
+  th, td { text-align:left; padding:7px 10px; border-bottom:1px solid var(--border); vertical-align:top; }
+  th { color:var(--muted); font-weight:600; font-size:12px; letter-spacing:.06em; text-transform:uppercase; }
+  .note { color:var(--muted); font-size:13px; }
+  .lede { font-size:16px; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>TrainOfThought</h1>
+  <p class="kicker">the long-term intention DAG · door on :8135 · not wired at boot · answers "what is next" from the frontier, not a clock</p>
+</header>
+
+<section id="summary">
+  <p class="lede">TrainOfThought holds the work that outlives a session: one node per intention, carrying why it
+  exists, what it waits on, the ordered actions left, and an append-only trail of who touched it. <code>/api/next</code>
+  reads the DAG and hands back the node that is actually takeable now — active, unclaimed, with every dependency
+  closed and an action written down. Closing a node archives it with the one sentence that says why. It is not a job
+  log: a scheduler run or an image render creates no node here.</p>
+</section>
+
+<section id="concepts">
+  <h2>How it holds together</h2>
+  <p><b>A thought is a node in a DAG, not a row in a list.</b> The store is one plain JSON file,
+  <code>data/thoughts.json</code>, shaped <code>{version: 1, nodes: []}</code>, written atomically (temp file, then
+  rename) and re-read before every mutation because it is meant to be hand-editable while the door is running. A node
+  is <code>ref</code> (8 hex, minted at random and re-minted on collision), <code>title</code>, <code>intent</code>
+  (prose — why this exists and what "done" looks like, never an enum), <code>state</code>, <code>deps[]</code>,
+  <code>next[]</code>, <code>tags[]</code>, <code>trail[]</code>, <code>created</code>, <code>touched</code>, and
+  optionally <code>closed{at, summary, sessionRefs[]}</code> and <code>claimed{by, at, expiresAt}</code>.</p>
+  <p><b>Edges point one way: a dep is something this node waits on.</b> <code>deps[]</code> holds incoming edges, so
+  the graph reads "when <code>294cd029</code> is done, <code>954deebc</code> becomes takeable", not the reverse.
+  Linking a dep that is missing is refused by name; so is an edge that would close a loop, checked by walking
+  ancestors upward from the proposed dep. The write is refused rather than quietly producing a graph that can never
+  finish.</p>
+  <p><b>Readiness is a conjunction of four facts, and none of them is a date.</b></p>
+  <table>
+    <tr><th>is it ready?</th><th>the rule in <code>dag.ts</code></th></tr>
+    <tr><td>state</td><td><code>active</code> — <code>parked</code>, <code>blocked</code> and <code>done</code> never surface</td></tr>
+    <tr><td>lease</td><td>no claim with <code>expiresAt &gt; now</code> — a live seat is someone else working</td></tr>
+    <tr><td>action</td><td><code>next.length &gt; 0</code> — an intention with no next step is a note, not work</td></tr>
+    <tr><td>deps</td><td>every ref in <code>deps[]</code> exists and is <code>done</code></td></tr>
+  </table>
+  <p>The frontier is those nodes sorted by <code>touched</code> oldest first, so the thing that has waited longest is
+  offered first. When the frontier is empty, <code>/api/next</code> does not answer a bare "nothing": it returns
+  <code>why</code>, a set of disjoint counts — <code>claimed</code>, <code>notActive</code>, <code>noAction</code>,
+  <code>waitingOnDeps</code>, <code>ready</code> — which names the wall instead of implying there is no work.</p>
+  <p><b>The trail is the memory, and it is append-only.</b> Each entry is
+  <code>{at, kind, text, by, sessionRef?}</code> with <code>kind</code> one of
+  <code>session · note · decision · event · claim · state</code>. <code>by</code> is never empty — an agent name,
+  <code>user</code>, or <code>system</code> — because provenance is the point. Nothing rewrites an old line, including
+  a closure: <code>close</code> sets <code>state: "done"</code>, writes <code>closed</code>, and appends
+  <code>"closed — &lt;summary&gt;"</code>. The summary is required (at least 8 characters) and setting
+  <code>state=done</code> directly is refused with <code>use_close</code>: the sentence is the only thing an archive
+  is for.</p>
+  <p><b>A claim is a lease with an expiry, not a lock.</b> Parallel agents take a seat with
+  <code>POST /api/thoughts/&lt;ref&gt;/claim {by, minutes?}</code> (30 minutes by default; login takes 240). A live
+  claim is a refusal carrying the holder and the expiry, never a silent overwrite. Expired seats are reaped and the
+  trail says <code>seat expired (was &lt;name&gt;)</code> by <code>system</code>, so a crashed agent cannot hold a
+  train forever. <code>/api/seats</code> is the straight answer to "who is working on what".</p>
+  <p><b>The brief is a file, so it survives every door being down.</b> On every save, <code>frontier.ts</code>
+  regenerates <code>data/frontier.md</code> and <code>data/frontier.json</code>: what to take up, what is stuck and
+  why, counts per state, and the store it came from. It is rewritten in the same save as the store, so it can never
+  describe a node that has already moved — a stale brief is worse than none, because it would send a session at work
+  that is closed. <code>node public/js/frontier.js --data &lt;dir&gt;</code> prints it with no server; a whole session
+  can start from <code>cat data/frontier.md</code>.</p>
+  <p><b>Every thought owns a folder from the moment it exists.</b> <code>data/thoughts/&lt;ref&gt;/</code> is created
+  at <code>add</code>, because an intention with nowhere to put its output ends up with its output in the wrong place
+  six weeks later. Existing artifacts are <em>attached</em>, never copied: symlink first, then hard link, then a
+  <code>*.pointer.txt</code> holding the absolute path, and the mode used is returned because "linked" and "copied"
+  are not the same claim.</p>
+  <p><b>SessionDiary is lazy, by ref, over HTTP only.</b> Nothing here imports its code. A trail entry carries a plain
+  8-hex <code>sessionRef</code>, so the evidence outlives the dependency; <code>sessionClient.ts</code> turns those
+  refs into titles and goals only while <code>:8134</code> answers, with a 15-second probe cache and a 1200 ms timeout.
+  When the diary is down every card resolves to <code>{ok:false, reason}</code> and nothing throws — the DAG, the
+  frontier and the archive stay fully usable. The link is written the other way round too: at session start,
+  <code>scripts/session-start.mjs --take a,b</code> appends one line to
+  <code>SessionDiary/data/session-links.jsonl</code> and posts the same fact to
+  <code>POST /api/thoughts/&lt;ref&gt;/trail</code> when the door happens to be up. The door itself never writes the
+  links file.</p>
+  <p><b>The cycle seam is optional and nothing depends on it.</b> <code>POST /api/cycle/tick</code> records what a
+  caller (a future Phoenix cycle) saw, idempotently per cycle number, and reports sessions that are attached to no
+  train as warnings rather than ignoring them. If no cycle ever lands, nothing here runs and the frontier alone
+  answers "what is next".</p>
+</section>
+
+<section id="wiring">
+  <h2>Wiring, for humans</h2>
+  <p>What it needs:</p>
+  <table>
+    <thead><tr><th>needs</th><th>from</th><th>required</th></tr></thead>
+    <tbody>
+      <tr><td>a writable data folder</td><td><code>module/TrainOfThought/data</code> (<code>--data</code>)</td><td>yes — <code>thoughts.json</code>, the brief and every <code>thoughts/&lt;ref&gt;/</code> live here</td></tr>
+      <tr><td>a free port on loopback</td><td><code>--port</code>, default <code>8135</code>; host <code>127.0.0.1</code></td><td>yes — the door binds it</td></tr>
+      <tr><td>session evidence</td><td>SessionDiary <code>:8134</code> (<code>TOT_SESSIONS</code> / <code>--sessions</code>)</td><td>no — a down diary is reported per card and blocks nothing</td></tr>
+      <tr><td>Node with global <code>fetch</code> / <code>AbortSignal.timeout</code></td><td>engine <code>&gt;=22.5</code></td><td>yes</td></tr>
+      <tr><td>a cycle caller, if one exists</td><td><code>POST /api/cycle/tick</code></td><td>no — no cycle, no loss</td></tr>
+    </tbody>
+  </table>
+  <p>What it gives back:</p>
+  <table>
+    <thead><tr><th>gives</th><th>to</th><th>shape</th></tr></thead>
+    <tbody>
+      <tr><td><code>GET /health</code></td><td>scripts and the window</td><td><code>{ok, door:"TrainOfThought", store, nodes, active, ready, archived, sessions{door, up}}</code></td></tr>
+      <tr><td><code>GET /api/next</code></td><td>a session that just started</td><td><code>{next: node, alsoReady:[ref]}</code>, or <code>{next:null, why{claimed,notActive,noAction,waitingOnDeps,ready}}</code></td></tr>
+      <tr><td><code>GET /api/thoughts?state=&amp;q=&amp;tag=</code></td><td>a reader</td><td><code>{count, rows[]}</code>; <code>done</code> hidden unless <code>state=done|all</code></td></tr>
+      <tr><td><code>GET /api/thoughts/&lt;ref&gt;</code></td><td>an agent</td><td>the node plus <code>ready</code>, <code>depsDone</code>, <code>depsTotal</code>, <code>layer</code>, <code>folder</code>, <code>sessions[]</code>, and session cards</td></tr>
+      <tr><td><code>GET /api/archive</code></td><td>a human</td><td>closed nodes, newest closure first, each with its <code>closed.summary</code></td></tr>
+      <tr><td><code>GET /api/frontier</code> · <code>.md</code> · <code>.json</code></td><td>anything with no context</td><td>markdown as <code>text/markdown</code>, or <code>{frontier{counts, takeUp[], stuck[], blockedBy{}}}</code></td></tr>
+      <tr><td><code>GET /api/handoff/&lt;sessionRef&gt;</code></td><td>a successor session</td><td><code>{packet, sessions[]}</code>; <code>?sessions=0</code> skips the diary lookup</td></tr>
+      <tr><td><code>POST /api/thoughts</code>, <code>PATCH /api/thoughts/&lt;ref&gt;</code></td><td>an agent</td><td><code>{title, intent, deps[], next[], tags[]}</code>; 201 on create</td></tr>
+      <tr><td><code>POST …/link</code>, <code>…/unlink</code>, <code>…/trail</code>, <code>…/state</code>, <code>…/close</code>, <code>…/reopen</code></td><td>an agent</td><td>one node back, mutated; errors carry <code>{code, message}</code></td></tr>
+      <tr><td><code>POST …/claim</code>, <code>…/release</code>, <code>POST /api/login</code>, <code>/api/logout</code></td><td>parallel agents</td><td><code>{by, minutes?}</code> · <code>{by, force?}</code> · login returns <code>{ref, node, folder, files, packet, frontier[], seats[]}</code></td></tr>
+      <tr><td><code>GET /api/seats</code></td><td>a human</td><td><code>{seats[{ref,title,by,since,expiresAt,next}], expired}</code></td></tr>
+      <tr><td><code>POST /api/cycle/tick</code></td><td>a cycle</td><td><code>{cycle, sessions[{ref,fillPct,tokens}]}</code> → <code>{appended, handoff[], warnings[]}</code></td></tr>
+      <tr><td><code>GET /</code>, <code>/archive</code>, <code>/t/&lt;8hex&gt;</code></td><td>a human</td><td>the same data as one page, frontier marked and archive apart</td></tr>
+      <tr><td><code>data/thoughts.json</code> · <code>data/frontier.md</code> · <code>data/frontier.json</code> · <code>data/thoughts/&lt;ref&gt;/</code></td><td>the next session, with every door down</td><td><code>{version:1,nodes[]}</code> · the brief · the same snapshot as JSON · one folder of artifacts per node</td></tr>
+    </tbody>
+  </table>
+  <p class="note">This is wiring in words, not a type. The exact shapes live in <code>public/ts/types.ts</code>,
+  <code>public/ts/dag.ts</code>, <code>public/ts/store.ts</code> and <code>public/ts/apiServer.ts</code>; if this page
+  and those files disagree, the code is right and this page is a bug.</p>
+</section>
+
+<script type="application/json" id="contract">
+{
+  "module": "TrainOfThought",
+  "port": 8135,
+  "kind": "door",
+  "needs": [
+    { "name": "data folder", "from": "module/TrainOfThought/data (--data)", "required": true },
+    { "name": "loopback port", "from": "--port, default 8135", "required": true },
+    { "name": "session evidence", "from": "SessionDiary :8134 (TOT_SESSIONS)", "required": false },
+    { "name": "node fetch", "from": "Node >= 22.5", "required": true },
+    { "name": "cycle caller", "from": "POST /api/cycle/tick", "required": false }
+  ],
+  "gives": [
+    { "name": "/health", "to": "scripts and the window", "kind": "http" },
+    { "name": "/api/next", "to": "a starting session", "kind": "http" },
+    { "name": "/api/thoughts", "to": "agents", "kind": "http" },
+    { "name": "/api/thoughts/{ref}", "to": "agents", "kind": "http" },
+    { "name": "/api/archive", "to": "humans", "kind": "http" },
+    { "name": "/api/frontier", "to": "anything with no context", "kind": "http" },
+    { "name": "/api/handoff/{sessionRef}", "to": "a successor session", "kind": "http" },
+    { "name": "/api/seats", "to": "humans", "kind": "http" },
+    { "name": "/api/login", "to": "agents", "kind": "http" },
+    { "name": "/api/logout", "to": "agents", "kind": "http" },
+    { "name": "/api/cycle/tick", "to": "a cycle", "kind": "http" },
+    { "name": "data/thoughts.json", "to": "the next boot", "kind": "file" },
+    { "name": "data/frontier.md", "to": "a session with every door down", "kind": "file" },
+    { "name": "data/frontier.json", "to": "a parser with every door down", "kind": "file" },
+    { "name": "data/thoughts/{ref}/", "to": "the artifacts of one intention", "kind": "folder" }
+  ]
+}
+</script>
+
+</body>
+</html>

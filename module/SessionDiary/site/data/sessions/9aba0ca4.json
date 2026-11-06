@@ -1,0 +1,78 @@
+{
+  "id": "local-9aba0ca4a22e1830d1ecfe53015d92ccc848943c27a3f8f699b2724581d94c04",
+  "title": "Your role is a low-priority, specialized AI Releas · Oct 29 16:19",
+  "source": "cron",
+  "model": "deepseek-flash",
+  "parentId": null,
+  "startedAt": 1793305036.558395,
+  "endedAt": 1793305189.4446826,
+  "endReason": "cron_complete",
+  "messageCount": 45,
+  "toolCallCount": 22,
+  "inputTokens": 36153,
+  "outputTokens": 13583,
+  "costUsd": 0.016466573999999998,
+  "cwd": "C:\\Users\\User\\Hermes\\gemma4site",
+  "gitBranch": null,
+  "gitRepo": null,
+  "pinned": false,
+  "archived": false,
+  "hidden": false,
+  "profileName": "default",
+  "lastActivityAt": 1793305163.0443797,
+  "createdSource": "cron",
+  "ref": "9aba0ca4",
+  "displayTitle": "Your role is a low-priority, specialized AI Releas · Oct 29 16:19",
+  "durationSec": 153,
+  "userTurns": 1,
+  "goal": "[IMPORTANT: The following skill(s) were listed for this job but could not be found and were skipped: web_search, terminal. Start your response with a brief notice so the user is aware, e.g.: '⚠️ Skill(s) not found and skipped: web_search, terminal'] The user has provided the following instruction alongside the skill invocation: [IMPORTANT: You are running as a scheduled cron job. DELIVERY: Your final response will be automatically delivered to the user — do NOT use send_message or try to deliver the output yourself. Just produce your report/output as your final response and the system handles the rest. SILENT: If there is genuinely nothing new to report, respond with exactly \"[SILENT]\" (not…",
+  "outcome": "⚠️ Skill(s) not found and skipped: web_search, terminal — ran with the built-in `terminal`/curl path instead, so the scan completed normally. **HF Release Briefing — 29 Oct 2026, 20:20Z** - **[convaiinnovations/laya](https://huggingface.co/convaiinnovations/laya)** — *HF Trending (newly entered the top-80 today: tScore 74, 5,855 likes, 59.5k downloads)* — Non-autoregressive \"System-1\" decision model (ModernBERT-large 421M / mmBERT-base 322M, 100+ languages, calibrated probabilities in one ~33 ms pass) with an official `ggml-org/Laya-GGUF` where **Q8_0 is 419 MiB**, so it runs in a rounding error of VRAM on either the RX 6800 or the 1660 via `llama serve -hf ggml-org/Laya-GGUF` + `/v1/systemone` (arch merged in llama.cpp on 2026-10-02). Caveat: it never generates text — usable for routing, triage, guardrails and scoring, not as a chat model. - **[Beyond Benchmarks: Can Small Open-Weight …",
+  "files": [
+    "C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon/findings_2026-10-29_1620.json",
+    "C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon/scan_m.py",
+    "C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon/scan_p.py",
+    "C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon/wide.py",
+    "C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon/laya.md"
+  ],
+  "commands": [
+    "cd \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon\" 2>/dev/null || mkdir -p \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon\"; cd \"C:/…",
+    "cd \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon\"; curl -s -m 40 \"https://huggingface.co/api/papers/2610.34241\" -o p34241.json; python -c \"",
+    "cd \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon\"; curl -s -m 40 \"https://huggingface.co/ggml-org/Laya-GGUF/raw/main/README.md\" -o layagguf…",
+    "cd \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon\"; echo \"=== grep laya md for llama/gguf/vram/systemone ===\"; grep -n -i -E \"llama|gguf|vra…",
+    "cd \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon\"; echo \"=== HF gguf laya ===\"; curl -s -m 40 \"https://huggingface.co/api/models?search=lay…",
+    "cd \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon\"; echo \"=== laya detail ===\"; curl -s -m 40 \"https://huggingface.co/api/models/convaiinnov…",
+    "cd \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon\"; echo \"=== laya README (head) ===\"; curl -s -m 40 \"https://huggingface.co/convaiinnovatio…",
+    "cd \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon\"; echo \"=== prior findings mention laya? ===\"; grep -l -i \"laya\" findings_*.json 2>/dev/nu…",
+    "cd \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon\"; for id in 2610.32749 2610.35684 2610.37230; do curl -s -m 30 \"https://huggingface.co/api…",
+    "cd \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon\"; python - <<'EOF' 2>/dev/null || echo \"heredoc blocked\"",
+    "cd \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon\"; python -c \"",
+    "cd \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon\"; python scan_m.py 2>&1 | head -90",
+    "cd \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon\"; python scan_p.py 2>&1 | head -80",
+    "cd \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon\"; python wide.py 2>&1 | head -100"
+  ],
+  "tools": [
+    {
+      "name": "terminal",
+      "count": 30
+    },
+    {
+      "name": "write_file",
+      "count": 8
+    },
+    {
+      "name": "read_file",
+      "count": 2
+    },
+    {
+      "name": "skill_manage",
+      "count": 2
+    },
+    {
+      "name": "skill_view",
+      "count": 2
+    }
+  ],
+  "bytes": 122734,
+  "diary": null,
+  "seances": []
+}

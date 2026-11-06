@@ -1,0 +1,68 @@
+{
+  "id": "cron_6d233f41b8e5_20261017_162917",
+  "title": "Your role is a low-priority, specialized AI Releas · Oct 17 16:30",
+  "source": "cron",
+  "model": "deepseek-flash",
+  "parentId": null,
+  "startedAt": 1792268964.3785298,
+  "endedAt": 1792269050.9169223,
+  "endReason": "cron_complete",
+  "messageCount": 34,
+  "toolCallCount": 16,
+  "inputTokens": 17559,
+  "outputTokens": 9372,
+  "costUsd": 0.009672474,
+  "cwd": "C:\\Users\\User\\Hermes\\gemma4site",
+  "gitBranch": null,
+  "gitRepo": null,
+  "pinned": false,
+  "archived": false,
+  "hidden": false,
+  "profileName": "default",
+  "lastActivityAt": 1792269024.26458,
+  "createdSource": "cron",
+  "ref": "4be372c8",
+  "displayTitle": "Your role is a low-priority, specialized AI Releas · Oct 17 16:30",
+  "durationSec": 87,
+  "userTurns": 1,
+  "goal": "[IMPORTANT: The following skill(s) were listed for this job but could not be found and were skipped: web_search, terminal. Start your response with a brief notice so the user is aware, e.g.: '⚠️ Skill(s) not found and skipped: web_search, terminal'] The user has provided the following instruction alongside the skill invocation: [IMPORTANT: You are running as a scheduled cron job. DELIVERY: Your final response will be automatically delivered to the user — do NOT use send_message or try to deliver the output yourself. Just produce your report/output as your final response and the system handles the rest. SILENT: If there is genuinely nothing new to report, respond with exactly \"[SILENT]\" (not…",
+  "outcome": "**HF Release Scan — 17 Oct 2026, 16:30 EDT** (60 papers, 80 trending models) **Notable for your hardware** - **nvidia/NVIDIA-Nemotron-Labs-Dory1.0-4B (+ official GGUF)** — HF Trending Models (79 likes bf16 / 27 likes, 461 dl GGUF) — Official NVIDIA 4B \"looped latent-recurrent\" GPT (interleaved sliding-window + full attention, 256K ctx, loop count k=1–4 trades compute for accuracy) ships a single Q5_K_M GGUF at **3.42 GiB**, so it fits comfortably on both the RX 6800 and the 6 GB 1660 — but hold the download: llama.cpp support is PR #30306, still **open and unmerged**, tested on CPU+CUDA only with Metal/ROCm/Vulkan unverified, so it needs a fork build and AMP support is unproven. - **ggml-org/vllm-d3-flash-GGUF** — HF Trending Models (71 likes, 3.9k dl; llama.cpp PR #30383 **merged**) — ggml's own conversion of the 8.39B Qwen3.5-9B-based \"decision model\": Q4_K_M **6.15 GiB + mmproj-Q8_0 …",
+  "files": [
+    "C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon/cand17.py",
+    "C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon/findings_20261017_1630.json",
+    "C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon/scan14.py",
+    "C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon/size17.py"
+  ],
+  "commands": [
+    "cd \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon\" && python -c \"",
+    "cd \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon\" && cp models.json models_prev.json && cp papers.json papers_prev.json && curl -s \"https:/…",
+    "cd \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon\" && curl -s \"https://api.github.com/repos/ggml-org/llama.cpp/pulls/30306\" | python -c \"",
+    "cd \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon\" && echo \"=== dory relevance lines ===\" && grep -n -iE \"llama.cpp|vulkan|rocm|cuda|backend…",
+    "cd \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon\" && python cand17.py 2>&1 | head -100",
+    "cd \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon\" && python cand17.py 2>&1 | tail -90",
+    "cd \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon\" && python scan14.py 2>&1 | head -120",
+    "cd \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon\" && python size17.py 2>&1 | head -80",
+    "mkdir -p \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon\" && cd \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon\" && ls -la && date"
+  ],
+  "tools": [
+    {
+      "name": "terminal",
+      "count": 20
+    },
+    {
+      "name": "write_file",
+      "count": 8
+    },
+    {
+      "name": "skill_manage",
+      "count": 2
+    },
+    {
+      "name": "skill_view",
+      "count": 2
+    }
+  ],
+  "bytes": 64382,
+  "diary": null,
+  "seances": []
+}

@@ -1,0 +1,73 @@
+{
+  "id": "local-2ffa1d070aa70252141cffa36b63897d71ea6b639ae9f8c1e85f4e37991cf638",
+  "title": "Your role is a low-priority, specialized AI Releas · Oct 27 21:57",
+  "source": "cron",
+  "model": "deepseek-flash",
+  "parentId": null,
+  "startedAt": 1793152452.879026,
+  "endedAt": 1793152636.4764311,
+  "endReason": "cron_complete",
+  "messageCount": 55,
+  "toolCallCount": 27,
+  "inputTokens": 32152,
+  "outputTokens": 16830,
+  "costUsd": 0.018291935999999998,
+  "cwd": "C:\\Users\\User\\Hermes\\gemma4site",
+  "gitBranch": null,
+  "gitRepo": null,
+  "pinned": false,
+  "archived": false,
+  "hidden": false,
+  "profileName": "default",
+  "lastActivityAt": 1793152582.263073,
+  "createdSource": "cron",
+  "ref": "2ffa1d07",
+  "displayTitle": "Your role is a low-priority, specialized AI Releas · Oct 27 21:57",
+  "durationSec": 184,
+  "userTurns": 1,
+  "goal": "[IMPORTANT: The following skill(s) were listed for this job but could not be found and were skipped: web_search, terminal. Start your response with a brief notice so the user is aware, e.g.: '⚠️ Skill(s) not found and skipped: web_search, terminal'] The user has provided the following instruction alongside the skill invocation: [IMPORTANT: You are running as a scheduled cron job. DELIVERY: Your final response will be automatically delivered to the user — do NOT use send_message or try to deliver the output yourself. Just produce your report/output as your final response and the system handles the rest. SILENT: If there is genuinely nothing new to report, respond with exactly \"[SILENT]\" (not…",
+  "outcome": "**HF Release Monitor — cycle 2026-10-28 01:55 UTC** (6 h since last run) - **openbmb/MiniCPM-OCR-1.0 + official `-gguf`** — HF Trending/Models (1.30B, Apache-2.0, 94 likes, created 2026-10-21) — document-parsing VLM for text/formula/table whose official Q4_K_M (504 MB) + `mmproj-model-f16-4x` (859 MB) totals **1.36 GiB**, so the whole pipeline runs inside your 6 GB GTX 1660 with stock llama.cpp mtmd (support merged PR #30979, 2026-10-22). Best fit of this cycle. - **openbmb/MiniCPM-OCR-Jev + official `-gguf`** — HF Trending/Models (2.21B, 26 likes, created 2026-10-23) — OCR *quality-assessment* decision model (AUROC 93.6, beats JEV-35B-A3B) at Q4_K_M 1.19 GB + mmproj 0.64 GB = **1.81 GiB on either card**, served as `/v1/systemone` in stock llama.cpp after PR #30980 merged today 10:49 UTC — but it cannot generate text (returns 501), so it pairs with MiniCPM-OCR-1.0 rather than replacing …",
+  "files": [
+    "C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon/findings_2026-10-27_2154.json",
+    "C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon/scan21.py",
+    "C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon/scan22.py",
+    "C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon/scan23.py"
+  ],
+  "commands": [
+    "cd \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon\" && cat findings_2026-10-27_1955.json && echo \"=== EARLIER ===\" && cat findings_2026-10-27…",
+    "cd \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon\" && cp models.json models_prev.json && cp papers.json papers_prev.json && ls -la models_pr…",
+    "cd \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon\" && curl -s -H \"Accept: application/vnd.github+json\" \"https://api.github.com/search/issues…",
+    "cd \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon\" && curl -s \"https://huggingface.co/api/models?sort=createdAt&direction=-1&limit=500\" -o c…",
+    "cd \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon\" && echo \"## Liquid GGUF repos\"; curl -s \"https://huggingface.co/api/models?author=LiquidA…",
+    "cd \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon\" && echo \"## MiniCPM5-2B\" && curl -s \"https://huggingface.co/api/models/openbmb/MiniCPM5-2…",
+    "cd \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon\" && echo \"## OCR-1.0-gguf tree\" && curl -s \"https://huggingface.co/api/models/openbmb/Mini…",
+    "cd \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon\" && echo \"## official OCR-Jev gguf tree\" && curl -s \"https://huggingface.co/api/models/ope…",
+    "cd \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon\" && echo \"## openbmb OCR 1.0?\" && for r in \"openbmb/MiniCPM-OCR-1.0\" \"openbmb/MiniCPM-OCR\"…",
+    "cd \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon\" && echo \"## openbmb/MiniCPM-OCR-1.0\" && curl -s \"https://huggingface.co/api/models/openbm…",
+    "cd \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon\" && echo \"## openbmb/MiniCPM-OCR-Jev\" && curl -s \"https://huggingface.co/api/models/openbm…",
+    "cd \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon\" && echo \"## search Jev\" && curl -s \"https://huggingface.co/api/models?search=Jev&sort=lik…",
+    "cd \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon\" && for r in \"axteam/MiniCPM5-2B-GGUF\" \"ternary/Arbiter-8B-GGUF\" \"ternary/Arbiter-8B\" \"pri…",
+    "cd \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon\" && for r in \"LiquidAI/LFM3-Audio-2B-GGUF\" \"LiquidAI/LFM3-Omni-2B-GGUF\" \"LiquidAI/d1-2B-GG…"
+  ],
+  "tools": [
+    {
+      "name": "terminal",
+      "count": 40
+    },
+    {
+      "name": "write_file",
+      "count": 8
+    },
+    {
+      "name": "skill_manage",
+      "count": 4
+    },
+    {
+      "name": "skill_view",
+      "count": 2
+    }
+  ],
+  "bytes": 107562,
+  "diary": null,
+  "seances": []
+}

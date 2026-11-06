@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Event_Handler</title>
+<link rel="stylesheet" href="./css/gui.css">
+</head>
+<body>
+<header>
+  <h1>Event_Handler</h1>
+  <p class="sub">register · trigger · log — generic, for all projects</p>
+  <div id="eh-status" class="status">connecting…</div>
+</header>
+<main>
+  <section class="pane">
+    <h2>Registered events <span id="eh-count" class="dim">0</span></h2>
+    <table>
+      <thead><tr><th>name</th><th>what it does</th><th>fired</th><th></th></tr></thead>
+      <tbody id="eh-table"></tbody>
+    </table>
+    <label class="field">payload (JSON, optional)
+      <textarea id="eh-payload" rows="3" placeholder='{"any":"json"}'></textarea>
+    </label>
+  </section>
+  <section class="pane">
+    <h2 class="filters">
+      Log
+      <input id="eh-filter-name" class="filter" placeholder="filter name">
+      <select id="eh-filter-source" class="filter">
+        <option value="">all sources</option>
+        <option value="user">user</option>
+        <option value="agent">agent</option>
+        <option value="process">process</option>
+        <option value="system">system</option>
+      </select>
+      <label class="filter"><input type="checkbox" id="eh-live" checked> live</label>
+      <button id="eh-refresh">refresh</button>
+      <button id="eh-purge">purge</button>
+    </h2>
+    <div id="eh-log" class="log"></div>
+  </section>
+</main>
+<script type="module" src="./js/browser/gui.js"></script>
+</body>
+</html>

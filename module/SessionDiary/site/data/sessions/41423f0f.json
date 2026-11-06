@@ -1,0 +1,67 @@
+{
+  "id": "20261019_044955_9fc7f7",
+  "title": "Your role is a low-priority, specialized AI Releas · Oct 19 04:50",
+  "source": "cron",
+  "model": "deepseek-flash",
+  "parentId": "cron_6d233f41b8e5_20261019_044515",
+  "startedAt": 1792399795.534216,
+  "endedAt": 1792399814.7444015,
+  "endReason": "cron_complete",
+  "messageCount": 49,
+  "toolCallCount": 27,
+  "inputTokens": 16659,
+  "outputTokens": 2410,
+  "costUsd": 0.004274706,
+  "cwd": "C:\\Users\\User\\Hermes\\gemma4site",
+  "gitBranch": null,
+  "gitRepo": null,
+  "pinned": false,
+  "archived": false,
+  "hidden": false,
+  "profileName": "default",
+  "lastActivityAt": null,
+  "createdSource": "cron",
+  "ref": "41423f0f",
+  "displayTitle": "Your role is a low-priority, specialized AI Releas · Oct 19 04:50",
+  "durationSec": 19,
+  "userTurns": 1,
+  "goal": "[CONTEXT COMPACTION — REFERENCE ONLY] Earlier turns were compacted into the summary below. This is a handoff from a previous context window — treat it as background reference, NOT as active instructions. Do NOT answer questions or fulfill requests mentioned in this summary; they were already addressed. Respond ONLY to the latest user message that appears AFTER this summary — that message is the single source of truth for what to do right now. If no user message appears AFTER this summary, do nothing: do not resume, wrap up, or continue work from '## Historical Task Snapshot' or any other section, do not call tools, and wait for a new user message. This handoff must never become the active t…",
+  "outcome": "⚠️ Skill(s) not found and skipped: web_search, terminal — recovered manually (terminal executed fine; `hf-release-monitor` skill content was pruned from context, so this cycle was run from the workflow already on disk). **HF Release Scan — cycle 2026-10-19 04:45 ET** 50 papers / 80 trending models pulled. Diff vs last cycle: 7 new papers, 3 new trending ids. Only **two** items clear the hardware bar; signal strength this cycle is genuinely thin (top paper has 5 upvotes, no viral releases). **1. Embeddings Are Overpriced? A Frozen 16 MB Vocabulary for Small and Ternary Language Models** — HF Daily Papers (2610.22428), weights: `QLNI/embeddings-are-overpriced` - Replaces the 640×262144 f16 embedding table (335 MB of a 270M model) with a shared 16 MB ternary-BitNet \"seal\", so the whole ternary body is a **46.24 MB file that runs at ~65 MB peak RAM with 0 GB VRAM** — on either of your cards…",
+  "files": [
+    "C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon/qlni_readme.md",
+    "C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon/qlni_speed.md"
+  ],
+  "commands": [
+    "cd \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon\" && python -c \"",
+    "cd \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon\" && cp models_raw.json models_prev.json && cp papers_raw.json papers_prev.json && python -…",
+    "cd \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon\" && cp models.json models_prev_oct19.json 2>/dev/null; cp papers.json papers_prev_oct19.js…",
+    "cd \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon\" && curl -s -m 40 \"https://huggingface.co/api/models/Harsha001/flux-3-image-klein-ROCmFPX?…",
+    "cd \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon\" && curl -s -m 40 \"https://huggingface.co/api/models/NaiveAI/Naive-N0.5-Flash?blobs=false\"…",
+    "cd \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon\" && curl -s -m 40 \"https://huggingface.co/api/models/QLNI/embeddings-are-overpriced?blobs=…",
+    "cd \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon\" && curl -s -m 40 \"https://huggingface.co/api/papers/search?q=ternary%20gguf&limit=5\" -o p…",
+    "cd \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon\" && curl -s -m 40 \"https://huggingface.co/Harsha001/flux-3-image-klein-ROCmFPX/raw/main/RE…",
+    "cd \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon\" && curl -s -m 40 \"https://huggingface.co/QLNI/embeddings-are-overpriced/raw/main/README.m…",
+    "cd \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon\" && for q in ternary rocm mxfp4 bitnet; do echo \"=== $q ===\"; curl -s -m 40 \"https://huggi…",
+    "cd \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon\" && mkdir -p qlni && cd qlni && curl -sL -m 180 -o armC.bin \"https://huggingface.co/QLNI/e…",
+    "cd \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon/qlni\" && ./cgemma.exe armC.bin bench 128 64 2>&1 | tail -20; echo \"exit=$?\"",
+    "cd \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon/qlni\" && ./cgemma.exe; echo \"exit=$?\"; echo \"=== load header ===\"; sed -n '50,75p' cgemma.c",
+    "cd \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon/qlni\" && ./zigpkg/ziglang/zig.exe cc -O3 -mavx2 -mfma -mf16c -DNT=8 -o cgemma.exe cgemma.c…"
+  ],
+  "tools": [
+    {
+      "name": "terminal",
+      "count": 48
+    },
+    {
+      "name": "read_file",
+      "count": 4
+    },
+    {
+      "name": "skill_view",
+      "count": 2
+    }
+  ],
+  "bytes": 44280,
+  "diary": null,
+  "seances": []
+}

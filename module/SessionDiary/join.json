@@ -1,0 +1,8 @@
+{
+  "name": "SessionDiary",
+  "kind": "door",
+  "port": 8134,
+  "start": "\"%LOCALAPPDATA%\\hermes\\node\\node.exe\" public/js/main.js --scan 120",
+  "wiredAtBoot": false,
+  "what": "The Hermes session wrapper: reads state.db read-only, writes a local static diary site (file:// clickable), asks dead sessions questions through the deepseek agent, and forks or restarts a session. Static HTML for reading; the API for acting."
+}

@@ -1,0 +1,49 @@
+{
+  "id": "local-21f767784df6387f304940f411c279f20c64891d151460b35e36bc44979a8a3d",
+  "title": "Your role is a low-priority, specialized AI Releas · Oct 28 16:06",
+  "source": "cron",
+  "model": "deepseek-flash",
+  "parentId": null,
+  "startedAt": 1793217912.929221,
+  "endedAt": 1793217987.3566165,
+  "endReason": "cron_complete",
+  "messageCount": 24,
+  "toolCallCount": 11,
+  "inputTokens": 15654,
+  "outputTokens": 6012,
+  "costUsd": 0.006708324,
+  "cwd": "C:\\Users\\User\\Hermes\\gemma4site",
+  "gitBranch": null,
+  "gitRepo": null,
+  "pinned": false,
+  "archived": false,
+  "hidden": false,
+  "profileName": "default",
+  "lastActivityAt": 1793217979.250114,
+  "createdSource": "cron",
+  "ref": "21f76778",
+  "displayTitle": "Your role is a low-priority, specialized AI Releas · Oct 28 16:06",
+  "durationSec": 74,
+  "userTurns": 1,
+  "goal": "[IMPORTANT: The following skill(s) were listed for this job but could not be found and were skipped: web_search, terminal. Start your response with a brief notice so the user is aware, e.g.: '⚠️ Skill(s) not found and skipped: web_search, terminal'] The user has provided the following instruction alongside the skill invocation: [IMPORTANT: You are running as a scheduled cron job. DELIVERY: Your final response will be automatically delivered to the user — do NOT use send_message or try to deliver the output yourself. Just produce your report/output as your final response and the system handles the rest. SILENT: If there is genuinely nothing new to report, respond with exactly \"[SILENT]\" (not…",
+  "outcome": "**Daily HF Hardware Watch — Oct 28, 2026** - **NVIDIA-Nemotron-3.5-Bolt-E4B-4GB** — Trending Models (nvidia) — Official NVIDIA post-train of Gemma-4-E4B shipped as a single Q4_K_M GGUF (~4GB, 8B total / 4B effective, 64K context) with a companion DFlash speculative drafter, so it fits your GTX 1660's 6GB with usable headroom and runs under llama.cpp on the RX 6800 via ROCm/Vulkan. - **XHToken/Spark-X2.6-4B (+ official GGUF repo)** — Trending Models — A 4.1B Apache-2.0 model at 845 likes with bartowski/community quants already published, meaning Q4 lands near ~2.5GB — an easy drop-in local chat model for the 1660. - **amd/Qwen3.8-27B-Quark-AWQ-MXFP4** — Trending Models (AMD official org) — AMD's own Quark pipeline quantizes Qwen3.8-27B to MXFP4 weights *and* activations with AWQ at ~101.8% GSM8K recovery of BF16, worth tracking for the RX 6800's 16GB, but note RDNA2 has no native FP4 mat…",
+  "files": [],
+  "commands": [],
+  "tools": [
+    {
+      "name": "browser_exec",
+      "count": 18
+    },
+    {
+      "name": "execute_code",
+      "count": 2
+    },
+    {
+      "name": "web_extract",
+      "count": 2
+    }
+  ],
+  "bytes": 64686,
+  "diary": null,
+  "seances": []
+}

@@ -1,0 +1,51 @@
+{
+  "id": "20260613_170358_5605a6",
+  "title": "Running ComfyUI Workflows and Parameters",
+  "source": "cli",
+  "model": "gemma-4-E4B-it-Q5_K_M.gguf",
+  "parentId": null,
+  "startedAt": 1781395438.2780492,
+  "endedAt": 1781395790.38417,
+  "endReason": "cli_close",
+  "messageCount": 14,
+  "toolCallCount": 6,
+  "inputTokens": 9917,
+  "outputTokens": 2400,
+  "costUsd": 0,
+  "cwd": null,
+  "gitBranch": null,
+  "gitRepo": null,
+  "pinned": false,
+  "archived": false,
+  "hidden": false,
+  "profileName": "default",
+  "lastActivityAt": null,
+  "createdSource": null,
+  "ref": "627ae605",
+  "displayTitle": "Running ComfyUI Workflows and Parameters",
+  "durationSec": 352,
+  "userTurns": 1,
+  "goal": "[IMPORTANT: The user has invoked the \"comfyui\" skill, indicating they want you to follow its instructions. The full skill content is loaded below.] --- name: comfyui description: \"Generate images, video, and audio with ComfyUI — install, launch, manage nodes/models, run workflows with parameter injection. Uses the official comfy-cli for lifecycle and direct REST/WebSocket API for execution.\" version: 5.1.0 author: [kshitijk4poor, alt-glitch, purzbeats] license: MIT platforms: [macos, linux, windows] compatibility: \"Requires ComfyUI (local, Comfy Desktop, or Comfy Cloud) and comfy-cli (auto-installed via pipx/uvx by the setup script).\" prerequisites: commands: [\"python3\"] setup: help: \"Run s…",
+  "outcome": "To run a workflow on your existing ComfyUI instance, I will use the `run_workflow.py` script. Please provide me with the following information: 1. **Workflow File Path:** The absolute path to the ComfyUI workflow JSON file you want to run (e.g., `C:\\path\\to\\workflows\\sdxl_img2img.json`). 2. **Host URL:** The full URL of your running ComfyUI instance (e.g., `http://192.168.1.10:8188` or `https://yourdomain.com`). 3. **Workflow Arguments:** The JSON object containing the parameters you want to set (e.g., `{\"prompt\": \"A cybernetic dragon\", \"seed\": -1, \"steps\": 30}`). If you are using a template, you can omit this if you want the default settings. Once I have these details, I can construct and execute the command.",
+  "files": [
+    "C:\\Users\\User\\AppData\\Local\\hermes\\skills\\creative\\comfyui\\scripts\\hardware_check.py"
+  ],
+  "commands": [
+    "python /c/Users/User/AppData/Local/hermes/skills/creative/comfyui/scripts/hardware_check.py --json",
+    "python C:\\Users\\User\\AppData\\Local\\hermes\\skills\\creative\\comfyui\\scripts\\hardware_check.py --json",
+    "python3 C:\\Users\\User\\AppData\\Local\\hermes\\skills\\creative\\comfyui\\scripts\\hardware_check.py --json"
+  ],
+  "tools": [
+    {
+      "name": "clarify",
+      "count": 6
+    },
+    {
+      "name": "terminal",
+      "count": 6
+    }
+  ],
+  "bytes": 34522,
+  "diary": null,
+  "seances": []
+}

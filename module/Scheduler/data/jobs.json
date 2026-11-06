@@ -1,0 +1,315 @@
+{
+  "jobs": [
+    {
+      "id": "j-0001",
+      "service": "qwen-image-2.1",
+      "inputs": {
+        "prompt": "a red door",
+        "steps": 20
+      },
+      "note": null,
+      "status": "done",
+      "createdAt": "2026-10-28T12:06:59.513Z",
+      "startedAt": "2026-10-28T12:06:59.515Z",
+      "finishedAt": "2026-10-28T12:07:00.737Z",
+      "runner": "dummy",
+      "result": {
+        "runner": "dummy",
+        "executed": false,
+        "note": "dummy runner — nothing was executed. In a real run this is where \"qwen-image-2.1\" would start with 2 declared inputs (prompt, steps).",
+        "outputs": [],
+        "ms": 1212
+      },
+      "error": null
+    },
+    {
+      "id": "j-0002",
+      "service": "yue-music",
+      "inputs": {
+        "style": "rock",
+        "lyrics": "[Verse] hello"
+      },
+      "note": null,
+      "status": "done",
+      "createdAt": "2026-10-28T12:06:59.527Z",
+      "startedAt": "2026-10-28T12:07:00.739Z",
+      "finishedAt": "2026-10-28T12:07:01.942Z",
+      "runner": "dummy",
+      "result": {
+        "runner": "dummy",
+        "executed": false,
+        "note": "dummy runner — nothing was executed. In a real run this is where \"yue-music\" would start with 2 declared inputs (style, lyrics).",
+        "outputs": [],
+        "ms": 1201
+      },
+      "error": null
+    },
+    {
+      "id": "j-0003",
+      "service": "llama-chat",
+      "inputs": {
+        "model": "Bonsai-1.7B.gguf"
+      },
+      "note": null,
+      "status": "cancelled",
+      "createdAt": "2026-10-28T12:06:59.567Z",
+      "startedAt": null,
+      "finishedAt": "2026-10-28T12:06:59.583Z",
+      "runner": "dummy",
+      "result": null,
+      "error": null
+    },
+    {
+      "id": "j-0004",
+      "service": "qwen-image-2.1",
+      "inputs": {
+        "prompt": "a red door",
+        "steps": 20
+      },
+      "note": null,
+      "status": "done",
+      "createdAt": "2026-10-28T12:08:20.409Z",
+      "startedAt": "2026-10-28T12:08:20.410Z",
+      "finishedAt": "2026-10-28T12:08:21.615Z",
+      "runner": "dummy",
+      "result": {
+        "runner": "dummy",
+        "executed": false,
+        "note": "dummy runner — nothing was executed. In a real run this is where \"qwen-image-2.1\" would start with 2 declared inputs (prompt, steps).",
+        "outputs": [],
+        "ms": 1204
+      },
+      "error": null
+    },
+    {
+      "id": "j-0005",
+      "service": "yue-music",
+      "inputs": {
+        "style": "rock",
+        "lyrics": "[Verse] hello"
+      },
+      "note": null,
+      "status": "done",
+      "createdAt": "2026-10-28T12:08:20.416Z",
+      "startedAt": "2026-10-28T12:08:21.617Z",
+      "finishedAt": "2026-10-28T12:08:22.831Z",
+      "runner": "dummy",
+      "result": {
+        "runner": "dummy",
+        "executed": false,
+        "note": "dummy runner — nothing was executed. In a real run this is where \"yue-music\" would start with 2 declared inputs (style, lyrics).",
+        "outputs": [],
+        "ms": 1212
+      },
+      "error": null
+    },
+    {
+      "id": "j-0006",
+      "service": "llama-chat",
+      "inputs": {
+        "model": "Bonsai-1.7B.gguf"
+      },
+      "note": null,
+      "status": "cancelled",
+      "createdAt": "2026-10-28T12:08:20.434Z",
+      "startedAt": null,
+      "finishedAt": "2026-10-28T12:08:20.459Z",
+      "runner": "dummy",
+      "result": null,
+      "error": null
+    },
+    {
+      "id": "j-0007",
+      "service": "yue-music",
+      "inputs": {
+        "style": "English, 1980s hard rock, arena rock anthem, distorted electric guitar riff, twin guitar harmonies, pounding drums, driving bass, high raspy male lead vocal, gang backing vocals, analog tape warmth, 122 BPM, E minor",
+        "lyrics": "[Verse]\nan old machine hums in the dark\n[Chorus]\nit still knows the tune",
+        "seed": 1985,
+        "cot": "full",
+        "title": "menu-gate-song"
+      },
+      "note": null,
+      "status": "done",
+      "createdAt": "2026-10-28T12:10:10.587Z",
+      "startedAt": "2026-10-28T12:10:10.588Z",
+      "finishedAt": "2026-10-28T12:10:11.799Z",
+      "runner": "dummy",
+      "result": {
+        "runner": "dummy",
+        "executed": false,
+        "note": "dummy runner — nothing was executed. In a real run this is where \"yue-music\" would start with 5 declared inputs (style, lyrics, seed, cot, title).",
+        "outputs": [],
+        "ms": 1210
+      },
+      "error": null
+    },
+    {
+      "id": "j-0008",
+      "service": "qwen-image-2.1",
+      "inputs": {
+        "prompt": "live page check"
+      },
+      "note": null,
+      "status": "done",
+      "createdAt": "2026-10-28T12:11:22.919Z",
+      "startedAt": "2026-10-28T12:11:22.922Z",
+      "finishedAt": "2026-10-28T12:11:24.153Z",
+      "runner": "dummy",
+      "result": {
+        "runner": "dummy",
+        "executed": false,
+        "note": "dummy runner — nothing was executed. In a real run this is where \"qwen-image-2.1\" would start with 1 declared input (prompt).",
+        "outputs": [],
+        "ms": 1213
+      },
+      "error": null
+    },
+    {
+      "id": "j-0009",
+      "service": "llama-chat",
+      "inputs": {
+        "model": "Qwen3.8-9B-Q8_0.gguf"
+      },
+      "note": "launched from the menu",
+      "status": "done",
+      "createdAt": "2026-10-28T23:14:55.151Z",
+      "startedAt": "2026-10-28T23:14:55.154Z",
+      "finishedAt": "2026-10-28T23:14:56.374Z",
+      "runner": "dummy",
+      "result": {
+        "runner": "dummy",
+        "executed": false,
+        "note": "dummy runner — nothing was executed. In a real run this is where \"llama-chat\" would start with 1 declared input (model).",
+        "outputs": [],
+        "ms": 1208
+      },
+      "error": null
+    },
+    {
+      "id": "j-0010",
+      "service": "llama-chat",
+      "inputs": {
+        "model": "Qwen3.8-9B-Q8_0.gguf"
+      },
+      "note": "busy-test 0",
+      "status": "done",
+      "createdAt": "2026-10-28T23:15:31.799Z",
+      "startedAt": "2026-10-28T23:15:31.800Z",
+      "finishedAt": "2026-10-28T23:15:33.015Z",
+      "runner": "dummy",
+      "result": {
+        "runner": "dummy",
+        "executed": false,
+        "note": "dummy runner — nothing was executed. In a real run this is where \"llama-chat\" would start with 1 declared input (model).",
+        "outputs": [],
+        "ms": 1204
+      },
+      "error": null
+    },
+    {
+      "id": "j-0011",
+      "service": "llama-chat",
+      "inputs": {
+        "model": "Qwen3.8-9B-Q8_0.gguf"
+      },
+      "note": "busy-test 1",
+      "status": "done",
+      "createdAt": "2026-10-28T23:15:31.813Z",
+      "startedAt": "2026-10-28T23:15:33.016Z",
+      "finishedAt": "2026-10-28T23:15:34.232Z",
+      "runner": "dummy",
+      "result": {
+        "runner": "dummy",
+        "executed": false,
+        "note": "dummy runner — nothing was executed. In a real run this is where \"llama-chat\" would start with 1 declared input (model).",
+        "outputs": [],
+        "ms": 1215
+      },
+      "error": null
+    },
+    {
+      "id": "j-0012",
+      "service": "llama-chat",
+      "inputs": {
+        "model": "Qwen3.8-9B-Q8_0.gguf"
+      },
+      "note": "busy-test 2",
+      "status": "done",
+      "createdAt": "2026-10-28T23:15:31.826Z",
+      "startedAt": "2026-10-28T23:15:34.233Z",
+      "finishedAt": "2026-10-28T23:15:35.446Z",
+      "runner": "dummy",
+      "result": {
+        "runner": "dummy",
+        "executed": false,
+        "note": "dummy runner — nothing was executed. In a real run this is where \"llama-chat\" would start with 1 declared input (model).",
+        "outputs": [],
+        "ms": 1212
+      },
+      "error": null
+    },
+    {
+      "id": "j-0013",
+      "service": "llama-chat",
+      "inputs": {
+        "model": "Qwen3.8-9B-Q8_0.gguf"
+      },
+      "note": "launched from the menu",
+      "status": "done",
+      "createdAt": "2026-10-28T23:15:58.415Z",
+      "startedAt": "2026-10-28T23:15:58.418Z",
+      "finishedAt": "2026-10-28T23:15:59.627Z",
+      "runner": "dummy",
+      "result": {
+        "runner": "dummy",
+        "executed": false,
+        "note": "dummy runner — nothing was executed. In a real run this is where \"llama-chat\" would start with 1 declared input (model).",
+        "outputs": [],
+        "ms": 1208
+      },
+      "error": null
+    },
+    {
+      "id": "j-0014",
+      "service": "qwen-image-2.1",
+      "inputs": {
+        "model": "qwen_image_2.1-Q8_0.gguf"
+      },
+      "note": "launched from the menu",
+      "status": "done",
+      "createdAt": "2026-10-29T00:05:09.647Z",
+      "startedAt": "2026-10-29T00:05:09.649Z",
+      "finishedAt": "2026-10-29T00:05:10.872Z",
+      "runner": "dummy",
+      "result": {
+        "runner": "dummy",
+        "executed": false,
+        "note": "dummy runner — nothing was executed. In a real run this is where \"qwen-image-2.1\" would start with 1 declared input (model).",
+        "outputs": [],
+        "ms": 1210
+      },
+      "error": null
+    },
+    {
+      "id": "j-0015",
+      "service": "qwen-image-2.1",
+      "inputs": {
+        "quant": "Q8_0"
+      },
+      "note": "launched from the menu",
+      "status": "done",
+      "createdAt": "2026-10-29T00:05:43.100Z",
+      "startedAt": "2026-10-29T00:05:43.101Z",
+      "finishedAt": "2026-10-29T00:05:44.326Z",
+      "runner": "dummy",
+      "result": {
+        "runner": "dummy",
+        "executed": false,
+        "note": "dummy runner — nothing was executed. In a real run this is where \"qwen-image-2.1\" would start with 1 declared input (quant).",
+        "outputs": [],
+        "ms": 1206
+      },
+      "error": null
+    }
+  ]
+}

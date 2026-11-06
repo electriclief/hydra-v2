@@ -1,0 +1,30 @@
+{
+  "name": "menu",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Menu — the way in (ES modules). The tree of what this node can make: a row per service, its advert beside it on hover or ↑↓, and its inputs page on click. The inputs page builds a form from the fields the catalog declares and books a job on the Scheduler. Holds no state, runs nothing, copies no description: the words stay in the service files.",
+  "type": "module",
+  "main": "public/js/main.js",
+  "exports": {
+    ".": "./public/js/main.js",
+    "./catalog": "./public/js/catalog.js",
+    "./page": "./public/js/page.js",
+    "./api": "./public/js/apiServer.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "esbuild public/ts/*.ts --outdir=public/js --format=esm --platform=node --target=node20 --sourcemap",
+    "watch": "esbuild public/ts/*.ts --outdir=public/js --format=esm --platform=node --target=node20 --sourcemap --watch",
+    "typecheck": "tsc --noEmit",
+    "selftest": "node public/js/selftest.js",
+    "test": "npm run build && npm run typecheck && npm run selftest",
+    "start": "node public/js/main.js"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "esbuild": "^0.25.0",
+    "typescript": "^5.6.0"
+  }
+}

@@ -1,0 +1,700 @@
+/**
+ * @module render
+ * @description Turns cards into the two pages the site is made of, plus the one stylesheet and the
+ *              one script they share. No framework, no fetch on file://, no external asset: every
+ *              page carries its own data inline and opens by double-click.
+ * @intent The agent reads these pages as its own index of what it has done; the human reads them
+ *         to see what the agent was thinking. Density, scannability, keyboard first.
+ */
+
+import type { Card, Diary, IndexRow, Seance, SiteStats } from './types.js';
+
+export const PAGE_INDEX = 'read_dir_indexer.html';
+export const PAGE_PREFIX = 'session_';
+export const ASSET_CSS = 'custom.css';
+export const ASSET_JS = 'custom.js';
+
+export function esc(value: unknown): string {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+/** JSON safe to sit inside a <script> tag. */
+export function inlineJson(value: unknown): string {
+  return JSON.stringify(value)
+    .replace(/</g, '\\u003c')
+    .replace(/>/g, '\\u003e')
+    .replace(/\u2028/g, '\\u2028')
+    .replace(/\u2029/g, '\\u2029');
+}
+
+export function fmtDate(epoch: number | null): string {
+  if (!epoch) return '—';
+  const d = new Date(epoch * 1000);
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+export function fmtDuration(seconds: number | null): string {
+  if (seconds === null) return '—';
+  if (seconds < 60) return `${seconds}s`;
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes}m ${seconds % 60}s`;
+  const hours = Math.floor(minutes / 60);
+  return `${hours}h ${minutes % 60}m`;
+}
+
+export function fmtNumber(value: number): string {
+  return value.toLocaleString('en-US');
+}
+
+export function fmtCost(value: number | null): string {
+  if (value === null) return '—';
+  if (value === 0) return '$0';
+  if (value < 0.01) return `$${value.toFixed(4)}`;
+  return `$${value.toFixed(2)}`;
+}
+
+export function toIndexRow(card: Card, diary: Diary | undefined, seances: Seance[]): IndexRow {
+  return {
+    id: card.id,
+    ref: card.ref,
+    title: card.displayTitle,
+    source: card.source,
+    model: card.model,
+    startedAt: card.startedAt,
+    durationSec: card.durationSec,
+    messages: card.messageCount || card.turns.length,
+    toolCalls: card.toolCallCount,
+    userTurns: card.userTurns,
+    costUsd: card.costUsd,
+    tokens: card.inputTokens + card.outputTokens,
+    goal: card.goal.slice(0, 260),
+    files: card.files.length,
+    tools: card.tools.slice(0, 5).map((tool) => tool.name),
+    parentId: card.parentId,
+    pinned: card.pinned,
+    archived: card.archived,
+    hasDiary: Boolean(diary),
+    hasSeance: seances.some((seance) => seance.sessionId === card.id),
+  };
+}
+
+export function sessionFileName(ref: string): string {
+  return `${PAGE_PREFIX}${ref}.html`;
+}
+
+function shell(title: string, bodyAttrs: string, head: string, body: string, apiBase: string, inline: string): string {
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>${esc(title)}</title>
+<link rel="stylesheet" href="${ASSET_CSS}">
+${head}
+</head>
+<body ${bodyAttrs}>
+${body}
+<script>window.SD_API=${inlineJson(apiBase)};${inline}</script>
+<script src="${ASSET_JS}"></script>
+</body>
+</html>
+`;
+}
+
+export interface IndexPageInput {
+  rows: IndexRow[];
+  stats: SiteStats;
+  generatedAt: number;
+  dbPath: string;
+  apiBase: string;
+}
+
+export function renderIndex(input: IndexPageInput): string {
+  const { rows, stats, generatedAt, dbPath, apiBase } = input;
+  const sources = [...new Set(rows.map((row) => row.source))].sort();
+  const chips = sources
+    .map((source) => {
+      const count = rows.filter((row) => row.source === source).length;
+      const hide = source === 'cron' || source === 'oneshot' ? ' data-quiet="1"' : '';
+      return `<button class="chip" data-source="${esc(source)}"${hide}>${esc(source)} <b>${count}</b></button>`;
+    })
+    .join('');
+  const span =
+    stats.firstAt && stats.lastAt ? `${fmtDate(stats.firstAt)} → ${fmtDate(stats.lastAt)}` : 'no sessions';
+
+  const body = `<header class="masthead">
+  <div class="kicker">Hermes Agent · session diary · built ${esc(fmtDate(generatedAt / 1000))}</div>
+  <h1>${fmtNumber(stats.sessions)} sessions<span class="dim"> · ${fmtNumber(stats.messages)} messages · ${fmtNumber(stats.tokens)} tokens · ${esc(fmtCost(stats.costUsd))}</span></h1>
+  <div class="sub">${esc(span)} · read from <code>${esc(dbPath)}</code> (read-only) · api <code>${esc(apiBase)}</code></div>
+</header>
+
+<section class="controls">
+  <input id="q" type="search" placeholder="search title, goal, files, tools, ref…  ( / to focus )" autocomplete="off" spellcheck="false">
+  <div class="chips">
+    <button class="chip is-on" data-source="__all">all <b>${rows.length}</b></button>
+    ${chips}
+    <button class="chip" id="only-diary" data-flag="diary">with diary</button>
+    <button class="chip" id="only-pinned" data-flag="pinned">pinned</button>
+    <button class="chip" id="show-quiet" data-flag="quiet">show cron + oneshot</button>
+  </div>
+</section>
+
+<section class="table-wrap">
+  <table id="index">
+    <thead>
+      <tr>
+        <th class="c-date">date</th>
+        <th class="c-title">diary entry</th>
+        <th class="c-source">source</th>
+        <th class="c-num">msgs</th>
+        <th class="c-num">tools</th>
+        <th class="c-num">files</th>
+        <th class="c-num">cost</th>
+        <th class="c-ref">ref</th>
+      </tr>
+    </thead>
+    <tbody id="rows"></tbody>
+  </table>
+  <p class="empty" id="empty" hidden>nothing matches.</p>
+</section>
+
+<footer class="foot">
+  <span>${rows.length} entries · generated by SessionDiary · <a href="${esc(apiBase)}/">api root</a> · <span id="shown"></span></span>
+</footer>`;
+
+  return shell(
+    'Session Diary — index',
+    'data-page="index"',
+    '',
+    body,
+    apiBase,
+    `window.SD_INDEX=${inlineJson(rows)};`,
+  );
+}
+
+export interface SessionPageInput {
+  card: Card;
+  diary: Diary | undefined;
+  seances: Seance[];
+  apiBase: string;
+  generatedAt: number;
+  allRefs: Map<string, string>;
+}
+
+function chipsFor(card: Card): string {
+  const bits = [
+    `<span class="tag src">${esc(card.source)}</span>`,
+    card.model ? `<span class="tag">${esc(card.model)}</span>` : '',
+    card.profileName ? `<span class="tag">${esc(card.profileName)}</span>` : '',
+    card.pinned ? '<span class="tag pin">pinned</span>' : '',
+    card.archived ? '<span class="tag">archived</span>' : '',
+    card.endReason ? `<span class="tag">ended: ${esc(card.endReason)}</span>` : '',
+    card.gitBranch ? `<span class="tag">${esc(card.gitBranch)}</span>` : '',
+  ];
+  return bits.filter(Boolean).join('');
+}
+
+function shortcutRow(label: string, command: string): string {
+  return `<div class="shortcut">
+    <span class="s-label">${esc(label)}</span>
+    <code class="s-cmd">${esc(command)}</code>
+    <button class="copy" data-copy="${esc(command)}" title="copy">copy</button>
+  </div>`;
+}
+
+function renderDiaryBlock(card: Card, diary: Diary | undefined): string {
+  if (diary) {
+    const paragraphs = diary.text
+      .split(/\n{2,}/)
+      .map((para) => `<p>${esc(para).replace(/\n/g, '<br>')}</p>`)
+      .join('');
+    return `<div class="diary-prose">${paragraphs}</div>
+      <div class="diary-note">written by ${esc(diary.model)} · ${esc(fmtDate(diary.at / 1000))} · ${(diary.ms / 1000).toFixed(1)}s</div>`;
+  }
+  return `<div class="diary-prose empty-prose">
+      <p><span class="dim">No prose diary yet — the card below is the deterministic digest (free, instant, written for every session).</span></p>
+    </div>
+    <div class="diary-actions">
+      <button class="action" id="write-diary">Write the diary <span class="dim">— deepseek reads the session</span></button>
+      <span class="hint" id="diary-status"></span>
+    </div>`;
+}
+
+function renderSeances(seances: Seance[]): string {
+  if (seances.length === 0) return '<p class="dim small">No questions asked yet.</p>';
+  return seances
+    .slice()
+    .sort((a, b) => a.at - b.at)
+    .map(
+      (seance) => `<div class="seance">
+      <div class="q">${esc(seance.question)}</div>
+      <div class="a">${esc(seance.answer).replace(/\r/g, '').replace(/\n{2,}/g, '<br><br>').replace(/\n/g, '<br>')}</div>
+      <div class="meta">${esc(fmtDate(seance.at / 1000))} · ${(seance.ms / 1000).toFixed(1)}s${
+        seance.spawnSessionId ? ` · answered in <code>${esc(SessionDiaryRef(seance.spawnSessionId))}</code>` : ''
+      }</div>
+    </div>`,
+    )
+    .join('');
+}
+
+function SessionDiaryRef(id: string): string {
+  return id.length > 14 ? `${id.slice(0, 14)}…` : id;
+}
+
+function renderTurns(card: Card): string {
+  const rows: string[] = [];
+  let openGroup = false;
+  for (const turn of card.turns) {
+    if (turn.role === 'tool') {
+      rows.push(`<details class="turn tool"><summary><span class="who">${esc(turn.toolName ?? 'tool')}</span><span class="preview">${esc(
+        turn.text.replace(/\s+/g, ' ').slice(0, 120),
+      )}</span></summary><pre>${esc(turn.text)}</pre></details>`);
+      continue;
+    }
+    if (openGroup) {
+      openGroup = false;
+    }
+    if (turn.role === 'user') {
+      rows.push(`<div class="turn user"><div class="who">you</div><div class="text">${esc(turn.text).replace(/\n/g, '<br>')}</div></div>`);
+      continue;
+    }
+    if (turn.role === 'assistant') {
+      const calls = (turn.calls ?? [])
+        .map((call) => `<div class="call"><span class="name">${esc(call.name)}</span><span class="arg">${esc(call.brief)}</span></div>`)
+        .join('');
+      rows.push(`<div class="turn assistant"><div class="who">agent</div>${
+        turn.text.trim() ? `<div class="text">${esc(turn.text).replace(/\n/g, '<br>')}</div>` : ''
+      }${calls ? `<div class="calls">${calls}</div>` : ''}</div>`);
+      continue;
+    }
+    rows.push(`<div class="turn other"><div class="who">${esc(turn.role)}</div><div class="text">${esc(turn.text)}</div></div>`);
+  }
+  return rows.join('\n');
+}
+
+export function renderSession(input: SessionPageInput): string {
+  const { card, diary, seances, apiBase, generatedAt, allRefs } = input;
+  const parentLink = card.parentId
+    ? `<a href="${esc(sessionFileName(allRefs.get(card.parentId) ?? 'missing'))}">parent ${esc(card.parentId.slice(0, 20))}…</a>`
+    : '<span class="dim">no parent</span>';
+  const children = [...allRefs.entries()].filter(([id]) => id !== card.id);
+
+  const files = card.files.length
+    ? card.files.map((file) => `<li><code>${esc(file)}</code></li>`).join('')
+    : '<li class="dim">no paths seen in tool arguments</li>';
+  const commands = card.commands.length
+    ? card.commands.map((command) => `<li><code>${esc(command)}</code></li>`).join('')
+    : '<li class="dim">no shell commands</li>';
+  const tools = card.tools.length
+    ? card.tools.map((tool) => `<span class="toolchip">${esc(tool.name)} <b>${tool.count}</b></span>`).join('')
+    : '<span class="dim">none</span>';
+
+  const stats = `<div class="statgrid">
+    <div><span class="k">started</span><span class="v">${esc(fmtDate(card.startedAt))}</span></div>
+    <div><span class="k">ended</span><span class="v">${esc(fmtDate(card.endedAt))}</span></div>
+    <div><span class="k">duration</span><span class="v">${esc(fmtDuration(card.durationSec))}</span></div>
+    <div><span class="k">turns</span><span class="v">${card.userTurns}</span></div>
+    <div><span class="k">messages</span><span class="v">${card.messageCount || card.turns.length}</span></div>
+    <div><span class="k">tool calls</span><span class="v">${card.toolCallCount}</span></div>
+    <div><span class="k">tokens in / out</span><span class="v">${fmtNumber(card.inputTokens)} / ${fmtNumber(card.outputTokens)}</span></div>
+    <div><span class="k">cost</span><span class="v">${esc(fmtCost(card.costUsd))}</span></div>
+  </div>`;
+
+  const body = `<header class="masthead">
+  <div class="kicker"><a href="${PAGE_INDEX}">← all sessions</a> · ${esc(card.ref)} · built ${esc(fmtDate(generatedAt / 1000))}</div>
+  <h1>${esc(card.displayTitle)}</h1>
+  <div class="tags">${chipsFor(card)}</div>
+</header>
+
+<section class="panel">
+  <h2>What was done</h2>
+  ${renderDiaryBlock(card, diary)}
+</section>
+
+<section class="panel twocol">
+  <div>
+    <h2>The ask</h2>
+    <p class="quote">${esc(card.goal) || '<span class="dim">no user turn recorded</span>'}</p>
+  </div>
+  <div>
+    <h2>Where it ended</h2>
+    <p class="quote">${esc(card.outcome) || '<span class="dim">no assistant turn recorded</span>'}</p>
+  </div>
+</section>
+
+<section class="panel">
+  <h2>Shortcuts</h2>
+  ${shortcutRow('restart', `hermes --resume ${card.id}`)}
+  ${shortcutRow('by title', `hermes -c "${(card.displayTitle || '').replace(/"/g, '')}"`)}
+  ${shortcutRow('export markdown', `hermes sessions export --session-id ${card.id} --format md C:/Users/User/AppData/Local/hermes/session-exports/`)}
+  ${shortcutRow('export html', `hermes sessions export --session-id ${card.id} --format html`)}
+  ${shortcutRow('ask (api)', `curl -s -X POST ${apiBase}/api/ask -H "content-type: application/json" -d "{\\"session_id\\":\\"${card.id}\\",\\"question\\":\\"what did we decide?\\"}"`)}
+  ${shortcutRow('fork (api)', `curl -s -X POST ${apiBase}/api/fork/${card.id}`)}
+</section>
+
+<section class="panel">
+  <h2>Talk to the dead</h2>
+  <p class="dim small">The question goes to the deepseek agent, which reads this session with its own tools and answers. The answer is filed here.</p>
+  <form id="ask-form">
+    <input id="ask-input" type="text" placeholder="ask this session something…" autocomplete="off">
+    <button class="action" type="submit">Ask</button>
+    <button class="action ghost" type="button" id="fork-session">Fork this session</button>
+    <button class="action ghost" type="button" id="restart-session">Restart (new terminal)</button>
+  </form>
+  <div id="ask-status" class="hint"></div>
+  <div id="seances">${renderSeances(seances)}</div>
+</section>
+
+<section class="panel">
+  <h2>Evidence</h2>
+  ${stats}
+  <div class="evidence-grid">
+    <div>
+      <h3>Files touched</h3>
+      <ul class="files">${files}</ul>
+    </div>
+    <div>
+      <h3>Commands run</h3>
+      <ul class="files">${commands}</ul>
+    </div>
+  </div>
+  <h3>Tools</h3>
+  <div class="toolchips">${tools}</div>
+  <h3>Where</h3>
+  <p class="small"><code>${esc(card.cwd ?? '—')}</code>${
+    card.gitRepo ? ` · repo <code>${esc(card.gitRepo)}</code>` : ''
+  } · lineage ${parentLink}</p>
+</section>
+
+<section class="panel">
+  <h2>Transcript <span class="dim small">${card.turns.length} turns · tool output trimmed</span></h2>
+  <div class="turns">${renderTurns(card)}</div>
+</section>
+
+<footer class="foot">
+  <span class="mono small">${esc(card.id)}</span>
+  <span class="small"><a href="${esc(sessionFileName(card.ref))}">permalink</a> · <span class="dim">${children.length} forked entries share the index</span></span>
+</footer>`;
+
+  return shell(
+    `${card.displayTitle} — session diary`,
+    'data-page="session"',
+    '',
+    body,
+    apiBase,
+    `window.SD_SESSION=${inlineJson({ id: card.id, ref: card.ref, title: card.displayTitle, seances })};`,
+  );
+}
+
+export const CSS = `:root{
+  --bg:#0d1117; --bg2:#11161d; --line:#1e2732; --text:#d8dee9; --dim:#6b7785;
+  --accent:#8fb3d9; --warn:#d9a88f; --ok:#8fd9a8;
+  --mono:ui-monospace,SFMono-Regular,"Cascadia Mono",Consolas,monospace;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--text)}
+body{font:15px/1.55 var(--mono);padding:34px clamp(18px,5vw,64px) 80px;max-width:1220px;margin:0 auto}
+a{color:var(--accent);text-decoration:none}
+a:hover{text-decoration:underline}
+h1{font-size:26px;font-weight:600;letter-spacing:-.01em;margin:6px 0 8px;line-height:1.25}
+h2{font-size:12px;text-transform:uppercase;letter-spacing:.14em;color:var(--dim);font-weight:600;margin:0 0 12px}
+h3{font-size:12px;letter-spacing:.06em;color:var(--dim);font-weight:600;margin:18px 0 6px}
+code{font-family:var(--mono);font-size:12.5px;overflow-wrap:anywhere;background:#151b23;border:1px solid var(--line);padding:1px 5px;border-radius:3px;color:#c7d2df}
+.dim{color:var(--dim)}
+.small{font-size:12px}
+.mono{font-family:var(--mono)}
+.kicker{font-size:12px;color:var(--dim);letter-spacing:.04em}
+.masthead{margin-bottom:26px}
+.masthead h1{font-weight:500}
+.sub{color:var(--dim);font-size:12.5px}
+.tags{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+.tag{font-size:11px;border:1px solid var(--line);color:var(--dim);padding:1px 7px;border-radius:11px}
+.tag.src{color:var(--accent);border-color:#22303f}
+.tag.pin{color:var(--warn)}
+.controls{display:flex;flex-direction:column;gap:12px;margin-bottom:18px}
+input[type=search],input[type=text]{width:100%;background:var(--bg2);border:1px solid var(--line);color:var(--text);
+  font:13.5px var(--mono);padding:10px 12px;border-radius:4px;outline:none}
+input:focus{border-color:#33506b}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{background:none;border:1px solid var(--line);color:var(--dim);font:11.5px var(--mono);padding:3px 9px;border-radius:12px;cursor:pointer}
+.chip b{font-weight:600;color:#9aa7b5;margin-left:4px}
+.chip:hover{border-color:#2c3f52;color:var(--text)}
+.chip.is-on{color:var(--accent);border-color:#33506b;background:#131c26}
+.table-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:13px;table-layout:fixed}
+th{text-align:left;font-weight:600;font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--dim);
+  border-bottom:1px solid var(--line);padding:0 10px 8px}
+td{padding:9px 10px;border-bottom:1px solid #141b23;vertical-align:top;overflow:hidden}
+tbody tr{cursor:pointer}
+tbody tr:hover{background:#10161e}
+tbody tr.is-cursor{background:#121c26;box-shadow:inset 2px 0 0 var(--accent)}
+.c-date{width:134px;color:var(--dim);font-size:12px;white-space:nowrap}
+.c-title{width:auto}
+.c-title .t{color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.c-title .g{color:var(--dim);font-size:11.5px;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.c-source{width:94px;color:var(--dim);font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.c-ref{width:76px;color:var(--dim);font-size:11px}
+.c-num{width:54px;text-align:right;color:var(--dim);font-variant-numeric:tabular-nums;font-size:12px}
+.badge{display:inline-block;font-size:10px;padding:0 5px;border-radius:3px;border:1px solid var(--line);color:var(--dim);margin-left:6px}
+.badge.diary{color:var(--ok);border-color:#22392c}
+.badge.ask{color:var(--accent)}
+.empty{color:var(--dim);font-size:13px;padding:26px 4px}
+.foot{margin-top:36px;padding-top:14px;border-top:1px solid var(--line);color:var(--dim);font-size:11.5px;display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap}
+.panel{border-top:1px solid var(--line);padding:22px 0}
+.panel:first-of-type{border-top:none}
+.twocol{display:grid;grid-template-columns:1fr 1fr;gap:28px}
+@media(max-width:820px){.twocol{grid-template-columns:1fr}}
+.quote{margin:0;color:#c3ccd8;font-size:14px;white-space:pre-wrap;overflow-wrap:anywhere}
+.diary-prose p{margin:0 0 12px;font-size:14.5px;line-height:1.68;color:#dde3ea;max-width:900px}
+.empty-prose p{color:var(--dim)}
+.diary-note{color:var(--dim);font-size:11.5px;margin-top:4px}
+.diary-actions{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:6px}
+.action{background:#18222d;border:1px solid #2b3d4f;color:var(--text);font:12.5px var(--mono);padding:8px 14px;border-radius:4px;cursor:pointer}
+.action:hover{border-color:#3d5a74;background:#1b2733}
+.action.ghost{background:none;color:var(--dim)}
+.action:disabled{opacity:.5;cursor:default}
+.hint{color:var(--dim);font-size:12px}
+.shortcut{display:grid;grid-template-columns:120px 1fr auto;gap:12px;align-items:center;padding:7px 0;border-bottom:1px solid #141b23}
+.shortcut:last-child{border-bottom:none}
+.s-label{color:var(--dim);font-size:11.5px;letter-spacing:.04em;white-space:nowrap}
+.s-cmd{white-space:pre-wrap;overflow-wrap:anywhere;background:none;border:none;padding:0;color:#c7d2df}
+.copy{background:none;border:1px solid var(--line);color:var(--dim);font:11px var(--mono);padding:2px 8px;border-radius:3px;cursor:pointer}
+.copy:hover{color:var(--accent);border-color:#33506b}
+.copy.done{color:var(--ok);border-color:#22392c}
+#ask-form{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0 14px}
+#ask-form input{flex:1 1 320px;width:auto}
+.seance{border-left:2px solid #22303f;padding:2px 0 2px 14px;margin:14px 0}
+.seance .q{color:var(--accent);font-size:13.5px}
+.seance .a{margin-top:6px;white-space:pre-wrap;color:#cfd8e3;font-size:13.5px}
+.seance .meta{color:var(--dim);font-size:11px;margin-top:6px}
+.statgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:4px;overflow:hidden;margin:6px 0 4px}
+.statgrid>div{background:var(--bg2);padding:10px 12px;display:flex;flex-direction:column;gap:3px}
+.statgrid .k{font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--dim)}
+.statgrid .v{font-size:13px;font-variant-numeric:tabular-nums;color:#d5dde6}
+.evidence-grid{display:grid;grid-template-columns:1fr 1fr;gap:28px}
+@media(max-width:820px){.evidence-grid{grid-template-columns:1fr}}
+ul.files{list-style:none;margin:0;padding:0;font-size:12px;max-height:260px;overflow:auto}
+ul.files li{padding:2px 0;color:#b9c4d1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.toolchips{display:flex;gap:6px;flex-wrap:wrap}
+.toolchip{font-size:11.5px;border:1px solid var(--line);border-radius:3px;padding:2px 7px;color:#a9b5c2}
+.toolchip b{color:var(--dim);font-weight:500;margin-left:4px}
+.turns{border-top:1px solid var(--line)}
+.turn{padding:12px 0;border-bottom:1px solid #141b23;display:grid;grid-template-columns:70px 1fr;gap:14px}
+.turn .who{font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--dim);padding-top:3px}
+.turn.user .who{color:var(--accent)}
+.turn.user .text{color:#e6ecf3}
+.turn.assistant .text{color:#c9d3de}
+.turn.other .who{color:var(--warn)}
+.turn .text{white-space:pre-wrap;font-size:13.5px;line-height:1.6;overflow-wrap:anywhere}
+.turn.tool{display:block;padding:0;border-bottom:none}
+.turn.tool summary{cursor:pointer;list-style:none;display:grid;grid-template-columns:70px 1fr;gap:14px;padding:5px 0;color:var(--dim);font-size:12px}
+.turn.tool summary::-webkit-details-marker{display:none}
+.turn.tool summary .who{color:#7b8797}
+.turn.tool .preview{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.turn.tool pre{white-space:pre-wrap;font-size:12px;color:#93a1b1;background:#11161d;border:1px solid var(--line);border-left:2px solid #22303f;border-radius:3px;padding:10px 12px;margin:2px 0 8px 84px;max-height:420px;overflow:auto}
+.calls{margin-top:8px;display:flex;flex-direction:column;gap:3px}
+.call{font-size:11.5px;color:var(--dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.call .name{color:#7f9dbb;margin-right:8px}
+.call .arg{color:#8b98a6}
+.kbd{font-size:11px;color:var(--dim);border:1px solid var(--line);border-radius:3px;padding:0 4px}
+`;
+
+export const JS = `(function(){
+  "use strict";
+  var page = document.body.dataset.page;
+
+  function copyText(text, button){
+    var done = function(){ if(!button) return; var old = button.textContent; button.textContent = "copied"; button.classList.add("done");
+      setTimeout(function(){ button.textContent = old; button.classList.remove("done"); }, 1200); };
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(text).then(done).catch(function(){ legacyCopy(text); done(); });
+    } else { legacyCopy(text); done(); }
+  }
+  function legacyCopy(text){
+    var area = document.createElement("textarea");
+    area.value = text; area.style.position = "fixed"; area.style.opacity = "0";
+    document.body.appendChild(area); area.select();
+    try { document.execCommand("copy"); } catch(e){}
+    document.body.removeChild(area);
+  }
+
+  document.addEventListener("click", function(event){
+    var copyBtn = event.target.closest("[data-copy]");
+    if(copyBtn){ copyText(copyBtn.getAttribute("data-copy"), copyBtn); }
+    if(page === "index"){
+      var row = event.target.closest("tr[data-href]");
+      if(row && !event.target.closest("a")){ location.href = row.getAttribute("data-href"); }
+    }
+  });
+
+  if(page === "index") indexPage();
+  if(page === "session") sessionPage();
+
+  function fmtDate(epoch){
+    if(!epoch) return "—";
+    var d = new Date(epoch * 1000), pad = function(n){ return String(n).padStart(2,"0"); };
+    return d.getFullYear() + "-" + pad(d.getMonth()+1) + "-" + pad(d.getDate()) + " " + pad(d.getHours()) + ":" + pad(d.getMinutes());
+  }
+  function esc(s){ return String(s == null ? "" : s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
+  function money(v){ if(v == null) return "—"; if(v === 0) return "$0"; return v < 0.01 ? "$" + v.toFixed(4) : "$" + v.toFixed(2); }
+  function fileFor(ref){ return "session_" + ref + ".html"; }
+
+  function indexPage(){
+    var rows = window.SD_INDEX || [];
+    var state = { q:"", source:"__all", diary:false, pinned:false, quiet:false, cursor:-1, view:[] };
+    var q = document.getElementById("q"), tbody = document.getElementById("rows"), empty = document.getElementById("empty"),
+        shown = document.getElementById("shown"), chipBar = document.querySelector(".chips");
+
+    function matches(row){
+      if(!state.quiet && (row.source === "cron" || row.source === "oneshot")) return false;
+      if(state.source !== "__all" && row.source !== state.source) return false;
+      if(state.diary && !row.hasDiary) return false;
+      if(state.pinned && !row.pinned) return false;
+      if(!state.q) return true;
+      var hay = [row.title, row.goal, row.source, row.ref, row.id, (row.tools||[]).join(" ")].join(" ").toLowerCase();
+      return state.q.split(/\\s+/).filter(Boolean).every(function(part){ return hay.indexOf(part.toLowerCase()) !== -1; });
+    }
+
+    function paint(){
+      state.view = rows.filter(matches).sort(function(a,b){ return (b.startedAt||0) - (a.startedAt||0); });
+      state.cursor = -1;
+      var html = state.view.map(function(row){
+        var badges = (row.hasDiary ? '<span class="badge diary">diary</span>' : '') + (row.hasSeance ? '<span class="badge ask">asked</span>' : '');
+        return '<tr data-href="' + fileFor(row.ref) + '" data-id="' + esc(row.id) + '">' +
+          '<td class="c-date">' + fmtDate(row.startedAt) + '</td>' +
+          '<td class="c-title"><div class="t">' + esc(row.title) + badges + '</div><div class="g">' + esc(row.goal) + '</div></td>' +
+          '<td class="c-source">' + esc(row.source) + '</td>' +
+          '<td class="c-num">' + row.messages + '</td>' +
+          '<td class="c-num">' + row.toolCalls + '</td>' +
+          '<td class="c-num">' + (row.files || 0) + '</td>' +
+          '<td class="c-num">' + money(row.costUsd) + '</td>' +
+          '<td class="c-ref">' + esc(row.ref) + '</td></tr>';
+      }).join("");
+      tbody.innerHTML = html;
+      empty.hidden = state.view.length > 0;
+      if(shown) shown.textContent = state.view.length + " shown";
+    }
+
+    function move(delta){
+      if(!state.view.length) return;
+      state.cursor = Math.max(0, Math.min(state.view.length - 1, state.cursor + delta));
+      var trs = tbody.querySelectorAll("tr");
+      trs.forEach(function(tr, i){ tr.classList.toggle("is-cursor", i === state.cursor); });
+      var el = trs[state.cursor];
+      if(el){ el.scrollIntoView({ block:"nearest" }); }
+    }
+
+    if(q){ q.addEventListener("input", function(){ state.q = q.value.trim(); paint(); }); }
+    document.addEventListener("keydown", function(event){
+      if(event.key === "/" && document.activeElement !== q){ event.preventDefault(); q.focus(); return; }
+      if(event.key === "Escape"){ q.value = ""; state.q = ""; q.blur(); paint(); return; }
+      if(event.key === "j"){ event.preventDefault(); move(1); }
+      if(event.key === "k"){ event.preventDefault(); move(-1); }
+      if(event.key === "Enter" && state.cursor >= 0 && state.view[state.cursor]){ location.href = fileFor(state.view[state.cursor].ref); }
+    });
+    if(chipBar){
+      chipBar.addEventListener("click", function(event){
+        var chip = event.target.closest(".chip");
+        if(!chip) return;
+        if(chip.dataset.source){
+          state.source = chip.dataset.source;
+          chipBar.querySelectorAll(".chip[data-source]").forEach(function(other){ other.classList.toggle("is-on", other === chip); });
+        }
+        if(chip.dataset.flag === "diary"){ state.diary = !state.diary; chip.classList.toggle("is-on", state.diary); }
+        if(chip.dataset.flag === "pinned"){ state.pinned = !state.pinned; chip.classList.toggle("is-on", state.pinned); }
+        if(chip.dataset.flag === "quiet"){ state.quiet = !state.quiet; chip.classList.toggle("is-on", state.quiet); }
+        paint();
+      });
+    }
+    paint();
+  }
+
+  function sessionPage(){
+    var meta = window.SD_SESSION || {};
+    var api = window.SD_API || "http://127.0.0.1:8134";
+    var askForm = document.getElementById("ask-form"), askInput = document.getElementById("ask-input"),
+        askStatus = document.getElementById("ask-status"), seances = document.getElementById("seances"),
+        diaryBtn = document.getElementById("write-diary"), diaryStatus = document.getElementById("diary-status"),
+        forkBtn = document.getElementById("fork-session"), restartBtn = document.getElementById("restart-session");
+
+    function status(el, text, cls){ if(!el) return; el.textContent = text; el.className = "hint" + (cls ? " " + cls : ""); }
+
+    function post(url, body){
+      return fetch(url, { method:"POST", headers:{ "content-type":"application/json" }, body: JSON.stringify(body || {}) })
+        .then(function(response){ return response.json().then(function(data){ return { ok: response.ok, data: data }; }); });
+    }
+
+    if(diaryBtn){
+      diaryBtn.addEventListener("click", function(){
+        diaryBtn.disabled = true;
+        status(diaryStatus, "deepseek is reading this session… (10-40 s)");
+        var started = Date.now();
+        post(api + "/api/diary/" + encodeURIComponent(meta.id), {})
+          .then(function(result){
+            if(!result.ok || !result.data.ok) throw new Error(result.data.error || "request failed");
+            status(diaryStatus, "diary written in " + ((Date.now()-started)/1000).toFixed(1) + "s — reloading");
+            setTimeout(function(){ location.reload(); }, 600);
+          })
+          .catch(function(error){ diaryBtn.disabled = false; status(diaryStatus, "failed: " + error.message + " — is the door running? (node public/js/main.js)"); });
+      });
+    }
+
+    if(askForm){
+      askForm.addEventListener("submit", function(event){
+        event.preventDefault();
+        var question = askInput.value.trim();
+        if(!question) return;
+        var button = askForm.querySelector("button[type=submit]");
+        button.disabled = true; askInput.disabled = true;
+        status(askStatus, "asking the dead… the agent is reading this session (10-45 s)");
+        post(api + "/api/ask", { session_id: meta.id, question: question })
+          .then(function(result){
+            if(!result.ok || !result.data.ok) throw new Error(result.data.error || "request failed");
+            var answer = result.data.answer || "";
+            var div = document.createElement("div");
+            div.className = "seance";
+            div.innerHTML = '<div class="q">' + esc(question) + '</div><div class="a">' + esc(answer).replace(/\\r/g,"").replace(/\\n{2,}/g,"<br><br>").replace(/\\n/g,"<br>") + '</div>' +
+              '<div class="meta">just now · ' + (result.data.ms/1000).toFixed(1) + 's</div>';
+            seances.insertBefore(div, seances.firstChild);
+            askInput.value = "";
+            status(askStatus, "answered and filed");
+          })
+          .catch(function(error){ status(askStatus, "failed: " + error.message + " — start the door with node public/js/main.js"); })
+          .finally(function(){ button.disabled = false; askInput.disabled = false; askInput.focus(); });
+      });
+    }
+
+    if(forkBtn){
+      forkBtn.addEventListener("click", function(){
+        if(!confirm("Fork this session? A backup of state.db is taken first; the fork is verified before it is reported.")) return;
+        forkBtn.disabled = true;
+        status(askStatus, "forking…");
+        post(api + "/api/fork/" + encodeURIComponent(meta.id), {})
+          .then(function(result){
+            if(!result.ok || !result.data.ok) throw new Error(result.data.error || "fork failed");
+            status(askStatus, "forked → " + result.data.title + " (" + result.data.newId.slice(0, 20) + "…) — open it from the index");
+          })
+          .catch(function(error){ status(askStatus, "fork failed: " + error.message); forkBtn.disabled = false; });
+      });
+    }
+
+    if(restartBtn){
+      restartBtn.addEventListener("click", function(){
+        status(askStatus, "opening a terminal…");
+        post(api + "/api/restart/" + encodeURIComponent(meta.id), {})
+          .then(function(result){
+            if(!result.ok || !result.data.ok) throw new Error(result.data.error || "restart failed");
+            status(askStatus, "terminal opened: " + result.data.command);
+          })
+          .catch(function(error){ status(askStatus, "restart failed: " + error.message); });
+      });
+    }
+  }
+})();
+`;

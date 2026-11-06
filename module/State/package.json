@@ -1,0 +1,32 @@
+{
+  "name": "state",
+  "version": "0.1.0",
+  "private": true,
+  "description": "A GENERIC state registry (ES modules): the retainer and retriever — register ANY object under a dotted-path name, pull it back (full or delta), discover what is held, drop it. Entries describe themselves; the module relays and decides nothing.",
+  "type": "module",
+  "main": "public/js/main.js",
+  "exports": {
+    ".": "./public/js/main.js",
+    "./client": "./public/js/client.js",
+    "./core": "./public/js/stateRegistry.js",
+    "./registry": "./public/js/mcpTools.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "esbuild public/ts/*.ts public/ts/browser/*.ts --outdir=public/js --format=esm --platform=node --target=node20 --sourcemap",
+    "watch": "esbuild public/ts/*.ts public/ts/browser/*.ts --outdir=public/js --format=esm --platform=node --target=node20 --sourcemap --watch",
+    "dev": "npm run watch",
+    "typecheck": "tsc --noEmit",
+    "selftest": "node public/js/selftest.js",
+    "docs": "node scripts/build-docs.cjs",
+    "test": "npm run build && npm run typecheck && npm run selftest",
+    "start": "node public/js/main.js"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "esbuild": "^0.25.0",
+    "typescript": "^5.6.0"
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "name": "Scheduler",
+  "kind": "door",
+  "port": 8132,
+  "start": "\"%LOCALAPPDATA%\\hermes\\node\\node.exe\" public/js/main.js",
+  "wiredAtBoot": false,
+  "what": "The book of jobs — one at a time, queued, recorded, with a RUNNER seam. The runner today is a dummy: it executes nothing and says so, so the wiring is real before anything runs."
+}

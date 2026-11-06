@@ -1,0 +1,48 @@
+{
+  "id": "cron_6d233f41b8e5_20260614_185427",
+  "title": "Your role is a low-priority, specialized AI Releas · Jun 14 18:58",
+  "source": "cron",
+  "model": "gemma-4-E4B-it-Q5_K_M.gguf",
+  "parentId": null,
+  "startedAt": 1781477690.3846295,
+  "endedAt": 1781477893.0274034,
+  "endReason": "cron_complete",
+  "messageCount": 7,
+  "toolCallCount": 3,
+  "inputTokens": 22937,
+  "outputTokens": 3840,
+  "costUsd": 0,
+  "cwd": null,
+  "gitBranch": null,
+  "gitRepo": null,
+  "pinned": false,
+  "archived": false,
+  "hidden": false,
+  "profileName": "default",
+  "lastActivityAt": null,
+  "createdSource": null,
+  "ref": "512bd622",
+  "displayTitle": "Your role is a low-priority, specialized AI Releas · Jun 14 18:58",
+  "durationSec": 203,
+  "userTurns": 1,
+  "goal": "[IMPORTANT: The following skill(s) were listed for this job but could not be found and were skipped: web_search, terminal. Start your response with a brief notice so the user is aware, e.g.: '⚠️ Skill(s) not found and skipped: web_search, terminal'] The user has provided the following instruction alongside the skill invocation: [IMPORTANT: You are running as a scheduled cron job. DELIVERY: Your final response will be automatically delivered to the user — do NOT use send_message or try to deliver the output yourself. Just produce your report/output as your final response and the system handles the rest. SILENT: If there is genuinely nothing new to report, respond with exactly \"[SILENT]\" (not…",
+  "outcome": "⚠️ Skill(s) not found and skipped: web_search, terminal Based on your hardware profile (RX 6800/GTX 1660) and criteria focusing on hardware efficiency (GGUF/quantization, VRAM $\\le$ 8GB), here are the most notable releases from the current cycle: * **unsloth/gemma-4-12b-it-GGUF** | Hugging Face Trending Models | This model is a highly-downloaded 12B GGUF quantization, making it highly suitable for running locally within your memory constraints. * **unsloth/gemma-4-12B-it-qat-GGUF** | Hugging Face Trending Models | Similar to the above, this aggressively quantized 12B model offers strong performance while maintaining a small footprint ideal for your local hardware. * **yuxinlu1/gemma-4-12B-coder-fable5-composer2.5-v1-GGUF** | Hugging Face Trending Models | This GGUF variant is specifically tailored for coding tasks, offering efficient execution of complex programming workflows on your li…",
+  "files": [],
+  "commands": [
+    "hf models list --format json",
+    "hf papers list --format json"
+  ],
+  "tools": [
+    {
+      "name": "terminal",
+      "count": 4
+    },
+    {
+      "name": "skill_view",
+      "count": 2
+    }
+  ],
+  "bytes": 78769,
+  "diary": null,
+  "seances": []
+}

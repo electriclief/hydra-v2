@@ -1,0 +1,49 @@
+{
+  "id": "cron_6d233f41b8e5_20260813_183537",
+  "title": "Your role is a low-priority, specialized AI Releas · Aug 13 18:51",
+  "source": "cron",
+  "model": "Qwen3.6-35B-A3B-UD-IQ3_S (1).gguf",
+  "parentId": null,
+  "startedAt": 1786660537.7457187,
+  "endedAt": 1786661470.311298,
+  "endReason": "cron_complete",
+  "messageCount": 19,
+  "toolCallCount": 11,
+  "inputTokens": 21145,
+  "outputTokens": 1568,
+  "costUsd": 0,
+  "cwd": null,
+  "gitBranch": null,
+  "gitRepo": null,
+  "pinned": false,
+  "archived": false,
+  "hidden": false,
+  "profileName": "default",
+  "lastActivityAt": 1786661428.116758,
+  "createdSource": null,
+  "ref": "ab1eb294",
+  "displayTitle": "Your role is a low-priority, specialized AI Releas · Aug 13 18:51",
+  "durationSec": 933,
+  "userTurns": 1,
+  "goal": "[IMPORTANT: The following skill(s) were listed for this job but could not be found and were skipped: web_search, terminal. Start your response with a brief notice so the user is aware, e.g.: '⚠️ Skill(s) not found and skipped: web_search, terminal'] The user has provided the following instruction alongside the skill invocation: [IMPORTANT: You are running as a scheduled cron job. DELIVERY: Your final response will be automatically delivered to the user — do NOT use send_message or try to deliver the output yourself. Just produce your report/output as your final response and the system handles the rest. SILENT: If there is genuinely nothing new to report, respond with exactly \"[SILENT]\" (not…",
+  "outcome": "Now I have comprehensive data from all three pages. Let me compile the daily briefing. Here is today's **Hugging Face Release Scan** for your RX 6800 / GTX 1660 setup (August 13, 2026): --- **📊 TODAY'S SCAN RESULTS** **Models & Tooling — Hardware-Relevant Picks:** - **MiniMax-H3** (MiniMaxAI) — 33B parameters, 1.6M downloads, trending #2 overall *Reason:* Major new multimodal model generating massive community buzz. GGUF variants from `unsloth` (20B, 111k downloads) and `realrebelai` are now available — critical for fitting on 16GB VRAM (RX 6800). Q4_K_M quant should fit your RX 6800 with room for context. - **LiquidAI/LFM2.5-2.6B** — 3B parameter text generation, 117k downloads *Reason:* Small, efficient model that will run comfortably on both your RX 6800 (full GPU load) and GTX 1660 (Q4 quant). AMD-compatible via llama.cpp GGUF backend. - **NVIDIA Nemotron-3.5-Lightning-30B-A3B-NVFP…",
+  "files": [],
+  "commands": [],
+  "tools": [
+    {
+      "name": "web_search",
+      "count": 14
+    },
+    {
+      "name": "browser_navigate",
+      "count": 6
+    },
+    {
+      "name": "web_extract",
+      "count": 2
+    }
+  ],
+  "bytes": 56883,
+  "diary": null,
+  "seances": []
+}

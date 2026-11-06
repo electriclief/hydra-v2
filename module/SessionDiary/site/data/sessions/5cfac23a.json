@@ -1,0 +1,89 @@
+{
+  "id": "local-5cfac23a334bb89a42aef92be317e445d8735a9f46f5948cad878e8400b77851",
+  "title": "Your role is a low-priority, specialized AI Releas · Oct 27 03:48",
+  "source": "cron",
+  "model": "deepseek-flash",
+  "parentId": null,
+  "startedAt": 1793087132.688462,
+  "endedAt": 1793087324.2342873,
+  "endReason": "cron_complete",
+  "messageCount": 48,
+  "toolCallCount": 23,
+  "inputTokens": 51979,
+  "outputTokens": 16858,
+  "costUsd": 0.020965218,
+  "cwd": "C:\\Users\\User\\Hermes\\gemma4site",
+  "gitBranch": null,
+  "gitRepo": null,
+  "pinned": false,
+  "archived": false,
+  "hidden": false,
+  "profileName": "default",
+  "lastActivityAt": 1793087266.8864977,
+  "createdSource": "cron",
+  "ref": "5cfac23a",
+  "displayTitle": "Your role is a low-priority, specialized AI Releas · Oct 27 03:48",
+  "durationSec": 192,
+  "userTurns": 1,
+  "goal": "[IMPORTANT: The following skill(s) were listed for this job but could not be found and were skipped: web_search, terminal. Start your response with a brief notice so the user is aware, e.g.: '⚠️ Skill(s) not found and skipped: web_search, terminal'] The user has provided the following instruction alongside the skill invocation: [IMPORTANT: You are running as a scheduled cron job. DELIVERY: Your final response will be automatically delivered to the user — do NOT use send_message or try to deliver the output yourself. Just produce your report/output as your final response and the system handles the rest. SILENT: If there is genuinely nothing new to report, respond with exactly \"[SILENT]\" (not…",
+  "outcome": "⚠️ Skill(s) not found and skipped: web_search, terminal **HF Release Monitor — cycle 2026-10-27 (07:45 UTC)** **Models (new this cycle)** - **baidu/Unlimited-OCR-2** — *Trending Models, trending 84 / 88 likes / 0 dl, created 2026-10-26T03:57Z, MIT* — official Baidu \"OCR-3.0\" document parser, 3.34B params but **6.23 GiB bf16**, so it needs a quant before it touches your cards; v1's community GGUF ladder (Q8_0 2.91 / Q4_K_M 1.82 GiB) shows the size class, but there is no v2 GGUF yet and upstream llama.cpp still lacks its R-SWA attention (PR ggml-org/llama.cpp#24975, open since June) → watch, don't download. - **zai-org/GLM-5.3-Flash** — *Trending Models, 2961 likes / 6.35M dl, created 2026-08-25, newly on the list* — 321.3B params / 305.8 GiB bf16 over 62 shards: flagged purely as out of range so it isn't chased. **Papers (feed finally advanced — now through 2026-10-25, +27 new titles)** …",
+  "files": [
+    "C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon/scan10.py",
+    "C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon/scan4.py",
+    "C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon/scan5.py",
+    "C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon/scan6.py",
+    "C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon/scan7.py",
+    "C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon/scan8.py",
+    "C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon/scan9.py"
+  ],
+  "commands": [
+    "cd \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon\" && cat scan3.py",
+    "cd \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon\" && cp models.json models_prev.json && cp papers.json papers_prev.json && curl -s \"https:/…",
+    "cd \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon\" && python - <<'EOF' 2>&1",
+    "cd \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon\" && python scan10.py 2>&1",
+    "cd \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon\" && python scan4.py 2>&1",
+    "cd \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon\" && python scan5.py 2>&1",
+    "cd \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon\" && python scan6.py 2>&1",
+    "cd \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon\" && python scan7.py 2>&1",
+    "cd \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon\" && python scan8.py 2>&1",
+    "cd \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon\" && python scan9.py 2>&1",
+    "cd \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon\" 2>/dev/null && ls -la | tail -40; date -u"
+  ],
+  "tools": [
+    {
+      "name": "terminal",
+      "count": 22
+    },
+    {
+      "name": "write_file",
+      "count": 14
+    },
+    {
+      "name": "skill_manage",
+      "count": 2
+    },
+    {
+      "name": "skill_view",
+      "count": 2
+    },
+    {
+      "name": "tool_describe",
+      "count": 2
+    },
+    {
+      "name": "tool_search",
+      "count": 2
+    },
+    {
+      "name": "session_search",
+      "count": 1
+    },
+    {
+      "name": "tool_call",
+      "count": 1
+    }
+  ],
+  "bytes": 141009,
+  "diary": null,
+  "seances": []
+}

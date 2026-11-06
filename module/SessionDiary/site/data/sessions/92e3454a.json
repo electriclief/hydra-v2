@@ -1,0 +1,62 @@
+{
+  "id": "20260813_003653_017010",
+  "title": "Config ASCII Guard Verification Report",
+  "source": "desktop",
+  "model": "Qwen3.6-35B-A3B-UD-IQ3_S (1).gguf",
+  "parentId": null,
+  "startedAt": 1786595813.7385511,
+  "endedAt": 1787610168.8434205,
+  "endReason": "startup_orphan_reap",
+  "messageCount": 26,
+  "toolCallCount": 12,
+  "inputTokens": 6199,
+  "outputTokens": 2026,
+  "costUsd": 0,
+  "cwd": "C:\\Users\\User",
+  "gitBranch": null,
+  "gitRepo": null,
+  "pinned": false,
+  "archived": false,
+  "hidden": false,
+  "profileName": "default",
+  "lastActivityAt": 1786595994.3221064,
+  "createdSource": null,
+  "ref": "92e3454a",
+  "displayTitle": "Config ASCII Guard Verification Report",
+  "durationSec": 1014355,
+  "userTurns": 1,
+  "goal": "[Agent: 123 on DESKTOP-QUCA6R5] Coordinator dispatch - OFFLOAD BATCH #2 (job 2/5): 123 config ASCII guard. You are the worker agent on 123. The desktop app re-encodes config.yaml on every write, which corrupted it once. The guard: 1. Run: powershell -NoProfile -ExecutionPolicy Bypass -File C:\\Users\\User\\cfgverify.ps1 2. The output must show NONASCII=0. If NONASCII > 0, run: python C:\\Users\\User\\fixcfg2.py then re-run cfgverify.ps1 and confirm NONASCII=0. Do NOT hand-edit config.yaml. 3. Verify the hermes CLI works: hermes sessions list (should return a session list, not an error). Final message = report: NONASCII count, cfgverify output line, hermes CLI result, one-line verdict.",
+  "outcome": "**Config ASCII Guard Report — Job 2/5: DONE** | Check | Result | |---|---| | NONASCII count | **0** | | cfgverify output | `BYTES=16449 NONASCII=0` | | hermes CLI (`hermes sessions list`) | ✅ Returned session list (18 sessions listed, no errors) | | **Verdict** | **PASS** — config.yaml has been rebuilt with pure ASCII. Non-ASCII characters (personas, comments, cursor) were sanitized. CLI is operational. | **What was done:** 1. Created missing `fixcfg1.py` (pass-1: strip bytes > 127 to `?`) 2. Ran pass-1 → `cfg123/fixed.yaml` 3. Ran pass-2 (`fixcfg2.py`) → `cfg123/fixed2.yaml` (replaced ?-soup with curated ASCII personas) 4. Copied fixed config over the real `config.yaml` via terminal `cp` (bypasses desktop app re-encoding) 5. Verified NONASCII=0 and hermes CLI working",
+  "files": [
+    "C:/Users/User/fixcfg1.py",
+    "C:/Users/User/AppData/Local/hermes/config.yaml",
+    "C:\\Users\\User\\cfgverify.ps1"
+  ],
+  "commands": [
+    "powershell -NoProfile -ExecutionPolicy Bypass -File 'C:/Users/User/cfgverify.ps1'",
+    "python C:/Users/User/fixcfg2.py",
+    "cp C:/Users/User/cfg123/fixed2.yaml 'C:/Users/User/AppData/Local/hermes/config.yaml' && echo \"copy done\"",
+    "hermes sessions list 2>&1 | head -20",
+    "ls C:/Users/User/cfg123/ 2>/dev/null; ls C:/Users/User/AppData/Local/hermes/config.yaml 2>/dev/null; cat C:/Users/User/fixcfg2.py",
+    "ls C:/Users/User/cfgverify.ps1 C:/Users/User/fixcfg2.py C:/Users/User/fixcfg1.py 2>/dev/null; dir C:/Users/User/cfg123/ 2>$null",
+    "powershell -NoProfile -ExecutionPolicy Bypass -File C:\\Users\\User\\cfgverify.ps1",
+    "python C:/Users/User/fixcfg1.py"
+  ],
+  "tools": [
+    {
+      "name": "terminal",
+      "count": 20
+    },
+    {
+      "name": "read_file",
+      "count": 2
+    },
+    {
+      "name": "write_file",
+      "count": 2
+    }
+  ],
+  "bytes": 16477,
+  "diary": null,
+  "seances": []
+}

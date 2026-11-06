@@ -1,0 +1,79 @@
+{
+  "id": "local-7fd222c25b65c1ac64f54c6f7b1208b2c4839fa5316d01c42fe4802209ff774b",
+  "title": "Your role is a low-priority, specialized AI Releas · Nov 03 06:54",
+  "source": "cron",
+  "model": "deepseek-flash",
+  "parentId": null,
+  "startedAt": 1793706697.648119,
+  "endedAt": 1793706856.0175495,
+  "endReason": "cron_complete",
+  "messageCount": 44,
+  "toolCallCount": 22,
+  "inputTokens": 45463,
+  "outputTokens": 16594,
+  "costUsd": 0.020208042000000002,
+  "cwd": "C:\\Users\\User\\Hermes\\gemma4site",
+  "gitBranch": null,
+  "gitRepo": null,
+  "pinned": false,
+  "archived": false,
+  "hidden": false,
+  "profileName": "default",
+  "lastActivityAt": 1793706825.8942173,
+  "createdSource": "cron",
+  "ref": "7fd222c2",
+  "displayTitle": "Your role is a low-priority, specialized AI Releas · Nov 03 06:54",
+  "durationSec": 158,
+  "userTurns": 1,
+  "goal": "[IMPORTANT: The following skill(s) were listed for this job but could not be found and were skipped: web_search, terminal. Start your response with a brief notice so the user is aware, e.g.: '⚠️ Skill(s) not found and skipped: web_search, terminal'] The user has provided the following instruction alongside the skill invocation: [IMPORTANT: You are running as a scheduled cron job. DELIVERY: Your final response will be automatically delivered to the user — do NOT use send_message or try to deliver the output yourself. Just produce your report/output as your final response and the system handles the rest. SILENT: If there is genuinely nothing new to report, respond with exactly \"[SILENT]\" (not…",
+  "outcome": "⚠️ Skill(s) not found and skipped: web_search, terminal [Agent: 123 on 192.168.1.123] **HF Release Briefing — 2026-11-03 06:51 EST (cycle 11:51Z)** - **llama.cpp #31114 — Vulkan MoE-cache load crash fixed** — *llama.cpp (merged 07:53Z)* — the exact abort (`pre-allocated tensor moe_cache.0.blk.0.ffn_down_exps.weight ... cannot run the operation`) was reported from an **RX 6900 XT, which is the same Navi 21 / gfx1030 die as your RX 6800**, when running a 256-expert MoE with `-ngl 99 --cpu-moe --moe-cache-mib 6144`; with this plus the earlier moe-cache merge, the 2-bit MoE-on-16 GB path (Clover-35B-A3B ~10 GiB, Nanbeige 2-bit) should now load on your card instead of aborting — still smoke-test per model. - **`NotCherry/Qwen3.5-0.8B-weight-space-programming-GGUF`** — *HF new upload (2026-11-03T08:59Z, 0 likes, Apache-2.0)* — the runnable quant of yesterday's weight-space-programming find is…",
+  "files": [
+    "C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon/fetch51.py",
+    "C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon/findings_2026-11-03T1151Z.json",
+    "C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon/probe52.py",
+    "C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon/probe52b.py",
+    "C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon/probe52c.py",
+    "C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon/probe52d.py",
+    "C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon/probe52e.py",
+    "C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon/scan51.py",
+    "C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon/scan52.py",
+    "C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon/fetch50.py",
+    "C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon/findings_2026-11-02T2346Z.json"
+  ],
+  "commands": [
+    "cd \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon\" && python fetch51.py",
+    "cd \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon\" && python probe52.py 2>&1 | tail -40",
+    "cd \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon\" && python probe52b.py 2>&1 | head -80",
+    "cd \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon\" && python probe52c.py 2>&1 | head -60",
+    "cd \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon\" && python probe52d.py 2>&1 | head -30",
+    "cd \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon\" && python probe52e.py 2>&1 | head -30",
+    "cd \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon\" && python scan52.py 2>&1 | head -200",
+    "cd \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon\" 2>/dev/null || mkdir -p \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon\"; cd \"C:/…",
+    "date; echo \"---\"; curl -s --max-time 25 \"https://huggingface.co/api/daily_papers?limit=20\" | head -c 300"
+  ],
+  "tools": [
+    {
+      "name": "terminal",
+      "count": 18
+    },
+    {
+      "name": "write_file",
+      "count": 18
+    },
+    {
+      "name": "read_file",
+      "count": 4
+    },
+    {
+      "name": "skill_manage",
+      "count": 2
+    },
+    {
+      "name": "skill_view",
+      "count": 2
+    }
+  ],
+  "bytes": 150444,
+  "diary": null,
+  "seances": []
+}

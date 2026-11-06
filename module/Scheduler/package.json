@@ -1,0 +1,29 @@
+{
+  "name": "scheduler",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Scheduler — the book of jobs (ES modules). Admits ONE job at a time, records what each asked for, and runs it through a RUNNER seam. The runner shipping today is a DUMMY: it executes nothing and says so, so the wiring (submit · queue · run · status) is real and a real runner replaces one file, not one route.",
+  "type": "module",
+  "main": "public/js/main.js",
+  "exports": {
+    ".": "./public/js/main.js",
+    "./scheduler": "./public/js/scheduler.js",
+    "./api": "./public/js/apiServer.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "esbuild public/ts/*.ts --outdir=public/js --format=esm --platform=node --target=node20 --sourcemap",
+    "watch": "esbuild public/ts/*.ts --outdir=public/js --format=esm --platform=node --target=node20 --sourcemap --watch",
+    "typecheck": "tsc --noEmit",
+    "selftest": "node public/js/selftest.js",
+    "test": "npm run build && npm run typecheck && npm run selftest",
+    "start": "node public/js/main.js"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "esbuild": "^0.25.0",
+    "typescript": "^5.6.0"
+  }
+}

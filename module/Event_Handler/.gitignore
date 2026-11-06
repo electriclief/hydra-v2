@@ -1,0 +1,6 @@
+node_modules/
+*.log
+
+# the event log lives at the path the host passes — default under data/
+data/*.log
+!data/.gitkeep

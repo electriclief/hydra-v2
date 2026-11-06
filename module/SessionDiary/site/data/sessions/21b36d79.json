@@ -1,0 +1,102 @@
+{
+  "id": "20261104_191345_429abb",
+  "title": "Subagent: Render episode 01 'Pelts Are Life' — a 60…",
+  "source": "subagent",
+  "model": "deepseek-flash",
+  "parentId": "local-bfbe1d16bcb26e9d0a70dfef77c15b3da120b1c49faf8945560279703cbce5df",
+  "startedAt": 1793837625.8924782,
+  "endedAt": 1793843378.6644192,
+  "endReason": "agent_close",
+  "messageCount": 269,
+  "toolCallCount": 143,
+  "inputTokens": 158867,
+  "outputTokens": 170235,
+  "costUsd": 0.20008688999999996,
+  "cwd": "C:\\Users\\User",
+  "gitBranch": null,
+  "gitRepo": null,
+  "pinned": false,
+  "archived": false,
+  "hidden": false,
+  "profileName": "default",
+  "lastActivityAt": 1793843338.3106463,
+  "createdSource": "subagent",
+  "ref": "21b36d79",
+  "displayTitle": "Subagent: Render episode 01 'Pelts Are Life' — a 60…",
+  "durationSec": 5753,
+  "userTurns": 3,
+  "goal": "Render episode 01 'Pelts Are Life' — a 60 second, 1080x1350 Facebook video from the timeline and voice tracks in C:\\AI\\hydra-local\\media\\ep01\\",
+  "outcome": "## Outcome **Master:** `C:\\AI\\hydra-local\\media\\ep01\\ep01-pelts-are-life.mp4` — 104.2 MB, **59.800 s**, 1080×1350, 30 fps, H.264 yuv420p crf 19 + AAC 160k/48 k stereo, `+faststart`. **Upload copy:** `ep01-pelts-are-life-web.mp4` — 33.6 MB (crf 22, maxrate 8M) for Facebook. **Renderer:** `media/ep01/build.py` (~72 KB, one frame = pure function of t, 2× supersample → LANCZOS to 1080×1350, raw-frame pipe to ffmpeg). ## Verified against the file, not the plan - **Duration/spec:** ffprobe 59.800 s, 1080×1350, 30/1, `yuv420p`, audio stream present, AAC 48 k stereo. - **Loudness:** −16.1 LUFS integrated, peak −1.5 dB, LRA 5.0 (two-pass loudnorm, `linear=true`). - **Edit is cut, not faded:** frame-diff at all 8 boundaries = 14–96 vs **2.1** mid-shot → eight hard cuts, none retimed. - **Audio sits on the timeline:** VO present at 6.20 s (−12.7 dB), gaps at 5.60/11.60/27.60/53.00 and the 2 s titl…",
+  "files": [
+    "C:\\AI\\hydra-local\\media\\ep01\\_s1_new.txt",
+    "C:\\AI\\hydra-local\\media\\ep01\\_patch1.py",
+    "C:\\AI\\hydra-local\\media\\ep01\\_patch2.py",
+    "C:\\AI\\hydra-local\\media\\ep01\\_patch3.py",
+    "C:\\AI\\hydra-local\\media\\ep01\\_s1_v2.txt",
+    "C:\\AI\\hydra-local\\media\\ep01\\build.py",
+    "C:\\AI\\hydra-local\\media",
+    "C:\\AI\\hydra-local\\media\\avatar_rig.py",
+    "C:\\AI\\hydra-local\\media\\ep01\\timeline.json",
+    "C:\\AI\\hydra-local\\media\\render.py",
+    "C:\\AI\\hydra-local\\media\\rig\\rig.py",
+    "C:\\AI\\hydra-local\\media\\scenes\\chronicler.py",
+    "C:\\AI\\hydra-local\\media\\scenes\\newsroom.py"
+  ],
+  "commands": [
+    "cd /c/AI/hydra-local/media/ep01 && python - <<'EOF'",
+    "sleep 290; ls -la /c/AI/hydra-local/media/ep01/ep01-pelts-are-life.mp4; ps -W 2>/dev/null | grep -ci python",
+    "sleep 300; ls -la /c/AI/hydra-local/media/ep01/ep01-pelts-are-life.mp4",
+    "cd /c/AI/hydra-local && grep -rl \"draw_figure\" --include=*.py . | head -20; echo ===; ls media/out; echo ===; sed -n 1,80p media/rig/expression.py",
+    "cd /c/AI/hydra-local/media && head -80 rig/characters.py && echo '=== TAIL ===' && tail -60 rig/characters.py && echo '=== DESTINY ===' && cat charac…",
+    "cd /c/AI/hydra-local/media && sed -n 80,320p rig/expression.py",
+    "cd /c/AI/hydra-local/media/ep01 && cp master-1080x1350.mp4 ep01-pelts-are-life.mp4 && ffmpeg -y -loglevel error -i master-1080x1350.mp4 -c:v libx264 …",
+    "cd /c/AI/hydra-local/media/ep01 && cp still-02.50.png iter-02.png && echo ok",
+    "cd /c/AI/hydra-local/media/ep01 && cp still-08.60.png ck-08.png && cp still-22.00.png ck-22.png && echo ok",
+    "cd /c/AI/hydra-local/media/ep01 && cp still-33.00.png ck-33.png && cp still-41.00.png ck-41.png && cp still-49.00.png ck-49.png && cp still-55.00.png…",
+    "cd /c/AI/hydra-local/media/ep01 && diff <(python -c \"import json;d=json.load(open('timeline.json'));print(json.dumps(d,indent=1,sort_keys=True))\") <(…",
+    "cd /c/AI/hydra-local/media/ep01 && ffprobe -v error -show_entries format=duration,size,bit_rate -show_entries stream=codec_name,width,height,r_frame_…",
+    "cd /c/AI/hydra-local/media/ep01 && ffprobe -v error -show_entries format=duration,size,bit_rate,format_name -show_entries stream=index,codec_type,cod…",
+    "cd /c/AI/hydra-local/media/ep01 && for f in ep01-v1-web.mp4 ep01-v2.mp4; do echo \"== $f\"; ffprobe -v error -show_entries format=duration,size,bit_rat…"
+  ],
+  "tools": [
+    {
+      "name": "terminal",
+      "count": 158
+    },
+    {
+      "name": "vision_analyze",
+      "count": 90
+    },
+    {
+      "name": "write_file",
+      "count": 14
+    },
+    {
+      "name": "read_file",
+      "count": 12
+    },
+    {
+      "name": "process_manage",
+      "count": 3
+    },
+    {
+      "name": "tool_call",
+      "count": 3
+    },
+    {
+      "name": "search_files",
+      "count": 2
+    },
+    {
+      "name": "tool_describe",
+      "count": 2
+    },
+    {
+      "name": "tool_search",
+      "count": 2
+    }
+  ],
+  "bytes": 445476,
+  "diary": null,
+  "seances": []
+}

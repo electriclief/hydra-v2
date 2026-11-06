@@ -1,0 +1,8 @@
+{
+  "name": "Electron_Wrapper",
+  "kind": "shell",
+  "port": null,
+  "start": null,
+  "wiredAtBoot": true,
+  "what": "THE ONE WINDOW — min/max/resize/close, the menu bar, the tray. Closing it pops everything."
+}

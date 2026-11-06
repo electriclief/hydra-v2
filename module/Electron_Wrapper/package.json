@@ -1,0 +1,40 @@
+{
+  "name": "electron-wrapper",
+  "version": "0.1.0",
+  "private": true,
+  "description": "A GENERIC Electron wrapper (ES modules): a template + registered tabs. Register tabs (name + path — a div/iframe to any API-rendered page), menus (label→function), and the wrapper ships its own app tray (default on; icon as input; a menu tree with matching onclick). Events go out through an event-handler instance ('app closed' included); optional per-tab state pulling (solid · highlighted · flashing). The wrapper wraps — it decides nothing; content-blind.",
+  "type": "module",
+  "main": "Electron_Wrapper_module.js",
+  "exports": {
+    ".": "./Electron_Wrapper_module.js",
+    "./registry": "./public/js/core/registry.js",
+    "./template": "./public/js/core/template.js",
+    "./menus": "./public/js/core/menuTree.js",
+    "./tray": "./public/js/core/trayModel.js",
+    "./visuals": "./public/js/core/visuals.js",
+    "./state": "./public/js/core/statePull.js",
+    "./events": "./public/js/core/events.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "npm run build:node && npm run build:renderer",
+    "build:node": "esbuild public/ts/core/*.ts public/ts/main/*.ts public/ts/selftest.ts --outdir=public/js --format=esm --platform=node --target=node20 --sourcemap",
+    "build:renderer": "esbuild public/ts/renderer/app.ts --bundle --outfile=public/js/renderer.js --format=iife --platform=browser --sourcemap --loader:.png=dataurl",
+    "typecheck": "tsc --noEmit",
+    "selftest": "node public/js/selftest.js",
+    "docs": "node scripts/build-docs.cjs",
+    "test": "npm run build && npm run typecheck && npm run selftest",
+    "demo": "node demo/launch.cjs",
+    "start": "npm run demo"
+  },
+  "dependencies": {
+    "golden-layout": "latest"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "esbuild": "^0.25.0",
+    "typescript": "^5.6.0"
+  }
+}

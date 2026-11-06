@@ -1,0 +1,136 @@
+# Train of Thought — frontier
+
+generated 2026-11-06T16:06:43.780Z from thoughts.json · 20 nodes (17 active, 1 blocked, 1 parked, 1 done)
+
+This file is generated. Do not edit it by hand; edit the store and it rewrites itself.
+
+## Open and ready
+
+A session usually serves MORE THAN ONE of these. Say which `ref`s you are serving, and record each
+with a `session` trail line (`POST /api/thoughts/<ref>/trail` `{kind:"session", text:"…", sessionRef:"…"}`).
+`session-start.mjs --take a,b` writes all of them in one go.
+
+### 5a5525ad — Add nodes and intent to the LAN database
+
+intent: One roster where every machine carries what it IS FOR, not just its address: role, ready_for[], and the door it answers on. Done means fleetctl scan reports intent per node, Join resolves each one by name, and a node can be picked for a job without reading the desktop.
+deps: 0/0 · tags: lan, fleet
+next:
+  - re-probe .112 and .139 into roster.json with real hardware lines
+  - give every row a role and ready_for[] instead of free-text notes
+  - register the fleet page as a Join member on :8137
+
+### 954deebc — Wire the Thoughts tab into the window
+
+intent: The door answers; the window still has to raise it and show it as a tab owned by ProcessWrapper, so no console is ever loose on the desktop.
+deps: 1/1 · tags: hydra
+next:
+  - stop the hand-started doors before launch so ProcessWrapper owns them
+  - relaunch the window and confirm the Thoughts tab loads
+
+### f2e2deb0 — Every new session starts from the frontier
+
+intent: Done means a session that starts on this box - with every door down - reads the frontier brief, says which ref it serves, and that link is visible in the session manager. The store stays the truth; no daemon is required to know what is next.
+deps: 1/1 · tags: hydra, tot, session, frontier
+next:
+  - read module/TrainOfThought/data/frontier.md at session start
+  - run TrainOfThought/scripts/session-start.mjs --session <id> --take <ref>
+  - surface 'serving' on the diary page, not only in /api/sessions
+
+### 64a4cbb3 — State tree: each node registers its subtree, readers pull with marks
+
+intent: One object, addressed by path: state.nodes.<ref>.<child>. Each node registers its OWN subtree in its OWN State registry; readers take the member list from Join and pull each member with their own marks, assembling the tree locally. Done means a node's subtree exists at boot at N=1, a reader assembles N peers in parallel without hanging on a dead one, and the Menu shows every head with its Phoenix cycle counter. No central server, no push, no lease, no TTL.
+deps: 0/0 · tags: hydra, state, lan, phoenix, design
+next:
+  - register the node's own subtree at boot from node.json (makes the object exist at N=1)
+  - write the reader: members -> parallel pull with marks + per-peer timeout -> one assembled view
+  - decide marks on disk vs fresh each boot (open question 1 in NOTES-2026-11-03-state-tree.md)
+  - Menu strip: heads seen, Phoenix cycle counter, stalled vs unreachable, pressure where known
+  - gate: synthetic peer that advances its cycle, then stalls, then goes silent - prove the three states
+
+### 2629893c — Service definitions carry an install face (schema v2)
+
+intent: Done means every service definition reads with schema 2, carries an install block whose steps each have a mechanical verify, and every behaviour change shows a credited installer_history entry. The loader side is green already; what remains is content, so any node can pick this up from the DAG without a session.
+deps: 0/0 · tags: hydra, services, schema, install
+next:
+  - write the install block + first installer_history entry into yue-music as the pattern, using the measured audio.cpp numbers
+  - roll the same shape into llama-chat, qwen-image-2.1 and minimax-h3 - mark verified:false wherever no run backs the claim
+  - add chatterbox-tts, qwen3-tts-voicedesign and piper-tts with install faces and measured RTF
+  - run export-library.mjs and confirm the library gate holds with the new fields present
+  - document schema / revision / installer_history / install in the authoring contract so the next author inherits it
+
+### cd60ec6e — Deferred questions: ask them when the operator is ready
+
+intent: No question that was asked and deferred gets lost. Each is captured at the moment it is deferred, listed under this ref, and answered once into a decision trail line. The operator triggers the backlog with "Train of Thought - I am ready for outstanding questions".
+deps: 0/0 · tags: operator, questions, ritual
+next:
+  - ask: test the CUDA build on the 980 Ti (about 1 GB) or keep Vulkan as the recorded rule, marked verified:false
+  - ask: does the install executor become a door that shells out over SSH, or stay agent-driven with the door as ledger
+  - ask: permanent home for TTS - ReX while its plug is in, or 123 where 16 cores are already powered
+  - ask: what floor does each audio service declare - 6 GB Turing, 2 GB GCN, or CPU-only
+  - ritual: every session that defers a question appends one next[] line here with the date and why it was deferred
+
+### 291eac93 — Character voices from a description (Sophion, Destiny, Kate)
+
+intent: Three distinct, repeatable character voices that need nobody elses recording: the timbre comes from an instruction string, so the same text recreates the same voice on any node. Done means each character has a fixed instruction kept in a file, an expressive sample set (neutral / happy / sad / angry / laugh) measured for RTF and pitch, and one engine chosen with numbers rather than adjectives.
+deps: 0/0 · tags: voice, tts, cast, episode
+next:
+  - pick the path per sample after listening: the three bases must be told apart with eyes closed
+  - lock each voice to a file (voice-destiny.txt, voice-kate.txt, voice-sophion.txt) so a re-run reproduces the timbre
+  - test whether emotion belongs in the instruction or in the engine (chatterbox has explicit emotion control; qwen3 vdes does not)
+  - measure warm-cache RTF properly: the 1660 numbers were cold-start and are not comparable to the 980 Ti warm runs
+  - decide the serving node once warm RTF is known on the RX 6800 - it is the only card that could make this realtime
+  - build the episode 2 dialogue bed from these voices and compare against ep01 v4 by ear
+
+### 8793886c — State is a bulletin board with per-owner branches, never a hub
+
+intent: 
+deps: 0/0
+next:
+  - LAN row still missing: Core.observePeer pulls only node.<peer>.cycle. It must also carry standby, Mirror must expose it, and the Menu must render "Idle Service · mining" per node - then Jim shows mining.
+  - The guard file data/standby/guard.state.json stays as a local fallback only (used when State cannot answer); it is never the LAN truth.
+  - Any new module (file transfer) declares its own branch namespace and must not write .scheduler or .standby.
+
+### e093f426 — Hydra V2 design — what is built, what is open
+
+intent: 
+deps: 0/0 · tags: design
+next:
+  - Answer Q3 (node order) so the LAN rows stop saying "no report".
+  - Decide Q2 (Idle Service owner) before more standby logic is written.
+  - Decide Q4 (module map in help) - the generator exists, the link does not.
+
+### 44ff5033 — Events go through Event_Handler; State holds metadata notes, never payloads
+
+intent: 
+deps: 0/0
+next:
+  - Jim's laptop publishes no node.jims.standby - its box predates the guard; the shelf pull is the fix.
+  - Decide whether the palette is owned by the shell (for out-of-process producers) or by each module at boot.
+
+### 49e30c7a — Shelf revisions: nodes pull, never get pushed
+
+intent: 
+deps: 0/0
+next:
+  - Bootstrap, not update: NO other node carries a shelf at all (.149, .134, .147 all Test-Path False). First use is install-from-zero - needs a bundle (tar/zip of the code scope) plus a one-command installer that verifies the archive hash.
+  - Models stay out of the manifest: 2.8 GB weights travel by peer HTTP now, torrent only when the broker leaves the house.
+  - No rollback yet: keep one previous generation per file (,shelf/prev/<rev>) so a bad revision is one word away.
+
+also ready: 954deebc, f2e2deb0, 64a4cbb3, 2629893c, cd60ec6e, 291eac93, 8793886c, e093f426, 44ff5033, 49e30c7a
+
+## Stuck, and why
+
+- `04bf6852` Salvage main — marked blocked (blocked)
+- `db39b286` Idle Service: the Scheduler decides when a node is idle — parked on purpose (parked)
+- `109e3f84` Prove sshd survives a cold start on main — waiting on 1 of 1 dependencies (active)
+- `0e535747` Snapshot the ReadyNAS NV+ before archiving to it — waiting on 1 of 1 dependencies (active)
+- `bfd6aba0` LAN view: Core publishes, Mirror reads, the Menu shows every node — waiting on 1 of 1 dependencies (active)
+- `1e31aeda` An installer executes a service.json install block — waiting on 1 of 1 dependencies (active)
+- `86fb7fea` Hydra V2 gains a verb layer over MCP (fleet_run, tts_speak, tot_file) — waiting on 1 of 1 dependencies (active)
+- `a41a9db8` Wrap the voice engine as a Hydra V2 service — waiting on 2 of 2 dependencies (active)
+
+## Files
+
+- store: `thoughts.json` (hand editable, atomic writes)
+- evidence: `thoughts/<ref>/` — one folder per node
+- this brief: `frontier.md` / `frontier.json` (regenerated on every save)

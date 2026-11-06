@@ -1,0 +1,57 @@
+{
+  "id": "cron_6d233f41b8e5_20260810_162623",
+  "title": "Your role is a low-priority, specialized AI Releas · Aug 10 16:28",
+  "source": "cron",
+  "model": "deepseek-v4-flash",
+  "parentId": null,
+  "startedAt": 1786393584.934834,
+  "endedAt": 1786393736.2323835,
+  "endReason": "cron_complete",
+  "messageCount": 36,
+  "toolCallCount": 17,
+  "inputTokens": 17238,
+  "outputTokens": 13589,
+  "costUsd": 0.0074371584,
+  "cwd": null,
+  "gitBranch": null,
+  "gitRepo": null,
+  "pinned": false,
+  "archived": false,
+  "hidden": false,
+  "profileName": "default",
+  "lastActivityAt": 1786393708.5611658,
+  "createdSource": null,
+  "ref": "cfcd3ee5",
+  "displayTitle": "Your role is a low-priority, specialized AI Releas · Aug 10 16:28",
+  "durationSec": 151,
+  "userTurns": 1,
+  "goal": "[IMPORTANT: The following skill(s) were listed for this job but could not be found and were skipped: web_search, terminal. Start your response with a brief notice so the user is aware, e.g.: '⚠️ Skill(s) not found and skipped: web_search, terminal'] The user has provided the following instruction alongside the skill invocation: [IMPORTANT: You are running as a scheduled cron job. DELIVERY: Your final response will be automatically delivered to the user — do NOT use send_message or try to deliver the output yourself. Just produce your report/output as your final response and the system handles the rest. SILENT: If there is genuinely nothing new to report, respond with exactly \"[SILENT]\" (not…",
+  "outcome": "# 🤖 AI Release Monitor — Daily Briefing (Aug 10, 2026) Scanned Hugging Face Trending Models (30 repos) + Daily Papers (50 papers). Data fetched live via the HF API (no release data was embedded in the job payload). **⭐ Headline releases (official / viral)** - **DeepSeek-V4-Flash-0731** — [HF Trending Models, official deepseek-ai, ~954K downloads] — The new MIT-licensed DeepSeek flagship, built for consumer hardware: Q8 GGUF is only ~11 GB (unsloth has quants, 636 likes), so Q4/Q5 fits the RX 6800 16 GB comfortably and Q4 can squeeze onto the GTX 1660. - **Kimi-K3** — [HF Trending Models, official moonshotai, 1.5M downloads / 10.4K likes — most viral release this cycle] — Moonshot's new multimodal LLM is the ecosystem event of the week, but even unsloth's smallest 1-bit quants run ~650 GB, so it's **watch-only via cloud/API** — nothing local on your GPUs. - **MiniMax-H3** — [HF Trending…",
+  "files": [
+    "C:\\Users\\User\\parse_hf.py"
+  ],
+  "commands": [
+    "cd \"$HOME\" && python parse_hf.py",
+    "cd \"$HOME\" && curl -s --max-time 30 \"https://huggingface.co/api/daily_papers\" -o hf_daily_papers.json && echo \"papers: $(wc -c < hf_daily_papers.json…",
+    "cd \"$HOME\" && rm -f hf_daily_papers.json hf_trending.json parse_hf.py && echo cleaned",
+    "cd \"$HOME\" && which jq && jq -r '.[] | [.title, (.authors|map(.name)|join(\", \")), .upvotes, .publishedAt] | @tsv' hf_daily_papers.json | head -20 && …",
+    "curl -s --max-time 30 \"https://huggingface.co/api/daily_papers\" -o /tmp/daily_papers.json; echo \"papers: $(wc -c < /tmp/daily_papers.json) bytes\"; cu…"
+  ],
+  "tools": [
+    {
+      "name": "terminal",
+      "count": 20
+    },
+    {
+      "name": "write_file",
+      "count": 12
+    },
+    {
+      "name": "execute_code",
+      "count": 2
+    }
+  ],
+  "bytes": 59053,
+  "diary": null,
+  "seances": []
+}

@@ -1,0 +1,25 @@
+<!doctype html>
+<!--
+  The wrapper page. It knows NOTHING: it asks the main process for the bootstrap
+  (template + panes), hands the arrangement to Golden Layout, and maps each tab as
+  a div/iframe to its registered address. Visual states (solid / highlighted /
+  flashing) ride as CSS classes; clicks and closes go out through the preload bridge.
+-->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self' http: https: file: data: about:; style-src 'self' 'unsafe-inline'; frame-src *;" />
+    <title>Hydra V2</title>
+    <link rel="icon" href="../assets/icon.png" />
+    <link rel="stylesheet" href="js/renderer.css" />
+    <link rel="stylesheet" href="css/wrapper.css" />
+  </head>
+  <body>
+    <div id="ew-root"></div>
+    <div id="ew-waiting">Electron_Wrapper &mdash; waiting for registrations&hellip;</div>
+    <!-- One line, always the truth about the card: a job running, work booked, or the Idle Service standing by.
+         Fed by a URL the host hands over in the bootstrap; absent that, it stays hidden (the wrapper decides nothing). -->
+    <div id="ew-footer" class="ew-hidden"></div>
+    <script src="js/renderer.js"></script>
+  </body>
+</html>

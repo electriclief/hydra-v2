@@ -1,0 +1,4 @@
+node_modules/
+Docs/types/
+data/
+*.log

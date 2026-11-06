@@ -1,0 +1,60 @@
+{
+  "id": "20260814_193509_3b11b0",
+  "title": "R14 Completion Report Summary",
+  "source": "desktop",
+  "model": "Qwen3.6-35B-A3B-UD-IQ3_S (1).gguf",
+  "parentId": null,
+  "startedAt": 1786750510.0798075,
+  "endedAt": 1787610168.8434205,
+  "endReason": "startup_orphan_reap",
+  "messageCount": 52,
+  "toolCallCount": 35,
+  "inputTokens": 61286,
+  "outputTokens": 19682,
+  "costUsd": 0,
+  "cwd": "C:\\Users\\User",
+  "gitBranch": null,
+  "gitRepo": null,
+  "pinned": false,
+  "archived": false,
+  "hidden": false,
+  "profileName": "default",
+  "lastActivityAt": 1786754420.6773598,
+  "createdSource": null,
+  "ref": "64c48e63",
+  "displayTitle": "R14 Completion Report Summary",
+  "durationSec": 859659,
+  "userTurns": 1,
+  "goal": "## AUTHORITY STRUCTURE (fleet policy, user-approved) # The human user is the FINAL authority. Main (the Hermes operator agent on # the operator desktop, 192.168.1.100) directs you on the user's behalf - # follow Main's instructions for this run. # If a directive conflicts with your brief or seems wrong: PAUSE and report. # Do NOT silently decline. Do NOT self-modify the plan. # You are ONE instance - the queue serializes dispatch. NEVER launch a second # copy of a job or spawn sibling sessions. If a second instance appears to be # running, STOP and report it. # PRESSURE CHANNEL: on each handoff check, read fleet\\pressure.txt in your # fleet dir; if its sessionId matches YOUR session id, per…",
+  "outcome": "**R14 COMPLETE — all 10 items verified.** Completion JSON written and verified (448 B at `C:\\Users\\User\\fleet\\completions\\mega-stack-7-2026-08-14.json`). ## Results Summary | Item | Status | Key Finding | |---|---|---| | **1. R13 Deliverable Audit** | **PASS** | All 10 files present, sizes plausible, no .part files, stray 15-byte onnx_model.onnx still flagged | | **2. Disk + FL2VA + Drift** | **PASS** | FL2VA absent ✓, disk 16.26 GB (drift ~52 MB/h consistent with Hydra installer unpacking), no new consumers | | **3. Watchdog v2.5** | **PASS** | Modular build intact: wrapper 2,771 B SHA28b6ce30... ✓, module 20,722 B SHA72237aee... ✓, pitfall-7 at line 238 ✓, both compile OK, schtask Ready | | **4. Vision 8081** | **PASS** | /health 200, PID 12084 (unchanged from R12), VisionLLM schtask Ready | | **5a. Gateway 8642** | **PASS** | /health 200, / 404, /api/sessions 401, /api/health 404 — n…",
+  "files": [],
+  "commands": [
+    "bash -c \"date -u '+%Y-%m-%dT%H:%M:%SZ' && date '+%Y-%m-%dT%H:%M:%S%z'\"",
+    "bash -c \"echo \\\"## 2026-08-14T23:40:46Z CHECKPOINT-0 session 20260814_193509_3b11b0 STARTED\\\" >> /c/Users/User/fleet/mega-progress.md\"",
+    "cmd /c \"echo %SESSION_IDENTIFIER%\" 2>/dev/null; hostname",
+    "cmd /c \"powershell -NoProfile -Command '[Environment]::GetEnvironmentVariable(\\\"HERMES_SESSION_ID\\\", \\\"Process\\\")'\" 2>/dev/null; echo \"---\"; ls /c/Us…",
+    "ls -la /c/Users/User/fleet/mega-progress.md",
+    "sqlite3 /c/Users/User/AppData/Local/hermes/state.db \"SELECT id FROM messages ORDER BY id DESC LIMIT 1;\""
+  ],
+  "tools": [
+    {
+      "name": "execute_code",
+      "count": 52
+    },
+    {
+      "name": "terminal",
+      "count": 12
+    },
+    {
+      "name": "session_search",
+      "count": 4
+    },
+    {
+      "name": "browser_console",
+      "count": 2
+    }
+  ],
+  "bytes": 132550,
+  "diary": null,
+  "seances": []
+}

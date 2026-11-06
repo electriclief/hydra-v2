@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>User Principles and AI Memory Storage — session diary</title>
+<link rel="stylesheet" href="custom.css">
+
+</head>
+<body data-page="session">
+<header class="masthead">
+  <div class="kicker"><a href="read_dir_indexer.html">← all sessions</a> · 13e4f9d5 · built 2026-06-13 21:12</div>
+  <h1>User Principles and AI Memory Storage</h1>
+  <div class="tags"><span class="tag src">cli</span><span class="tag">My name is Lief</span><span class="tag">default</span><span class="tag">ended: cli_close</span></div>
+</header>
+
+<section class="panel">
+  <h2>What was done</h2>
+  <div class="diary-prose empty-prose">
+      <p><span class="dim">No prose diary yet — the card below is the deterministic digest (free, instant, written for every session).</span></p>
+    </div>
+    <div class="diary-actions">
+      <button class="action" id="write-diary">Write the diary <span class="dim">— deepseek reads the session</span></button>
+      <span class="hint" id="diary-status"></span>
+    </div>
+</section>
+
+<section class="panel twocol">
+  <div>
+    <h2>The ask</h2>
+    <p class="quote">please remember I proudly follow: (Do not change wording) &quot;The Prime Directive - By Destiny: 1) opinions are based on facts which requires a basis of evidence. 2 shallowness is the judgement of others based on other than action, and must be called out when observed. 3) Perspective is Everything - You will never change anyones mind until you change their perspective. 4 When it comes to right and wrong, consequences are meaningless - What could possibly be worse than knowingly doing wrong. 5) We are all equal regardless of anything&quot; - this is my 10 commandments - keep exact wording - I believe I am a Sigma Male, Sofia Stage of Carl Jung Individuation (please remember that too)</p>
+  </div>
+  <div>
+    <h2>Where it ended</h2>
+    <p class="quote">I have saved the following information about you in my persistent memory: **User Profile &amp; Preferences:** * **Project Manager Style:** You are a detailed, iterative project manager who prefers a Simple, Modern, and Minimalist aesthetic. Your focus is on exhaustive research and complete, working deliverables. You are currently working on a multi-page promotional website for the Welsh singer-songwriter, Kate McGill. * **Aesthetic Workflow:** You prefer a Simple, Modern, and Minimalist aesthetic for promotional/artistic websites (high whitespace, typographic hierarchy, limited monochromatic palette). You follow a multi-stage workflow for complex web projects: Intensive Research $\rightarrow$ Data Synthesis $\rightarrow$ Multi-Page Architecture $\rightarrow$ Generation. * **Identity:** You identify as a Sigma Male and are in the Sofia Stage of Carl Jung Individuation. * **The Prime Directiv…</p>
+  </div>
+</section>
+
+<section class="panel">
+  <h2>Shortcuts</h2>
+  <div class="shortcut">
+    <span class="s-label">restart</span>
+    <code class="s-cmd">hermes --resume 20260613_180814_b4bd6c</code>
+    <button class="copy" data-copy="hermes --resume 20260613_180814_b4bd6c" title="copy">copy</button>
+  </div>
+  <div class="shortcut">
+    <span class="s-label">by title</span>
+    <code class="s-cmd">hermes -c &quot;User Principles and AI Memory Storage&quot;</code>
+    <button class="copy" data-copy="hermes -c &quot;User Principles and AI Memory Storage&quot;" title="copy">copy</button>
+  </div>
+  <div class="shortcut">
+    <span class="s-label">export markdown</span>
+    <code class="s-cmd">hermes sessions export --session-id 20260613_180814_b4bd6c --format md C:/Users/User/AppData/Local/hermes/session-exports/</code>
+    <button class="copy" data-copy="hermes sessions export --session-id 20260613_180814_b4bd6c --format md C:/Users/User/AppData/Local/hermes/session-exports/" title="copy">copy</button>
+  </div>
+  <div class="shortcut">
+    <span class="s-label">export html</span>
+    <code class="s-cmd">hermes sessions export --session-id 20260613_180814_b4bd6c --format html</code>
+    <button class="copy" data-copy="hermes sessions export --session-id 20260613_180814_b4bd6c --format html" title="copy">copy</button>
+  </div>
+  <div class="shortcut">
+    <span class="s-label">ask (api)</span>
+    <code class="s-cmd">curl -s -X POST http://0.0.0.0:8134/api/ask -H &quot;content-type: application/json&quot; -d &quot;{\&quot;session_id\&quot;:\&quot;20260613_180814_b4bd6c\&quot;,\&quot;question\&quot;:\&quot;what did we decide?\&quot;}&quot;</code>
+    <button class="copy" data-copy="curl -s -X POST http://0.0.0.0:8134/api/ask -H &quot;content-type: application/json&quot; -d &quot;{\&quot;session_id\&quot;:\&quot;20260613_180814_b4bd6c\&quot;,\&quot;question\&quot;:\&quot;what did we decide?\&quot;}&quot;" title="copy">copy</button>
+  </div>
+  <div class="shortcut">
+    <span class="s-label">fork (api)</span>
+    <code class="s-cmd">curl -s -X POST http://0.0.0.0:8134/api/fork/20260613_180814_b4bd6c</code>
+    <button class="copy" data-copy="curl -s -X POST http://0.0.0.0:8134/api/fork/20260613_180814_b4bd6c" title="copy">copy</button>
+  </div>
+</section>
+
+<section class="panel">
+  <h2>Talk to the dead</h2>
+  <p class="dim small">The question goes to the deepseek agent, which reads this session with its own tools and answers. The answer is filed here.</p>
+  <form id="ask-form">
+    <input id="ask-input" type="text" placeholder="ask this session something…" autocomplete="off">
+    <button class="action" type="submit">Ask</button>
+    <button class="action ghost" type="button" id="fork-session">Fork this session</button>
+    <button class="action ghost" type="button" id="restart-session">Restart (new terminal)</button>
+  </form>
+  <div id="ask-status" class="hint"></div>
+  <div id="seances"><p class="dim small">No questions asked yet.</p></div>
+</section>
+
+<section class="panel">
+  <h2>Evidence</h2>
+  <div class="statgrid">
+    <div><span class="k">started</span><span class="v">2026-06-13 21:12</span></div>
+    <div><span class="k">ended</span><span class="v">2026-06-13 21:14</span></div>
+    <div><span class="k">duration</span><span class="v">2m 11s</span></div>
+    <div><span class="k">turns</span><span class="v">2</span></div>
+    <div><span class="k">messages</span><span class="v">6</span></div>
+    <div><span class="k">tool calls</span><span class="v">1</span></div>
+    <div><span class="k">tokens in / out</span><span class="v">17,679 / 1,336</span></div>
+    <div><span class="k">cost</span><span class="v">$0</span></div>
+  </div>
+  <div class="evidence-grid">
+    <div>
+      <h3>Files touched</h3>
+      <ul class="files"><li class="dim">no paths seen in tool arguments</li></ul>
+    </div>
+    <div>
+      <h3>Commands run</h3>
+      <ul class="files"><li class="dim">no shell commands</li></ul>
+    </div>
+  </div>
+  <h3>Tools</h3>
+  <div class="toolchips"><span class="toolchip">memory <b>2</b></span></div>
+  <h3>Where</h3>
+  <p class="small"><code>C:\Users\User\Hermes</code> · lineage <span class="dim">no parent</span></p>
+</section>
+
+<section class="panel">
+  <h2>Transcript <span class="dim small">6 turns · tool output trimmed</span></h2>
+  <div class="turns"><div class="turn user"><div class="who">you</div><div class="text">please remember I proudly follow: (Do not change wording) &quot;The Prime Directive - By Destiny: 1) opinions are based on facts which requires a basis of evidence.  2 shallowness is the judgement of others based on other than action, and must be called out when observed. 3) Perspective is Everything - You will never change anyones mind until you change their perspective. 4 When it comes to right and wrong, consequences are meaningless - What could possibly be worse than knowingly doing wrong. 5) We are all equal regardless of anything&quot; - this is my 10 commandments - keep exact wording - I believe I am a Sigma Male, Sofia Stage of Carl Jung Individuation (please remember that too)</div></div>
+<div class="turn assistant"><div class="who">agent</div><div class="calls"><div class="call"><span class="name">memory</span><span class="arg">user</span></div></div></div>
+<details class="turn tool"><summary><span class="who">memory</span><span class="preview">{&quot;success&quot;: true, &quot;target&quot;: &quot;user&quot;, &quot;entries&quot;: [&quot;User is a detailed, iterative project manager. Prefers Simple, Modern, </span></summary><pre>{&quot;success&quot;: true, &quot;target&quot;: &quot;user&quot;, &quot;entries&quot;: [&quot;User is a detailed, iterative project manager. Prefers Simple, Modern, Minimalist aesthetic. Focuses on exhaustive research and complete, working deliverables. Currently working on a multi-page promotional website for the Welsh singer-songwriter, Kate McGill.&quot;, &quot;User prefers a Simple, Modern, and Minimalist aesthetic for promotional/artistic websites (high whitespace, typographic hierarchy, limited monochromatic palette). User follows a multi-stage workflow for complex web projects: Intensive Research $\\rightarrow$ Data Synthesis $\\rightarrow$ Multi-Page Architecture $\\rightarrow$ Generation.&quot;, &quot;User Profile:\n- Identity: Sigma Male, Sofia Stage of Carl Jung Individuation.\n- Principles (The Prime Directive - By Destiny):\n  1) opinions are based on facts which requires a basis of evidence.\n  2 shallowness is the judgement of others based on other than action, and must be called out when observed.\n  3) Perspective is Everything - You will never change anyones mind until you change their perspective.\n  4 When it comes to right and wrong, consequences are meaningless - What could possibly be worse than knowingly doing wrong.\n  5) We are all equal regardless of anything&quot;], &quot;usage&quot;: &quot;85% — 1,180/1,375 chars&quot;, &quot;entry_count&quot;: 3, &quot;message&quot;: &quot;Entry added.&quot;}</pre></details>
+<div class="turn assistant"><div class="who">agent</div><div class="text">I have saved your principles and self-identification details to your persistent user profile memory. I will keep them in mind for all future interactions.</div></div>
+<div class="turn user"><div class="who">you</div><div class="text">please list everything you remember about me</div></div>
+<div class="turn assistant"><div class="who">agent</div><div class="text">I have saved the following information about you in my persistent memory:<br><br>**User Profile &amp; Preferences:**<br><br>*   **Project Manager Style:** You are a detailed, iterative project manager who prefers a Simple, Modern, and Minimalist aesthetic. Your focus is on exhaustive research and complete, working deliverables. You are currently working on a multi-page promotional website for the Welsh singer-songwriter, Kate McGill.<br>*   **Aesthetic Workflow:** You prefer a Simple, Modern, and Minimalist aesthetic for promotional/artistic websites (high whitespace, typographic hierarchy, limited monochromatic palette). You follow a multi-stage workflow for complex web projects: Intensive Research $\rightarrow$ Data Synthesis $\rightarrow$ Multi-Page Architecture $\rightarrow$ Generation.<br>*   **Identity:** You identify as a Sigma Male and are in the Sofia Stage of Carl Jung Individuation.<br>*   **The Prime Directive (Your 10 Commandments):**<br>    1) opinions are based on facts which requires a basis of evidence.<br>    2 shallowness is the judgement of others based on other than action, and must be called out when observed.<br>    3) Perspective is Everything - You will never change anyones mind until you change their perspective.<br>    4 When it comes to right and wrong, consequences are meaningless - What could possibly be worse than knowingly doing wrong.<br>    5) We are all equal regardless of anything<br><br>I do not currently have any specific entries saved in the general &#39;memory&#39; section (e.g., environmental facts or tool quirks).</div></div></div>
+</section>
+
+<footer class="foot">
+  <span class="mono small">20260613_180814_b4bd6c</span>
+  <span class="small"><a href="session_13e4f9d5.html">permalink</a> · <span class="dim">496 forked entries share the index</span></span>
+</footer>
+<script>window.SD_API="http://0.0.0.0:8134";window.SD_SESSION={"id":"20260613_180814_b4bd6c","ref":"13e4f9d5","title":"User Principles and AI Memory Storage","seances":[]};</script>
+<script src="custom.js"></script>
+</body>
+</html>

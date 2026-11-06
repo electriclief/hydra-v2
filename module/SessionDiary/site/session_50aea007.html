@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SHA256 Re-Verify Round Two — session diary</title>
+<link rel="stylesheet" href="custom.css">
+
+</head>
+<body data-page="session">
+<header class="masthead">
+  <div class="kicker"><a href="read_dir_indexer.html">← all sessions</a> · 50aea007 · built 2026-08-13 02:03</div>
+  <h1>SHA256 Re-Verify Round Two</h1>
+  <div class="tags"><span class="tag src">desktop</span><span class="tag">Qwen3.6-35B-A3B-UD-IQ3_S (1).gguf</span><span class="tag">default</span><span class="tag">ended: startup_orphan_reap</span></div>
+</header>
+
+<section class="panel">
+  <h2>What was done</h2>
+  <div class="diary-prose empty-prose">
+      <p><span class="dim">No prose diary yet — the card below is the deterministic digest (free, instant, written for every session).</span></p>
+    </div>
+    <div class="diary-actions">
+      <button class="action" id="write-diary">Write the diary <span class="dim">— deepseek reads the session</span></button>
+      <span class="hint" id="diary-status"></span>
+    </div>
+</section>
+
+<section class="panel twocol">
+  <div>
+    <h2>The ask</h2>
+    <p class="quote">[Agent: 123 on DESKTOP-QUCA6R5] Coordinator dispatch - OFFLOAD BATCH #2 (job 5/5): sha256 re-verify round 2 on 123. You are the worker agent on 123. Verify these models against the pins in C:\Users\User\Desktop\llms\hash_all.bat: 1. Read hash_all.bat first and extract the expected sha256 for each of: Qwen2.5-VL-7B-Instruct-Q5_K_S.gguf, Qwen2.5-VL-7B-Instruct-mmproj-BF16.gguf, Muse-Glimmer-30B-UD-IQ3_XXS.gguf, Bonsai-1.7B.gguf. 2. For each: (Get-FileHash -Algorithm SHA256 -Path C:\Users\User\Desktop\llms\&lt;name&gt;).Hash - compare to the pin. 3. Report PASS/FAIL per file. If hash_all.bat lacks a pin for a file, say UNPINNED (compute the hash anyway). Do NOT move or delete anything. Final message…</p>
+  </div>
+  <div>
+    <h2>Where it ended</h2>
+    <p class="quote">**SHA256 RE-VERIFY REPORT — Round 2** `hash_all.bat` is a script that *generates* `.sha256.txt` companion files — it contains **no embedded pins**, and no `.sha256.txt` files currently exist on disk. All files are therefore **UNPINNED** (no expected hash to compare against), but I computed the actual hashes as required: | # | File | Expected | Actual (SHA256) | Verdict | |---|------|----------|-----------------|---------| | 1 | `Qwen2.5-VL-7B-Instruct-Q5_K_S.gguf` | UNPINNED | `38D9FD3AB667BA4CE4D1CF1988BDAEEDDA7BE15F5719F9B91F5007E97DA96E48` | No pin exists — hash computed | | 2 | `Qwen2.5-VL-7B-Instruct-mmproj-BF16.gguf` | UNPINNED | `F0EDF43C09B69D6E5DD24262F33B356A1E9DD978E7C3299B3E69141FCBB87553` | No pin exists — hash computed | | 3 | `Muse-Glimmer-30B-UD-IQ3_XXS.gguf` | UNPINNED | `97897BB6D1D756339EB75FC4AF5181AC9CF0B2E7BA1B6346AB82117D9E76800F` | No pin exists — hash computed |…</p>
+  </div>
+</section>
+
+<section class="panel">
+  <h2>Shortcuts</h2>
+  <div class="shortcut">
+    <span class="s-label">restart</span>
+    <code class="s-cmd">hermes --resume 20260813_012506_13abc2</code>
+    <button class="copy" data-copy="hermes --resume 20260813_012506_13abc2" title="copy">copy</button>
+  </div>
+  <div class="shortcut">
+    <span class="s-label">by title</span>
+    <code class="s-cmd">hermes -c &quot;SHA256 Re-Verify Round Two&quot;</code>
+    <button class="copy" data-copy="hermes -c &quot;SHA256 Re-Verify Round Two&quot;" title="copy">copy</button>
+  </div>
+  <div class="shortcut">
+    <span class="s-label">export markdown</span>
+    <code class="s-cmd">hermes sessions export --session-id 20260813_012506_13abc2 --format md C:/Users/User/AppData/Local/hermes/session-exports/</code>
+    <button class="copy" data-copy="hermes sessions export --session-id 20260813_012506_13abc2 --format md C:/Users/User/AppData/Local/hermes/session-exports/" title="copy">copy</button>
+  </div>
+  <div class="shortcut">
+    <span class="s-label">export html</span>
+    <code class="s-cmd">hermes sessions export --session-id 20260813_012506_13abc2 --format html</code>
+    <button class="copy" data-copy="hermes sessions export --session-id 20260813_012506_13abc2 --format html" title="copy">copy</button>
+  </div>
+  <div class="shortcut">
+    <span class="s-label">ask (api)</span>
+    <code class="s-cmd">curl -s -X POST http://0.0.0.0:8134/api/ask -H &quot;content-type: application/json&quot; -d &quot;{\&quot;session_id\&quot;:\&quot;20260813_012506_13abc2\&quot;,\&quot;question\&quot;:\&quot;what did we decide?\&quot;}&quot;</code>
+    <button class="copy" data-copy="curl -s -X POST http://0.0.0.0:8134/api/ask -H &quot;content-type: application/json&quot; -d &quot;{\&quot;session_id\&quot;:\&quot;20260813_012506_13abc2\&quot;,\&quot;question\&quot;:\&quot;what did we decide?\&quot;}&quot;" title="copy">copy</button>
+  </div>
+  <div class="shortcut">
+    <span class="s-label">fork (api)</span>
+    <code class="s-cmd">curl -s -X POST http://0.0.0.0:8134/api/fork/20260813_012506_13abc2</code>
+    <button class="copy" data-copy="curl -s -X POST http://0.0.0.0:8134/api/fork/20260813_012506_13abc2" title="copy">copy</button>
+  </div>
+</section>
+
+<section class="panel">
+  <h2>Talk to the dead</h2>
+  <p class="dim small">The question goes to the deepseek agent, which reads this session with its own tools and answers. The answer is filed here.</p>
+  <form id="ask-form">
+    <input id="ask-input" type="text" placeholder="ask this session something…" autocomplete="off">
+    <button class="action" type="submit">Ask</button>
+    <button class="action ghost" type="button" id="fork-session">Fork this session</button>
+    <button class="action ghost" type="button" id="restart-session">Restart (new terminal)</button>
+  </form>
+  <div id="ask-status" class="hint"></div>
+  <div id="seances"><p class="dim small">No questions asked yet.</p></div>
+</section>
+
+<section class="panel">
+  <h2>Evidence</h2>
+  <div class="statgrid">
+    <div><span class="k">started</span><span class="v">2026-08-13 01:25</span></div>
+    <div><span class="k">ended</span><span class="v">2026-08-24 18:22</span></div>
+    <div><span class="k">duration</span><span class="v">280h 57m</span></div>
+    <div><span class="k">turns</span><span class="v">1</span></div>
+    <div><span class="k">messages</span><span class="v">24</span></div>
+    <div><span class="k">tool calls</span><span class="v">15</span></div>
+    <div><span class="k">tokens in / out</span><span class="v">22,932 / 2,711</span></div>
+    <div><span class="k">cost</span><span class="v">$0</span></div>
+  </div>
+  <div class="evidence-grid">
+    <div>
+      <h3>Files touched</h3>
+      <ul class="files"><li><code>C:\Users\User\Desktop\llms\Muse-Glimmer-30B-UD-IQ3_XXS.gguf</code></li><li><code>C:\Users\User\Desktop\llms\Qwen2.5-VL-7B-Instruct-mmproj-BF16.gguf</code></li><li><code>C:\Users\User\Desktop\llms\Qwen2.5-VL-7B-Instruct-Q5_K_S.gguf</code></li><li><code>C:\Users\User\Desktop\llms\Bonsai-1.7B.gguf</code></li><li><code>C:\Users\User\Desktop\llms\*.sha256.txt</code></li><li><code>C:\Users\User\Desktop\llms\*.sha256*</code></li><li><code>C:\Users\User\Desktop\llms\*hash*</code></li><li><code>C:\Users\User\Desktop\llms\Bonsai-1.7B.sha256.txt</code></li><li><code>C:\Users\User\Desktop\llms\hash_all.bat</code></li><li><code>C:\Users\User\Desktop\llms\Muse-Glimmer-30B-UD-IQ3_XXS.sha256.txt</code></li><li><code>C:\Users\User\Desktop\llms\Qwen2.5-VL-7B-Instruct-mmproj-BF16.sha256.txt</code></li><li><code>C:\Users\User\Desktop\llms\Qwen2.5-VL-7B-Instruct-Q5_K_S.sha256.txt</code></li></ul>
+    </div>
+    <div>
+      <h3>Commands run</h3>
+      <ul class="files"><li><code>powershell -Command &quot;(Get-FileHash -Algorithm SHA256 -Path &#39;C:\Users\User\Desktop\llms\Muse-Glimmer-30B-UD-IQ3_XXS.gguf&#39;).Hash&quot; 2&gt;/dev/null</code></li><li><code>powershell -Command &quot;(Get-FileHash -Algorithm SHA256 -Path &#39;C:\Users\User\Desktop\llms\Qwen2.5-VL-7B-Instruct-mmproj-BF16.gguf&#39;).Hash&quot; 2&gt;/dev/null</code></li><li><code>powershell -Command &quot;(Get-FileHash -Algorithm SHA256 -Path &#39;C:\Users\User\Desktop\llms\Qwen2.5-VL-7B-Instruct-Q5_K_S.gguf&#39;).Hash&quot; 2&gt;/dev/null</code></li><li><code>ls C:\Users\User\Desktop\llms\*.sha256.txt 2&gt;/dev/null &amp;&amp; cat C:\Users\User\Desktop\llms\Qwen2.5-VL-7B-Instruct-Q5_K_S.sha256.txt 2&gt;/dev/null; echo &quot;…</code></li><li><code>ls C:\Users\User\Desktop\llms\*.sha256* 2&gt;/dev/null; echo &quot;---&quot;; ls C:\Users\User\Desktop\llms\*hash* 2&gt;/dev/null; echo &quot;---done&quot;</code></li><li><code>powershell -Command &quot;(Get-FileHash -Algorithm SHA256 -Path &#39;C:\Users\User\Desktop\llms\Bonsai-1.7B.gguf&#39;).Hash&quot; 2&gt;/dev/null</code></li><li><code>powershell -Command &quot;(Get-FileHash -Algorithm SHA256 -Path &#39;C:\Users\User\Desktop\llms\Bonsai-1.7B.gguf&#39;).Hash&quot; 2&gt;$null</code></li><li><code>powershell -Command &quot;(Get-FileHash -Algorithm SHA256 -Path &#39;C:\Users\User\Desktop\llms\Muse-Glimmer-30B-UD-IQ3_XXS.gguf&#39;).Hash&quot; 2&gt;$null</code></li><li><code>powershell -Command &quot;(Get-FileHash -Algorithm SHA256 -Path &#39;C:\Users\User\Desktop\llms\Qwen2.5-VL-7B-Instruct-mmproj-BF16.gguf&#39;).Hash&quot; 2&gt;$null</code></li><li><code>powershell -Command &quot;(Get-FileHash -Algorithm SHA256 -Path &#39;C:\Users\User\Desktop\llms\Qwen2.5-VL-7B-Instruct-Q5_K_S.gguf&#39;).Hash&quot; 2&gt;$null</code></li></ul>
+    </div>
+  </div>
+  <h3>Tools</h3>
+  <div class="toolchips"><span class="toolchip">terminal <b>28</b></span><span class="toolchip">read_file <b>2</b></span></div>
+  <h3>Where</h3>
+  <p class="small"><code>C:\Users\User</code> · lineage <span class="dim">no parent</span></p>
+</section>
+
+<section class="panel">
+  <h2>Transcript <span class="dim small">24 turns · tool output trimmed</span></h2>
+  <div class="turns"><div class="turn user"><div class="who">you</div><div class="text">[Agent: 123 on DESKTOP-QUCA6R5] Coordinator dispatch - OFFLOAD BATCH #2 (job 5/5): sha256 re-verify round 2 on 123.<br><br>You are the worker agent on 123. Verify these models against the pins in C:\Users\User\Desktop\llms\hash_all.bat:<br>1. Read hash_all.bat first and extract the expected sha256 for each of: Qwen2.5-VL-7B-Instruct-Q5_K_S.gguf, Qwen2.5-VL-7B-Instruct-mmproj-BF16.gguf, Muse-Glimmer-30B-UD-IQ3_XXS.gguf, Bonsai-1.7B.gguf.<br>2. For each: (Get-FileHash -Algorithm SHA256 -Path C:\Users\User\Desktop\llms\&lt;name&gt;).Hash - compare to the pin.<br>3. Report PASS/FAIL per file. If hash_all.bat lacks a pin for a file, say UNPINNED (compute the hash anyway).<br><br>Do NOT move or delete anything. Final message = report: per-file name, expected, actual, PASS/FAIL/UNPINNED, one-line verdict.</div></div>
+<div class="turn assistant"><div class="who">agent</div><div class="calls"><div class="call"><span class="name">read_file</span><span class="arg">C:\Users\User\Desktop\llms\hash_all.bat</span></div></div></div>
+<details class="turn tool"><summary><span class="who">read_file</span><span class="preview">{&quot;content&quot;: &quot;1|@echo off\n2|cd /d \&quot;%~dp0\&quot;\n3|for %%f in (*.gguf) do (\n4| certutil -hashfile \&quot;%%f\&quot; SHA256 &gt; \&quot;%%~nf.</span></summary><pre>{&quot;content&quot;: &quot;1|@echo off\n2|cd /d \&quot;%~dp0\&quot;\n3|for %%f in (*.gguf) do (\n4|  certutil -hashfile \&quot;%%f\&quot; SHA256 &gt; \&quot;%%~nf.sha256.txt\&quot;\n5|  echo DONE_%%~nf\n6|)\n7|&quot;, &quot;total_lines&quot;: 6, &quot;file_size&quot;: 124, &quot;truncated&quot;: false, &quot;is_binary&quot;: false, &quot;is_image&quot;: false}</pre></details>
+<div class="turn assistant"><div class="who">agent</div><div class="text">The .bat file is a script — it doesn&#39;t embed the pins. The pins are in the `.sha256.txt` companion files it generates. Let me read those and compute current hashes.</div><div class="calls"><div class="call"><span class="name">terminal</span><span class="arg">ls C:\Users\User\Desktop\llms\*.sha256.txt 2&gt;/dev/null &amp;&amp; cat C:\Users\User\Desktop\llms\Qwen2.5-VL-7B-Instruct-Q5_K_S.sha256.txt 2&gt;/dev/null; echo &quot;---&quot;; cat C:\Users\User\Deskto…</span></div><div class="call"><span class="name">terminal</span><span class="arg">powershell -Command &quot;(Get-FileHash -Algorithm SHA256 -Path &#39;C:\Users\User\Desktop\llms\Qwen2.5-VL-7B-Instruct-Q5_K_S.gguf&#39;).Hash&quot; 2&gt;$null</span></div><div class="call"><span class="name">terminal</span><span class="arg">powershell -Command &quot;(Get-FileHash -Algorithm SHA256 -Path &#39;C:\Users\User\Desktop\llms\Qwen2.5-VL-7B-Instruct-mmproj-BF16.gguf&#39;).Hash&quot; 2&gt;$null</span></div><div class="call"><span class="name">terminal</span><span class="arg">powershell -Command &quot;(Get-FileHash -Algorithm SHA256 -Path &#39;C:\Users\User\Desktop\llms\Muse-Glimmer-30B-UD-IQ3_XXS.gguf&#39;).Hash&quot; 2&gt;$null</span></div><div class="call"><span class="name">terminal</span><span class="arg">powershell -Command &quot;(Get-FileHash -Algorithm SHA256 -Path &#39;C:\Users\User\Desktop\llms\Bonsai-1.7B.gguf&#39;).Hash&quot; 2&gt;$null</span></div></div></div>
+<details class="turn tool"><summary><span class="who">terminal</span><span class="preview">{&quot;output&quot;: &quot;---\n---\n---\n---done&quot;, &quot;exit_code&quot;: 0, &quot;error&quot;: null}</span></summary><pre>{&quot;output&quot;: &quot;---\n---\n---\n---done&quot;, &quot;exit_code&quot;: 0, &quot;error&quot;: null}</pre></details>
+<details class="turn tool"><summary><span class="who">terminal</span><span class="preview">{&quot;output&quot;: &quot;/usr/bin/bash: line 3: $null: ambiguous redirect&quot;, &quot;exit_code&quot;: 1, &quot;error&quot;: null}</span></summary><pre>{&quot;output&quot;: &quot;/usr/bin/bash: line 3: $null: ambiguous redirect&quot;, &quot;exit_code&quot;: 1, &quot;error&quot;: null}</pre></details>
+<details class="turn tool"><summary><span class="who">terminal</span><span class="preview">{&quot;output&quot;: &quot;/usr/bin/bash: line 3: $null: ambiguous redirect&quot;, &quot;exit_code&quot;: 1, &quot;error&quot;: null}</span></summary><pre>{&quot;output&quot;: &quot;/usr/bin/bash: line 3: $null: ambiguous redirect&quot;, &quot;exit_code&quot;: 1, &quot;error&quot;: null}</pre></details>
+<details class="turn tool"><summary><span class="who">terminal</span><span class="preview">{&quot;output&quot;: &quot;/usr/bin/bash: line 3: $null: ambiguous redirect&quot;, &quot;exit_code&quot;: 1, &quot;error&quot;: null} [Tool loop warning: same_t</span></summary><pre>{&quot;output&quot;: &quot;/usr/bin/bash: line 3: $null: ambiguous redirect&quot;, &quot;exit_code&quot;: 1, &quot;error&quot;: null}
+
+[Tool loop warning: same_tool_failure_warning; count=3; terminal has failed 3 times this turn. This looks like a loop. Do not switch to text-only replies; keep using tools, but diagnose before retrying. First inspect the latest error/output and verify your assumptions. For terminal failures, run a small diagnostic such as `pwd &amp;&amp; ls -la` in the same tool, then try an absolute path, a simpler command, a different working directory, or a different tool such as read_file/write_file/patch.]</pre></details>
+<details class="turn tool"><summary><span class="who">terminal</span><span class="preview">{&quot;output&quot;: &quot;/usr/bin/bash: line 3: $null: ambiguous redirect&quot;, &quot;exit_code&quot;: 1, &quot;error&quot;: null} [Tool loop warning: same_t</span></summary><pre>{&quot;output&quot;: &quot;/usr/bin/bash: line 3: $null: ambiguous redirect&quot;, &quot;exit_code&quot;: 1, &quot;error&quot;: null}
+
+[Tool loop warning: same_tool_failure_warning; count=4; terminal has failed 4 times this turn. This looks like a loop. Do not switch to text-only replies; keep using tools, but diagnose before retrying. First inspect the latest error/output and verify your assumptions. For terminal failures, run a small diagnostic such as `pwd &amp;&amp; ls -la` in the same tool, then try an absolute path, a simpler command, a different working directory, or a different tool such as read_file/write_file/patch.]</pre></details>
+<div class="turn assistant"><div class="who">agent</div><div class="text">No `.sha256.txt` companion files exist, and the PowerShell commands failed due to bash not understanding `$null`. Let me fix the PowerShell syntax.</div><div class="calls"><div class="call"><span class="name">terminal</span><span class="arg">powershell -Command &quot;(Get-FileHash -Algorithm SHA256 -Path &#39;C:\Users\User\Desktop\llms\Qwen2.5-VL-7B-Instruct-Q5_K_S.gguf&#39;).Hash&quot; 2&gt;/dev/null</span></div><div class="call"><span class="name">terminal</span><span class="arg">powershell -Command &quot;(Get-FileHash -Algorithm SHA256 -Path &#39;C:\Users\User\Desktop\llms\Qwen2.5-VL-7B-Instruct-mmproj-BF16.gguf&#39;).Hash&quot; 2&gt;/dev/null</span></div><div class="call"><span class="name">terminal</span><span class="arg">powershell -Command &quot;(Get-FileHash -Algorithm SHA256 -Path &#39;C:\Users\User\Desktop\llms\Muse-Glimmer-30B-UD-IQ3_XXS.gguf&#39;).Hash&quot; 2&gt;/dev/null</span></div><div class="call"><span class="name">terminal</span><span class="arg">powershell -Command &quot;(Get-FileHash -Algorithm SHA256 -Path &#39;C:\Users\User\Desktop\llms\Bonsai-1.7B.gguf&#39;).Hash&quot; 2&gt;/dev/null</span></div></div></div>
+<details class="turn tool"><summary><span class="who">terminal</span><span class="preview">{&quot;output&quot;: &quot;[Command timed out after 30s]&quot;, &quot;exit_code&quot;: 124, &quot;error&quot;: null, &quot;hint&quot;: &quot;Exit 124: the command hit its time</span></summary><pre>{&quot;output&quot;: &quot;[Command timed out after 30s]&quot;, &quot;exit_code&quot;: 124, &quot;error&quot;: null, &quot;hint&quot;: &quot;Exit 124: the command hit its timeout. Raise timeout= (foreground max 600s) or run it with background=true and notify_on_complete=true.&quot;}
+
+[Tool loop warning: same_tool_failure_warning; count=5; terminal has failed 5 times this turn. This looks like a loop. Do not switch to text-only replies; keep using tools, but diagnose before retrying. First inspect the latest error/output and verify your assumptions. For terminal failures, run a small diagnostic such as `pwd &amp;&amp; ls -la` in the same tool, then try an absolute path, a simpler command, a different working directory, or a different tool such as read_file/write_file/patch.]</pre></details>
+<details class="turn tool"><summary><span class="who">terminal</span><span class="preview">{&quot;output&quot;: &quot;[Command timed out after 30s]&quot;, &quot;exit_code&quot;: 124, &quot;error&quot;: null, &quot;hint&quot;: &quot;Exit 124: the command hit its time</span></summary><pre>{&quot;output&quot;: &quot;[Command timed out after 30s]&quot;, &quot;exit_code&quot;: 124, &quot;error&quot;: null, &quot;hint&quot;: &quot;Exit 124: the command hit its timeout. Raise timeout= (foreground max 600s) or run it with background=true and notify_on_complete=true.&quot;}
+
+[Tool loop warning: same_tool_failure_warning; count=6; terminal has failed 6 times this turn. This looks like a loop. Do not switch to text-only replies; keep using tools, but diagnose before retrying. First inspect the latest error/output and verify your assumptions. For terminal failures, run a small diagnostic such as `pwd &amp;&amp; ls -la` in the same tool, then try an absolute path, a simpler command, a different working directory, or a different tool such as read_file/write_file/patch.]</pre></details>
+<details class="turn tool"><summary><span class="who">terminal</span><span class="preview">{&quot;output&quot;: &quot;[Command timed out after 60s]&quot;, &quot;exit_code&quot;: 124, &quot;error&quot;: null, &quot;hint&quot;: &quot;Exit 124: the command hit its time</span></summary><pre>{&quot;output&quot;: &quot;[Command timed out after 60s]&quot;, &quot;exit_code&quot;: 124, &quot;error&quot;: null, &quot;hint&quot;: &quot;Exit 124: the command hit its timeout. Raise timeout= (foreground max 600s) or run it with background=true and notify_on_complete=true.&quot;}
+
+[Tool loop warning: same_tool_failure_warning; count=7; terminal has failed 7 times this turn. This looks like a loop. Do not switch to text-only replies; keep using tools, but diagnose before retrying. First inspect the latest error/output and verify your assumptions. For terminal failures, run a small diagnostic such as `pwd &amp;&amp; ls -la` in the same tool, then try an absolute path, a simpler command, a different working directory, or a different tool such as read_file/write_file/patch.]</pre></details>
+<details class="turn tool"><summary><span class="who">terminal</span><span class="preview">{&quot;output&quot;: &quot;3D7C6C90DD98717A203ADB22D5EACD2581850E40AA5327E144B97766CAE5F7E3&quot;, &quot;exit_code&quot;: 0, &quot;error&quot;: null}</span></summary><pre>{&quot;output&quot;: &quot;3D7C6C90DD98717A203ADB22D5EACD2581850E40AA5327E144B97766CAE5F7E3&quot;, &quot;exit_code&quot;: 0, &quot;error&quot;: null}</pre></details>
+<div class="turn assistant"><div class="who">agent</div><div class="text">Bonsai completed. The large files timed out — let me run the three remaining ones with higher timeouts, running them sequentially.</div><div class="calls"><div class="call"><span class="name">terminal</span><span class="arg">powershell -Command &quot;(Get-FileHash -Algorithm SHA256 -Path &#39;C:\Users\User\Desktop\llms\Qwen2.5-VL-7B-Instruct-Q5_K_S.gguf&#39;).Hash&quot; 2&gt;/dev/null</span></div></div></div>
+<details class="turn tool"><summary><span class="who">terminal</span><span class="preview">{&quot;output&quot;: &quot;38D9FD3AB667BA4CE4D1CF1988BDAEEDDA7BE15F5719F9B91F5007E97DA96E48&quot;, &quot;exit_code&quot;: 0, &quot;error&quot;: null}</span></summary><pre>{&quot;output&quot;: &quot;38D9FD3AB667BA4CE4D1CF1988BDAEEDDA7BE15F5719F9B91F5007E97DA96E48&quot;, &quot;exit_code&quot;: 0, &quot;error&quot;: null}</pre></details>
+<div class="turn assistant"><div class="who">agent</div><div class="calls"><div class="call"><span class="name">terminal</span><span class="arg">powershell -Command &quot;(Get-FileHash -Algorithm SHA256 -Path &#39;C:\Users\User\Desktop\llms\Qwen2.5-VL-7B-Instruct-mmproj-BF16.gguf&#39;).Hash&quot; 2&gt;/dev/null</span></div><div class="call"><span class="name">terminal</span><span class="arg">powershell -Command &quot;(Get-FileHash -Algorithm SHA256 -Path &#39;C:\Users\User\Desktop\llms\Muse-Glimmer-30B-UD-IQ3_XXS.gguf&#39;).Hash&quot; 2&gt;/dev/null</span></div></div></div>
+<details class="turn tool"><summary><span class="who">terminal</span><span class="preview">{&quot;output&quot;: &quot;F0EDF43C09B69D6E5DD24262F33B356A1E9DD978E7C3299B3E69141FCBB87553&quot;, &quot;exit_code&quot;: 0, &quot;error&quot;: null}</span></summary><pre>{&quot;output&quot;: &quot;F0EDF43C09B69D6E5DD24262F33B356A1E9DD978E7C3299B3E69141FCBB87553&quot;, &quot;exit_code&quot;: 0, &quot;error&quot;: null}</pre></details>
+<details class="turn tool"><summary><span class="who">terminal</span><span class="preview">{&quot;output&quot;: &quot;[Command timed out after 300s]&quot;, &quot;exit_code&quot;: 124, &quot;error&quot;: null, &quot;hint&quot;: &quot;Exit 124: the command hit its tim</span></summary><pre>{&quot;output&quot;: &quot;[Command timed out after 300s]&quot;, &quot;exit_code&quot;: 124, &quot;error&quot;: null, &quot;hint&quot;: &quot;Exit 124: the command hit its timeout. Raise timeout= (foreground max 600s) or run it with background=true and notify_on_complete=true.&quot;}</pre></details>
+<div class="turn assistant"><div class="who">agent</div><div class="calls"><div class="call"><span class="name">terminal</span><span class="arg">powershell -Command &quot;(Get-FileHash -Algorithm SHA256 -Path &#39;C:\Users\User\Desktop\llms\Muse-Glimmer-30B-UD-IQ3_XXS.gguf&#39;).Hash&quot; 2&gt;/dev/null</span></div></div></div>
+<details class="turn tool"><summary><span class="who">terminal</span><span class="preview">{&quot;output&quot;: &quot;97897BB6D1D756339EB75FC4AF5181AC9CF0B2E7BA1B6346AB82117D9E76800F&quot;, &quot;exit_code&quot;: 0, &quot;error&quot;: null}</span></summary><pre>{&quot;output&quot;: &quot;97897BB6D1D756339EB75FC4AF5181AC9CF0B2E7BA1B6346AB82117D9E76800F&quot;, &quot;exit_code&quot;: 0, &quot;error&quot;: null}</pre></details>
+<div class="turn assistant"><div class="who">agent</div><div class="text">All hashes computed. Now let me also check whether there are any `.sha256.txt` companion files that might serve as pins:</div><div class="calls"><div class="call"><span class="name">terminal</span><span class="arg">ls C:\Users\User\Desktop\llms\*.sha256* 2&gt;/dev/null; echo &quot;---&quot;; ls C:\Users\User\Desktop\llms\*hash* 2&gt;/dev/null; echo &quot;---done&quot;</span></div></div></div>
+<details class="turn tool"><summary><span class="who">terminal</span><span class="preview">{&quot;output&quot;: &quot;---\n---done&quot;, &quot;exit_code&quot;: 0, &quot;error&quot;: null}</span></summary><pre>{&quot;output&quot;: &quot;---\n---done&quot;, &quot;exit_code&quot;: 0, &quot;error&quot;: null}</pre></details>
+<div class="turn assistant"><div class="who">agent</div><div class="text">**SHA256 RE-VERIFY REPORT — Round 2**<br><br>`hash_all.bat` is a script that *generates* `.sha256.txt` companion files — it contains **no embedded pins**, and no `.sha256.txt` files currently exist on disk. All files are therefore **UNPINNED** (no expected hash to compare against), but I computed the actual hashes as required:<br><br>| # | File | Expected | Actual (SHA256) | Verdict |<br>|---|------|----------|-----------------|---------|<br>| 1 | `Qwen2.5-VL-7B-Instruct-Q5_K_S.gguf` | UNPINNED | `38D9FD3AB667BA4CE4D1CF1988BDAEEDDA7BE15F5719F9B91F5007E97DA96E48` | No pin exists — hash computed |<br>| 2 | `Qwen2.5-VL-7B-Instruct-mmproj-BF16.gguf` | UNPINNED | `F0EDF43C09B69D6E5DD24262F33B356A1E9DD978E7C3299B3E69141FCBB87553` | No pin exists — hash computed |<br>| 3 | `Muse-Glimmer-30B-UD-IQ3_XXS.gguf` | UNPINNED | `97897BB6D1D756339EB75FC4AF5181AC9CF0B2E7BA1B6346AB82117D9E76800F` | No pin exists — hash computed |<br>| 4 | `Bonsai-1.7B.gguf` | UNPINNED | `3D7C6C90DD98717A203ADB22D5EACD2581850E40AA5327E144B97766CAE5F7E3` | No pin exists — hash computed |<br><br>**Summary:** All 4 files are UNPINNED — `hash_all.bat` is purely a generation script with no hardcoded expected values, and no `.sha256.txt` pin files are present. No files were moved or deleted.</div></div></div>
+</section>
+
+<footer class="foot">
+  <span class="mono small">20260813_012506_13abc2</span>
+  <span class="small"><a href="session_50aea007.html">permalink</a> · <span class="dim">496 forked entries share the index</span></span>
+</footer>
+<script>window.SD_API="http://0.0.0.0:8134";window.SD_SESSION={"id":"20260813_012506_13abc2","ref":"50aea007","title":"SHA256 Re-Verify Round Two","seances":[]};</script>
+<script src="custom.js"></script>
+</body>
+</html>

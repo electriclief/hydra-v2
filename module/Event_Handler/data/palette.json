@@ -1,0 +1,41 @@
+{
+  "generated": "2026-11-06",
+  "note": "The events this node accepts from any producer, including out-of-process ones (the PowerShell standby guard, the shelf puller). A name here is a promise the event can be fired and will be logged; the handler is a no-op because the record is the log line. State holds the metadata note about the same happening - the event says it happened, State says what it is now.",
+  "events": [
+    {
+      "name": "standby.yield",
+      "producer": "idle-service",
+      "description": "AI work appeared; the Idle Service (mining) was stopped to make room. Payload: {ref, ai}."
+    },
+    {
+      "name": "standby.resume",
+      "producer": "idle-service",
+      "description": "The card has been free past the grace window; the Idle Service was restarted. Payload: {ref, idleForS}."
+    },
+    {
+      "name": "standby.pin",
+      "producer": "idle-service",
+      "description": "The operator pinned the Idle Service up, so AI work will not displace it. Payload: {ref, pinned}."
+    },
+    {
+      "name": "shelf.pulled",
+      "producer": "services",
+      "description": "A node pulled a shelf revision: files fetched, every one hash-verified. Payload: {ref, peerRev, fetched, refused}."
+    },
+    {
+      "name": "shelf.refused",
+      "producer": "services",
+      "description": "A pull was refused: a file did not match its hash, so nothing was written. Payload: {ref, path, why}."
+    },
+    {
+      "name": "job.submitted",
+      "producer": "scheduler",
+      "description": "A job entered the Scheduler's book. Payload: {ref, jobId, service}."
+    },
+    {
+      "name": "job.done",
+      "producer": "scheduler",
+      "description": "A job left the book as done, failed or cancelled. Payload: {ref, jobId, status}."
+    }
+  ]
+}

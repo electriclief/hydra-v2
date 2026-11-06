@@ -1,0 +1,49 @@
+{
+  "id": "cron_6d233f41b8e5_20261015_160515",
+  "title": "Your role is a low-priority, specialized AI Releas · Oct 15 16:07",
+  "source": "cron",
+  "model": "deepseek-flash",
+  "parentId": null,
+  "startedAt": 1792094722.4904263,
+  "endedAt": 1792094821.062816,
+  "endReason": "cron_complete",
+  "messageCount": 25,
+  "toolCallCount": 12,
+  "inputTokens": 17996,
+  "outputTokens": 10747,
+  "costUsd": 0.01001544,
+  "cwd": "C:\\Users\\User\\Hermes\\gemma4site",
+  "gitBranch": null,
+  "gitRepo": null,
+  "pinned": false,
+  "archived": false,
+  "hidden": false,
+  "profileName": "default",
+  "lastActivityAt": 1792094783.3887696,
+  "createdSource": "cron",
+  "ref": "3c7b939e",
+  "displayTitle": "Your role is a low-priority, specialized AI Releas · Oct 15 16:07",
+  "durationSec": 99,
+  "userTurns": 1,
+  "goal": "[IMPORTANT: The following skill(s) were listed for this job but could not be found and were skipped: web_search, terminal. Start your response with a brief notice so the user is aware, e.g.: '⚠️ Skill(s) not found and skipped: web_search, terminal'] The user has provided the following instruction alongside the skill invocation: [IMPORTANT: You are running as a scheduled cron job. DELIVERY: Your final response will be automatically delivered to the user — do NOT use send_message or try to deliver the output yourself. Just produce your report/output as your final response and the system handles the rest. SILENT: If there is genuinely nothing new to report, respond with exactly \"[SILENT]\" (not…",
+  "outcome": "**HF Release Monitor — cycle ending 2026-10-15 (data pulled live from HF API: 40 daily papers, top-50 trending models, plus GGUF/ROCm-filtered slices)** ## ✅ Notable & hardware-fit **Models / quants** - **openbmb/MiniCPM-V-4.7-1B + `-gguf`** — *HF Trending Models (created 2026-10-06, still climbing; official GGUF updated today, 26.6k dl, 69 likes on the GGUF, 359 likes on base)* — A 1B on-device multimodal model with image + video understanding and an official llama.cpp GGUF from the org itself: the only new VLM this cycle that runs entirely inside the GTX 1660's 6 GB (or pure CPU) with room to spare. - **prism-ml/Ternary-Bonsai-2-27B-gguf** — *HF Trending Models (top-trending GGUF, 4.85M dl, 2,699 likes; released 2026-09-16, still #1 in the GGUF slice)* — Ternary 1.58-bit 27B: **5.95 GB** deployed (PTQ1_0) or 7.21 GB (PQ2_0) vs ~54 GB FP16, retaining 98.2% of FP16 intelligence — the fi…",
+  "files": [],
+  "commands": [],
+  "tools": [
+    {
+      "name": "browser_exec",
+      "count": 20
+    },
+    {
+      "name": "execute_code",
+      "count": 2
+    },
+    {
+      "name": "web_extract",
+      "count": 2
+    }
+  ],
+  "bytes": 68240,
+  "diary": null,
+  "seances": []
+}

@@ -1,0 +1,8 @@
+{
+  "name": "Menu",
+  "kind": "door",
+  "port": 8133,
+  "start": "\"%LOCALAPPDATA%\\hermes\node\node.exe\" public/js/main.js",
+  "wiredAtBoot": false,
+  "what": "The way in — a tree of every service this node can make, its advert beside the row, its inputs page on click, and one booking call to the Scheduler. Nothing runs here."
+}

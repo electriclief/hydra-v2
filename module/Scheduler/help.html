@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Scheduler — the book of jobs, one at a time</title>
+<style>
+  :root { color-scheme: dark; --bg:#111318; --panel:#191c23; --border:#303541; --text:#e5e7eb; --muted:#a1a8b7; --accent:#8ab4f8; }
+  * { box-sizing: border-box; }
+  body { margin:0; padding:32px; background:var(--bg); color:var(--text);
+         font:15px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif; max-width:78ch; }
+  h1 { margin:0 0 4px; font-size:24px; font-weight:600; letter-spacing:-.01em; }
+  h2 { margin:32px 0 10px; font-size:13px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; color:var(--muted); }
+  .kicker { margin:0 0 28px; color:var(--muted); font-size:13px; }
+  p { margin:0 0 12px; }
+  code { font:13px/1.5 ui-monospace,Consolas,monospace; background:#0b0d11; border:1px solid var(--border);
+         border-radius:5px; padding:1px 5px; color:#cfd6e4; }
+  pre { background:#0b0d11; border:1px solid var(--border); border-radius:8px; padding:12px 14px; overflow:auto; }
+  table { width:100%; border-collapse:collapse; margin:6px 0 16px; font-size:14px; }
+  th, td { text-align:left; padding:7px 10px; border-bottom:1px solid var(--border); vertical-align:top; }
+  th { color:var(--muted); font-weight:600; font-size:12px; letter-spacing:.06em; text-transform:uppercase; }
+  .note { color:var(--muted); font-size:13px; }
+  .lede { font-size:16px; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Scheduler</h1>
+  <p class="kicker">the book of jobs · door on :8132 · one slot · runner <code>dummy</code> or <code>local</code></p>
+</header>
+
+<section id="summary">
+  <p class="lede">The Scheduler is the only place on a node that decides <em>when</em> work happens. A
+  caller submits a job — one service with its inputs, or a graph of steps that waits on its own
+  predecessors — and gets an id back while the job is still queued. The book admits one job at a time,
+  records what each one asked for, runs it through a runner seam, and publishes the queued and running
+  jobs to State so the rest of the LAN can see the node is busy without asking it anything.</p>
+</section>
+
+<section id="concepts">
+  <h2>How it holds together</h2>
+
+  <p><b>A job is a graph, never a list.</b> Every job carries <code>steps[]</code>, and a flat
+  <code>{service, inputs}</code> submit becomes the degenerate one-step DAG (<code>id: "s1"</code>) through
+  <code>fromLegacyJob()</code>. That costs nothing today and avoids a record migration the first time a
+  video needs an image and a voice. A step declares:</p>
+  <table>
+    <tr><th>field</th><th>meaning</th></tr>
+    <tr><td><code>id</code></td><td>unique in the job — a name like <code>s1</code>, at most 32 chars of letters, digits, <code>._-</code> — the handle <code>needs</code> and <code>{{id.key}}</code> refer to</td></tr>
+    <tr><td><code>service</code></td><td>a name from the catalog, never a node path</td></tr>
+    <tr><td><code>values</code></td><td>that service's declared inputs, possibly carrying <code>{{s1.image}}</code> tokens</td></tr>
+    <tr><td><code>needs</code></td><td>incoming edges — these steps must be done before this one may start</td></tr>
+    <tr><td><code>produces</code> · <code>output</code></td><td>artifact <em>names</em>, and the real path or value behind each name once it ran</td></tr>
+    <tr><td><code>node</code></td><td>where it must run; absent means this node. A step naming another node is refused by the local runner as <code>remote_node_not_wired</code></td></tr>
+  </table>
+
+  <p><b>The graph is validated before the job is booked.</b> <code>validateGraph()</code> refuses
+  <code>empty_graph</code>, <code>bad_step_id</code>, <code>duplicate_step</code>,
+  <code>bad_needs</code>, <code>unknown_dep</code> and <code>cycle</code>, and every refusal names the
+  offending refs (<code>cycle: s1 -&gt; s2 -&gt; s1</code>, not "invalid graph"). The cycle check is not
+  pedantry: with one slot, a cycle would sit forever and look exactly like nothing happening.
+  <code>topoOrder()</code> is Kahn's algorithm, and its unordered remainder <em>is</em> the named
+  cycle.</p>
+
+  <p><b>Tokens resolve from what actually happened.</b> <code>{{s1.image}}</code> is substituted at run
+  time from the producing step's recorded <code>output</code> map — never from a filename convention. If
+  no step produced the key, the token stays and the step fails with
+  <code>unresolved_token</code>; the runner would rather stop than pass a template string to a model.</p>
+
+  <p><b>One slot is the rule of the box, not a limitation.</b> <code>pump()</code> admits nothing while
+  something runs, then takes the oldest <code>queued</code> job, marks it <code>running</code>, persists,
+  awaits the runner, and records <code>done</code> or <code>failed</code>. <code>concurrency</code>
+  defaults to 1 and the seam allows more (<code>--concurrency</code>), but the machine's law is one GPU,
+  one job. A submit returns before any work starts: the job is pushed, the book is persisted, the pump is
+  scheduled on a microtask, and the caller receives a <em>copy</em> (<code>snap()</code>) so it never
+  watches a status change under its own hands.</p>
+
+  <p><b>Statuses mean what they say.</b> <code>queued | running | done | failed | cancelled</code>. On
+  boot the book is reloaded and any job the file still calls <code>running</code> is loaded as
+  <code>failed</code> with the sentence "the door restarted while this job was running — it did not
+  finish", and its steps are demoted the same way. A file cannot claim work that stopped when the process
+  did.</p>
+
+  <p><b>Cancel means cancel — a queued job leaves the queue, a running one is refused.</b>
+  <code>POST /api/jobs/:id/cancel</code> answers 200 when a queued job is cancelled, 409 with the job and
+  the reason when it is already running ("a running job is not killed from here"), and 404 for an unknown
+  id. Lying about a kill would be worse than admitting the limit.</p>
+
+  <p><b>The runner is a seam, and today's seam says so.</b> <code>Runner</code> is
+  <code>{ kind, description, run(job) }</code>. The shipped default is
+  <code>createDummyRunner()</code>: it sleeps 1200 ms, writes the job as <code>done</code>, and returns
+  <code>executed: false</code> with a note naming the service and its input keys — so the wiring (submit ·
+  queue · run · status · publish) is real while nothing is executed. <code>--runner local</code>
+  (<code>SCHEDULER_RUNNER=local</code>) swaps in <code>createLocalRunner()</code>, which for each ready
+  step does three things:</p>
+  <table>
+    <tr><th>stage</th><th>what it does</th></tr>
+    <tr><td>residency</td><td>if the service is server-shaped (<code>gui.kind === 'command'</code>), make <em>that</em> model the resident one: evict only when the card is actually tight, then wait for the old <b>port</b> to stop answering (a kill returns long before the port frees), start through ProcessWrapper tagged <code>basic-gui</code>, and wait for <code>/health</code></td></tr>
+    <tr><td>invoke</td><td>server-shaped → its own <code>POST /v1/chat/completions</code>; run-per-job → Basic_App's <code>/api/basic/run</code>, then read the artifact from the process output line <code>WROTE &lt;path&gt;</code></td></tr>
+    <tr><td>record</td><td>attach the artifact into the job's own folder as <code>&lt;stepId&gt;-&lt;basename&gt;</code> (hard link first, copy as fallback); an answer with no file is still written as <code>&lt;stepId&gt;-answer.txt</code></td></tr>
+  </table>
+  <p>Two of its refusals are deliberate: a run that names no file is <code>no_artifact</code> rather than
+  "done", and unknown free VRAM is <em>not</em> permission to kill someone else's model — it shares the
+  box and lets a failed start be honest. Delivery (<code>deliver.mode</code> = <code>auto</code> ·
+  <code>link</code> · <code>copy</code>) reports which mode actually worked, because "linked" and "copied"
+  are different claims and a pointer file is neither.</p>
+
+  <p><b>The book is published, because a booking nobody can see is a private note.</b> Every 5 s
+  (<code>SCHEDULER_PUBLISH_MS</code>) the publisher writes to State:</p>
+  <table>
+    <tr><th>entry</th><th>content</th><th>when</th></tr>
+    <tr><td><code>node.&lt;ref&gt;.scheduler.booked.&lt;jobId&gt;</code></td><td><code>{id, service, state, at, created, keys[], graph}</code> — inputs as their <b>keys only</b>, never their values</td><td>while the job is queued or running</td></tr>
+    <tr><td><code>node.&lt;ref&gt;.scheduler</code></td><td><code>{at, queued, running, done, failed, cancelled, total, booked, nextAt}</code></td><td>every tick</td></tr>
+  </table>
+  <p>Finished jobs are <em>not</em> published individually — only the summary counts — so a long-lived
+  node does not grow the LAN's state without bound. A job that leaves the book is dropped by name
+  (<code>POST /api/state/drop</code>). The publisher's HTTP calls have a 700 ms timeout and return
+  <code>false</code> instead of throwing: a State that is down logs a line and the book keeps turning.
+  <code>ref</code> comes from <code>Core/data/node.json</code>, then <code>Menu/data/node.json</code>,
+  then the literal <code>scheduler</code>; <code>SCHEDULER_REF</code> overrides.</p>
+
+  <p><b>What is not wired.</b> This module does not call the ResourceManager — no reference to
+  <code>:8129</code> exists in its sources — so a job is booked into the Scheduler's book without a
+  corresponding resource booking. The resource booking today comes from Basic_App. The two books are
+  adjacent, not joined.</p>
+</section>
+
+<section id="wiring">
+  <h2>Wiring, for humans</h2>
+  <p>What the Scheduler needs in order to run a job:</p>
+  <table>
+    <thead><tr><th>needs</th><th>from</th><th>required</th></tr></thead>
+    <tbody>
+      <tr><td>a book on disk</td><td><code>./data/jobs.json</code> (<code>--file</code>, <code>SCHEDULER_FILE</code>)</td><td>no — <code>--memory</code> keeps it in RAM; an unreadable file loads an empty book</td></tr>
+      <tr><td>a registry to publish into</td><td>State, <code>:8127</code> (<code>SCHEDULER_STATE_URL</code>)</td><td>no — the publisher logs and retries; the book is unaffected</td></tr>
+      <tr><td>this node's ref</td><td><code>Core/data/node.json</code> → <code>Menu/data/node.json</code></td><td>no — falls back to <code>scheduler</code></td></tr>
+      <tr><td>the catalog</td><td>Services, <code>:8128</code></td><td>only for <code>--runner local</code> — an unknown service is <code>no_such_service</code></td></tr>
+      <tr><td>a way to run non-server jobs</td><td>Basic_App, <code>:8130</code> (<code>/api/basic/run</code>, <code>/api/basic/state</code>)</td><td>only for <code>local</code>, run-per-job steps</td></tr>
+      <tr><td>a way to hold a server</td><td>ProcessWrapper, <code>:8125</code> (<code>/api/processes</code>, <code>/kill</code>, <code>/output</code>)</td><td>only for <code>local</code>, server-shaped steps</td></tr>
+      <tr><td>a listening port</td><td><code>127.0.0.1:8132</code> (<code>--port</code>, <code>--host</code>)</td><td>yes</td></tr>
+    </tbody>
+  </table>
+  <p>What it gives back:</p>
+  <table>
+    <thead><tr><th>gives</th><th>to</th><th>shape</th></tr></thead>
+    <tbody>
+      <tr><td><code>GET /</code></td><td>a human</td><td>the book as a table, newest first, refreshed every 2.5 s — read-only</td></tr>
+      <tr><td><code>GET /health</code></td><td>a stranger</td><td><code>{ok, module:"scheduler", runner, concurrency, file, stats}</code></td></tr>
+      <tr><td><code>POST /api/jobs</code></td><td>Menu, an agent</td><td>201 <code>{ok, job, queue:{running, waiting}}</code>; 400 <code>{error:{code, message}}</code> with the graph refusal code</td></tr>
+      <tr><td><code>GET /api/jobs</code></td><td>readers</td><td><code>{ok, stats, jobs[]}</code>; <code>?status=</code> · <code>?limit=</code> (default 20)</td></tr>
+      <tr><td><code>GET /api/jobs/&lt;id&gt;</code></td><td>readers</td><td><code>{ok, job}</code>; 404 <code>no_such_job</code></td></tr>
+      <tr><td><code>POST /api/jobs/&lt;id&gt;/cancel</code></td><td>callers</td><td>200 cancelled · 409 running · 404 unknown</td></tr>
+      <tr><td><code>GET /api/queue</code></td><td>a poller</td><td><code>{running, queued[]}</code></td></tr>
+      <tr><td><code>GET /api/stats</code></td><td>a poller</td><td><code>{total, queued, running, done, failed, cancelled}</code></td></tr>
+      <tr><td><code>GET /api/resident</code></td><td>the menu</td><td><code>{runner, resident}</code> — derived from the runner, never stored; <code>null</code> for the dummy</td></tr>
+      <tr><td><code>POST /mcp</code></td><td>an agent</td><td><code>scheduler_submit · scheduler_jobs · scheduler_status</code></td></tr>
+      <tr><td><code>node.&lt;ref&gt;.scheduler</code> · <code>…scheduler.booked.&lt;jobId&gt;</code></td><td>State <code>:8127</code></td><td>one summary entry + one entry per queued/running job</td></tr>
+      <tr><td><code>data/jobs.json</code></td><td>the node's own disk</td><td><code>{jobs:[{id, service, inputs, status, steps[], result, …}]}</code></td></tr>
+    </tbody>
+  </table>
+  <p class="note">One more fact worth stating plainly: the Scheduler door carries no token — <code>/api/*</code>
+  and <code>/mcp</code> are open to whoever can reach the port, which defaults to <code>127.0.0.1</code>.
+  Its own gate is <code>public/ts/selftest.ts</code>, 51 cases covering the queue's semantics, the
+  HTTP surface and the pure publish step.</p>
+  <p class="note">This is wiring in words, not a type. The shapes live in
+  <code>public/ts/scheduler.ts</code>, <code>graph.ts</code>, <code>publish.ts</code>,
+  <code>runner-local.ts</code> and <code>apiServer.ts</code>; if this page and those files disagree, the
+  files are right and this page is a bug.</p>
+</section>
+
+<script type="application/json" id="contract">
+{
+  "module": "Scheduler",
+  "port": 8132,
+  "kind": "door",
+  "needs": [
+    { "name": "state", "from": "State :8127", "required": false },
+    { "name": "catalog", "from": "Services :8128", "required": false },
+    { "name": "runs", "from": "Basic_App :8130", "required": false },
+    { "name": "processes", "from": "ProcessWrapper :8125", "required": false },
+    { "name": "book", "from": "./data/jobs.json", "required": false },
+    { "name": "node ref", "from": "Core/data/node.json", "required": false }
+  ],
+  "gives": [
+    { "name": "/health", "to": "the LAN", "kind": "http" },
+    { "name": "/api/jobs", "to": "Menu, agents", "kind": "http" },
+    { "name": "/api/jobs/<id>", "to": "readers", "kind": "http" },
+    { "name": "/api/jobs/<id>/cancel", "to": "callers", "kind": "http" },
+    { "name": "/api/queue", "to": "pollers", "kind": "http" },
+    { "name": "/api/stats", "to": "pollers", "kind": "http" },
+    { "name": "/api/resident", "to": "the menu", "kind": "http" },
+    { "name": "/mcp", "to": "agents", "kind": "mcp" },
+    { "name": "scheduler_submit", "to": "MCP", "kind": "tool" },
+    { "name": "scheduler_jobs", "to": "MCP", "kind": "tool" },
+    { "name": "scheduler_status", "to": "MCP", "kind": "tool" },
+    { "name": "node.<ref>.scheduler", "to": "State", "kind": "entry" },
+    { "name": "node.<ref>.scheduler.booked.<jobId>", "to": "State", "kind": "entry" },
+    { "name": "data/jobs.json", "to": "the node's disk", "kind": "file" }
+  ]
+}
+</script>
+
+</body>
+</html>

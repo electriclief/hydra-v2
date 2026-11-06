@@ -1,0 +1,8 @@
+{
+  "name": "Join",
+  "kind": "door",
+  "port": 8131,
+  "start": "\"%LOCALAPPDATA%\\hermes\\node\\node.exe\" public/js/main.js",
+  "wiredAtBoot": true,
+  "what": "The shelf's SELF-DESCRIPTION and RESOLVER — should (files) and is (probed), kept apart. NAMES ONLY: it never carries traffic and never decides. Asked for something declared but not answering, it asks ProcessWrapper to start it and answers 'starting', so a lookup never reports 'not found' for something merely not running."
+}

@@ -1,0 +1,6 @@
+node_modules/
+*.log
+
+# nothing persists — the wrapper boots blank; tabs and menus are runtime
+# registrations (a registrant registers when it comes back; absence reads
+# as absence). demo/events.log stays local, never committed.

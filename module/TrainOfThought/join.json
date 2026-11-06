@@ -1,0 +1,10 @@
+{
+  "name": "TrainOfThought",
+  "kind": "door",
+  "port": 8135,
+  "start": "\"%LOCALAPPDATA%\\hermes\\node\\node.exe\" public/js/main.js",
+  "wiredAtBoot": false,
+  "what": "The long-term intention DAG — nodes carry intent, next actions, an append-only trail and a claim lease; /api/next answers 'what is next' from the frontier, not from a clock; closing a node archives it with the sentence that says why. Reads the session manager (:8134) lazily for evidence and works with it down. Never a job log: a Scheduler run or an image render creates no node.",
+  "deps": ["SessionDiary"],
+  "note": "SessionDiary is a LAZY dependency: linked by 8-hex ref only, resolved over HTTP, and absent without consequence. Nothing here imports its code. Activity that is NOT a long-term intention (a Scheduler run, an image render, a door job) belongs in Echidna's always-on log, not here — TOT only holds intentions that outlive a session."
+}

@@ -1,0 +1,7 @@
+{
+  "name": "mirror",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": { "start": "node src/main.js", "selftest": "node selftest.mjs", "test": "npm run selftest" }
+}

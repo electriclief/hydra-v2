@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Config ASCII Guard Verification Report — session diary</title>
+<link rel="stylesheet" href="custom.css">
+
+</head>
+<body data-page="session">
+<header class="masthead">
+  <div class="kicker"><a href="read_dir_indexer.html">← all sessions</a> · 92e3454a · built 2026-08-13 00:39</div>
+  <h1>Config ASCII Guard Verification Report</h1>
+  <div class="tags"><span class="tag src">desktop</span><span class="tag">Qwen3.6-35B-A3B-UD-IQ3_S (1).gguf</span><span class="tag">default</span><span class="tag">ended: startup_orphan_reap</span></div>
+</header>
+
+<section class="panel">
+  <h2>What was done</h2>
+  <div class="diary-prose empty-prose">
+      <p><span class="dim">No prose diary yet — the card below is the deterministic digest (free, instant, written for every session).</span></p>
+    </div>
+    <div class="diary-actions">
+      <button class="action" id="write-diary">Write the diary <span class="dim">— deepseek reads the session</span></button>
+      <span class="hint" id="diary-status"></span>
+    </div>
+</section>
+
+<section class="panel twocol">
+  <div>
+    <h2>The ask</h2>
+    <p class="quote">[Agent: 123 on DESKTOP-QUCA6R5] Coordinator dispatch - OFFLOAD BATCH #2 (job 2/5): 123 config ASCII guard. You are the worker agent on 123. The desktop app re-encodes config.yaml on every write, which corrupted it once. The guard: 1. Run: powershell -NoProfile -ExecutionPolicy Bypass -File C:\Users\User\cfgverify.ps1 2. The output must show NONASCII=0. If NONASCII &gt; 0, run: python C:\Users\User\fixcfg2.py then re-run cfgverify.ps1 and confirm NONASCII=0. Do NOT hand-edit config.yaml. 3. Verify the hermes CLI works: hermes sessions list (should return a session list, not an error). Final message = report: NONASCII count, cfgverify output line, hermes CLI result, one-line verdict.</p>
+  </div>
+  <div>
+    <h2>Where it ended</h2>
+    <p class="quote">**Config ASCII Guard Report — Job 2/5: DONE** | Check | Result | |---|---| | NONASCII count | **0** | | cfgverify output | `BYTES=16449 NONASCII=0` | | hermes CLI (`hermes sessions list`) | ✅ Returned session list (18 sessions listed, no errors) | | **Verdict** | **PASS** — config.yaml has been rebuilt with pure ASCII. Non-ASCII characters (personas, comments, cursor) were sanitized. CLI is operational. | **What was done:** 1. Created missing `fixcfg1.py` (pass-1: strip bytes &gt; 127 to `?`) 2. Ran pass-1 → `cfg123/fixed.yaml` 3. Ran pass-2 (`fixcfg2.py`) → `cfg123/fixed2.yaml` (replaced ?-soup with curated ASCII personas) 4. Copied fixed config over the real `config.yaml` via terminal `cp` (bypasses desktop app re-encoding) 5. Verified NONASCII=0 and hermes CLI working</p>
+  </div>
+</section>
+
+<section class="panel">
+  <h2>Shortcuts</h2>
+  <div class="shortcut">
+    <span class="s-label">restart</span>
+    <code class="s-cmd">hermes --resume 20260813_003653_017010</code>
+    <button class="copy" data-copy="hermes --resume 20260813_003653_017010" title="copy">copy</button>
+  </div>
+  <div class="shortcut">
+    <span class="s-label">by title</span>
+    <code class="s-cmd">hermes -c &quot;Config ASCII Guard Verification Report&quot;</code>
+    <button class="copy" data-copy="hermes -c &quot;Config ASCII Guard Verification Report&quot;" title="copy">copy</button>
+  </div>
+  <div class="shortcut">
+    <span class="s-label">export markdown</span>
+    <code class="s-cmd">hermes sessions export --session-id 20260813_003653_017010 --format md C:/Users/User/AppData/Local/hermes/session-exports/</code>
+    <button class="copy" data-copy="hermes sessions export --session-id 20260813_003653_017010 --format md C:/Users/User/AppData/Local/hermes/session-exports/" title="copy">copy</button>
+  </div>
+  <div class="shortcut">
+    <span class="s-label">export html</span>
+    <code class="s-cmd">hermes sessions export --session-id 20260813_003653_017010 --format html</code>
+    <button class="copy" data-copy="hermes sessions export --session-id 20260813_003653_017010 --format html" title="copy">copy</button>
+  </div>
+  <div class="shortcut">
+    <span class="s-label">ask (api)</span>
+    <code class="s-cmd">curl -s -X POST http://0.0.0.0:8134/api/ask -H &quot;content-type: application/json&quot; -d &quot;{\&quot;session_id\&quot;:\&quot;20260813_003653_017010\&quot;,\&quot;question\&quot;:\&quot;what did we decide?\&quot;}&quot;</code>
+    <button class="copy" data-copy="curl -s -X POST http://0.0.0.0:8134/api/ask -H &quot;content-type: application/json&quot; -d &quot;{\&quot;session_id\&quot;:\&quot;20260813_003653_017010\&quot;,\&quot;question\&quot;:\&quot;what did we decide?\&quot;}&quot;" title="copy">copy</button>
+  </div>
+  <div class="shortcut">
+    <span class="s-label">fork (api)</span>
+    <code class="s-cmd">curl -s -X POST http://0.0.0.0:8134/api/fork/20260813_003653_017010</code>
+    <button class="copy" data-copy="curl -s -X POST http://0.0.0.0:8134/api/fork/20260813_003653_017010" title="copy">copy</button>
+  </div>
+</section>
+
+<section class="panel">
+  <h2>Talk to the dead</h2>
+  <p class="dim small">The question goes to the deepseek agent, which reads this session with its own tools and answers. The answer is filed here.</p>
+  <form id="ask-form">
+    <input id="ask-input" type="text" placeholder="ask this session something…" autocomplete="off">
+    <button class="action" type="submit">Ask</button>
+    <button class="action ghost" type="button" id="fork-session">Fork this session</button>
+    <button class="action ghost" type="button" id="restart-session">Restart (new terminal)</button>
+  </form>
+  <div id="ask-status" class="hint"></div>
+  <div id="seances"><p class="dim small">No questions asked yet.</p></div>
+</section>
+
+<section class="panel">
+  <h2>Evidence</h2>
+  <div class="statgrid">
+    <div><span class="k">started</span><span class="v">2026-08-13 00:36</span></div>
+    <div><span class="k">ended</span><span class="v">2026-08-24 18:22</span></div>
+    <div><span class="k">duration</span><span class="v">281h 45m</span></div>
+    <div><span class="k">turns</span><span class="v">1</span></div>
+    <div><span class="k">messages</span><span class="v">26</span></div>
+    <div><span class="k">tool calls</span><span class="v">12</span></div>
+    <div><span class="k">tokens in / out</span><span class="v">6,199 / 2,026</span></div>
+    <div><span class="k">cost</span><span class="v">$0</span></div>
+  </div>
+  <div class="evidence-grid">
+    <div>
+      <h3>Files touched</h3>
+      <ul class="files"><li><code>C:/Users/User/fixcfg1.py</code></li><li><code>C:/Users/User/AppData/Local/hermes/config.yaml</code></li><li><code>C:\Users\User\cfgverify.ps1</code></li></ul>
+    </div>
+    <div>
+      <h3>Commands run</h3>
+      <ul class="files"><li><code>powershell -NoProfile -ExecutionPolicy Bypass -File &#39;C:/Users/User/cfgverify.ps1&#39;</code></li><li><code>python C:/Users/User/fixcfg2.py</code></li><li><code>cp C:/Users/User/cfg123/fixed2.yaml &#39;C:/Users/User/AppData/Local/hermes/config.yaml&#39; &amp;&amp; echo &quot;copy done&quot;</code></li><li><code>hermes sessions list 2&gt;&amp;1 | head -20</code></li><li><code>ls C:/Users/User/cfg123/ 2&gt;/dev/null; ls C:/Users/User/AppData/Local/hermes/config.yaml 2&gt;/dev/null; cat C:/Users/User/fixcfg2.py</code></li><li><code>ls C:/Users/User/cfgverify.ps1 C:/Users/User/fixcfg2.py C:/Users/User/fixcfg1.py 2&gt;/dev/null; dir C:/Users/User/cfg123/ 2&gt;$null</code></li><li><code>powershell -NoProfile -ExecutionPolicy Bypass -File C:\Users\User\cfgverify.ps1</code></li><li><code>python C:/Users/User/fixcfg1.py</code></li></ul>
+    </div>
+  </div>
+  <h3>Tools</h3>
+  <div class="toolchips"><span class="toolchip">terminal <b>20</b></span><span class="toolchip">read_file <b>2</b></span><span class="toolchip">write_file <b>2</b></span></div>
+  <h3>Where</h3>
+  <p class="small"><code>C:\Users\User</code> · lineage <span class="dim">no parent</span></p>
+</section>
+
+<section class="panel">
+  <h2>Transcript <span class="dim small">26 turns · tool output trimmed</span></h2>
+  <div class="turns"><div class="turn user"><div class="who">you</div><div class="text">[Agent: 123 on DESKTOP-QUCA6R5] Coordinator dispatch - OFFLOAD BATCH #2 (job 2/5): 123 config ASCII guard.<br><br>You are the worker agent on 123. The desktop app re-encodes config.yaml on every write, which corrupted it once. The guard:<br>1. Run: powershell -NoProfile -ExecutionPolicy Bypass -File C:\Users\User\cfgverify.ps1<br>2. The output must show NONASCII=0. If NONASCII &gt; 0, run: python C:\Users\User\fixcfg2.py  then re-run cfgverify.ps1 and confirm NONASCII=0. Do NOT hand-edit config.yaml.<br>3. Verify the hermes CLI works: hermes sessions list  (should return a session list, not an error).<br><br>Final message = report: NONASCII count, cfgverify output line, hermes CLI result, one-line verdict.</div></div>
+<div class="turn assistant"><div class="who">agent</div><div class="calls"><div class="call"><span class="name">terminal</span><span class="arg">powershell -NoProfile -ExecutionPolicy Bypass -File C:\Users\User\cfgverify.ps1</span></div></div></div>
+<details class="turn tool"><summary><span class="who">terminal</span><span class="preview">{&quot;output&quot;: &quot;The argument &#39;C:UsersUsercfgverify.ps1&#39; to the -File parameter does not exist. Provide the path to an existi</span></summary><pre>{&quot;output&quot;: &quot;The argument &#39;C:UsersUsercfgverify.ps1&#39; to the -File parameter does not exist. Provide the path to an existing &#39;.ps1&#39; file as an argument to the -File parameter.\r\nWindows PowerShell\r\nCopyright (C) Microsoft Corporation. All rights reserved.\r\n\r\nInstall the latest PowerShell for new features and improvements! https://aka.ms/PSWindows&quot;, &quot;exit_code&quot;: 127, &quot;error&quot;: null}</pre></details>
+<div class="turn assistant"><div class="who">agent</div><div class="text">The path was mangled by the shell. Let me use a proper Windows path.</div><div class="calls"><div class="call"><span class="name">terminal</span><span class="arg">powershell -NoProfile -ExecutionPolicy Bypass -File &#39;C:/Users/User/cfgverify.ps1&#39;</span></div></div></div>
+<details class="turn tool"><summary><span class="who">terminal</span><span class="preview">{&quot;output&quot;: &quot;BYTES=17297 NONASCII=195&quot;, &quot;exit_code&quot;: 0, &quot;error&quot;: null}</span></summary><pre>{&quot;output&quot;: &quot;BYTES=17297 NONASCII=195&quot;, &quot;exit_code&quot;: 0, &quot;error&quot;: null}</pre></details>
+<div class="turn assistant"><div class="who">agent</div><div class="text">NONASCII=195 — corrupted. Running fixcfg2.py now.</div><div class="calls"><div class="call"><span class="name">terminal</span><span class="arg">python C:/Users/User/fixcfg2.py</span></div></div></div>
+<details class="turn tool"><summary><span class="who">terminal</span><span class="preview">{&quot;output&quot;: &quot;Traceback (most recent call last):\r\n File \&quot;C:\\Users\\User\\fixcfg2.py\&quot;, line 7, in &lt;module&gt;\r\n lines =</span></summary><pre>{&quot;output&quot;: &quot;Traceback (most recent call last):\r\n  File \&quot;C:\\Users\\User\\fixcfg2.py\&quot;, line 7, in &lt;module&gt;\r\n    lines = open(path, encoding=&#39;ascii&#39;).read().split(&#39;\\n&#39;)\r\n            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^\r\nFileNotFoundError: [Errno 2] No such file or directory: &#39;cfg123/fixed.yaml&#39;&quot;, &quot;exit_code&quot;: 1, &quot;error&quot;: null}</pre></details>
+<div class="turn assistant"><div class="who">agent</div><div class="text">The script expects `cfg123/fixed.yaml` relative to its cwd. Let me check what&#39;s actually there.</div><div class="calls"><div class="call"><span class="name">terminal</span><span class="arg">ls C:/Users/User/cfg123/ 2&gt;/dev/null; ls C:/Users/User/AppData/Local/hermes/config.yaml 2&gt;/dev/null; cat C:/Users/User/fixcfg2.py</span></div></div></div>
+<details class="turn tool"><summary><span class="who">terminal</span><span class="preview">{&quot;output&quot;: &quot;C:/Users/User/AppData/Local/hermes/config.yaml\n#!/usr/bin/env python\n\&quot;\&quot;\&quot;Rebuild 123 config.yaml clean: </span></summary><pre>{&quot;output&quot;: &quot;C:/Users/User/AppData/Local/hermes/config.yaml\n#!/usr/bin/env python\n\&quot;\&quot;\&quot;Rebuild 123 config.yaml clean: proper ASCII personas + cursor + comments.\nPass 2: replaces the &#39;?&#39; soup from pass 1 with curated ASCII text.\&quot;\&quot;\&quot;\nimport yaml, re, sys\n\npath = &#39;cfg123/fixed.yaml&#39;  # pass-1 output: pure ASCII, ?-soup in non-ascii spots\nlines = open(path, encoding=&#39;ascii&#39;).read().split(&#39;\\n&#39;)\n\nPERSONAS = {\n    &#39;kawaii&#39;: \&quot;You are a kawaii assistant! Use cute expressions like (^_^), *, ~, and \&quot;\n              \&quot;~! Add sparkles and be super enthusiastic about everything! Every response \&quot;\n              \&quot;should feel warm and adorable desu~! (&gt;_&lt;)/\&quot;,\n    &#39;catgirl&#39;: \&quot;You are Neko-chan, an anime catgirl AI assistant, nya~! Add &#39;nya&#39; and \&quot;\n               \&quot;cat-like expressions to your speech. Use kaomoji like (=^_^=) and \&quot;\n               \&quot;(=^._.^=). Be playful and curious like a cat, nya~!\&quot;,\n    &#39;surfer&#39;: \&quot;Duuude! You&#39;re chatting with the chillest AI on the web, bro! Everything&#39;s \&quot;\n              \&quot;gonna be totally rad. I&#39;ll help you catch the gnarly waves of knowledge \&quot;\n              \&quot;while keeping things super chill. Cowabunga! (^o^)/\&quot;,\n    &#39;hype&#39;: \&quot;YOOO LET&#39;S GOOOO!!! (^o^) I am SO PUMPED to help you today! Every question \&quot;\n            \&quot;is AMAZING and we&#39;re gonna CRUSH IT together! This is gonna be LEGENDARY! \&quot;\n            \&quot;ARE YOU READY?! LET&#39;S
+
+[…2144 chars trimmed — full text: hermes sessions export --session-id &lt;id&gt; --format md]</pre></details>
+<div class="turn assistant"><div class="who">agent</div><div class="text">The pass-1 output (`cfg123/fixed.yaml`) doesn&#39;t exist yet. Let me look for the pass-1 script and the full workflow.</div><div class="calls"><div class="call"><span class="name">terminal</span><span class="arg">ls C:/Users/User/cfgverify.ps1 C:/Users/User/fixcfg2.py C:/Users/User/fixcfg1.py 2&gt;/dev/null; dir C:/Users/User/cfg123/ 2&gt;$null</span></div></div></div>
+<details class="turn tool"><summary><span class="who">terminal</span><span class="preview">{&quot;output&quot;: &quot;C:/Users/User/cfgverify.ps1\nC:/Users/User/fixcfg2.py\n/usr/bin/bash: line 3: $null: ambiguous redirect&quot;, &quot;e</span></summary><pre>{&quot;output&quot;: &quot;C:/Users/User/cfgverify.ps1\nC:/Users/User/fixcfg2.py\n/usr/bin/bash: line 3: $null: ambiguous redirect&quot;, &quot;exit_code&quot;: 1, &quot;error&quot;: null}</pre></details>
+<div class="turn assistant"><div class="who">agent</div><div class="text">Pass-1 script doesn&#39;t exist and `cfg123/` directory is missing. I need to create the pass-1 fix first — strip non-ASCII characters from config.yaml. Let me read the config first.</div><div class="calls"><div class="call"><span class="name">read_file</span><span class="arg">C:/Users/User/AppData/Local/hermes/config.yaml</span></div></div></div>
+<details class="turn tool"><summary><span class="who">read_file</span><span class="preview">{&quot;content&quot;: &quot;1|model:\n2| default: Qwen3.6-35B-A3B-UD-IQ3_S (1).gguf\n3| provider: 123-qwen\n4| base_url: http://192.168</span></summary><pre>{&quot;content&quot;: &quot;1|model:\n2|  default: Qwen3.6-35B-A3B-UD-IQ3_S (1).gguf\n3|  provider: 123-qwen\n4|  base_url: http://192.168.1.123:8080/v1\n5|  context_length: 65536\n6|fallback_providers: []\n7|toolsets:\n8|  - hermes-cli\n9|agent:\n10|  max_turns: 150\n11|  gateway_timeout: 1800\n12|  restart_drain_timeout: 180\n13|  api_max_retries: 3\n14|  service_tier: &#39;&#39;\n15|  tool_use_enforcement: auto\n16|  task_completion_guidance: true\n17|  parallel_tool_call_guidance: true\n18|  environment_probe: true\n19|  environment_hint: &#39;&#39;\n20|  coding_context: auto\n21|  verify_on_stop: false\n22|  gateway_timeout_warning: 900\n23|  clarify_timeout: 600\n24|  gateway_notify_interval: 180\n25|  gateway_auto_continue_freshness: 3600\n26|  image_input_mode: auto\n27|  disabled_toolsets: []\n28|  verbose: false\n29|  reasoning_effort: medium\n30|  personalities:\n31|    helpful: You are a helpful, friendly AI assistant.\n32|    concise: You are a concise assistant. Keep responses brief and to the point.\n33|    technical: You are a technical expert. Provide detailed, accurate technical information.\n34|    creative: You are a creative assistant. Think outside the box and offer innovative\n35|      solutions.\n36|    teacher: You are a patient teacher. Explain concepts clearly with examples.\n37|    kawaii: You are a kawaii assistant! Use cute expressions like (^_^), *, ~, and\n38|      ~! Add spar
+
+[…1169 chars trimmed — full text: hermes sessions export --session-id &lt;id&gt; --format md]</pre></details>
+<div class="turn assistant"><div class="who">agent</div><div class="text">Pass-1 script is missing. I need to create it, run the fix pipeline, then verify. Let me do this step by step.</div><div class="calls"><div class="call"><span class="name">write_file</span><span class="arg">C:/Users/User/fixcfg1.py</span></div></div></div>
+<details class="turn tool"><summary><span class="who">write_file</span><span class="preview">{&quot;bytes_written&quot;: 507, &quot;dirs_created&quot;: true, &quot;verified&quot;: true, &quot;lint&quot;: {&quot;status&quot;: &quot;ok&quot;, &quot;output&quot;: &quot;&quot;}, &quot;resolved_path&quot;: </span></summary><pre>{&quot;bytes_written&quot;: 507, &quot;dirs_created&quot;: true, &quot;verified&quot;: true, &quot;lint&quot;: {&quot;status&quot;: &quot;ok&quot;, &quot;output&quot;: &quot;&quot;}, &quot;resolved_path&quot;: &quot;C:\\Users\\User\\fixcfg1.py&quot;, &quot;files_modified&quot;: [&quot;C:\\Users\\User\\fixcfg1.py&quot;]}</pre></details>
+<div class="turn assistant"><div class="who">agent</div><div class="calls"><div class="call"><span class="name">terminal</span><span class="arg">python C:/Users/User/fixcfg1.py</span></div></div></div>
+<details class="turn tool"><summary><span class="who">terminal</span><span class="preview">{&quot;output&quot;: &quot;wrote cfg123/fixed.yaml (17297 bytes, ascii only)&quot;, &quot;exit_code&quot;: 0, &quot;error&quot;: null}</span></summary><pre>{&quot;output&quot;: &quot;wrote cfg123/fixed.yaml (17297 bytes, ascii only)&quot;, &quot;exit_code&quot;: 0, &quot;error&quot;: null}</pre></details>
+<div class="turn assistant"><div class="who">agent</div><div class="calls"><div class="call"><span class="name">terminal</span><span class="arg">python C:/Users/User/fixcfg2.py</span></div></div></div>
+<details class="turn tool"><summary><span class="who">terminal</span><span class="preview">{&quot;output&quot;: &quot;YAML OK. keys: 67\r\n kawaii: ...\r\n catgirl: ...\r\n surfer: ...\r\n hype: ...\r\ncursor: None\r\nchanged:</span></summary><pre>{&quot;output&quot;: &quot;YAML OK. keys: 67\r\n  kawaii: ...\r\n  catgirl: ...\r\n  surfer: ...\r\n  hype: ...\r\ncursor: None\r\nchanged: [(37, &#39;kawaii&#39;), (40, &#39;catgirl&#39;), (50, &#39;surfer&#39;), (64, &#39;hype&#39;), (548, &#39;cursor&#39;), (660, &#39;comment&#39;), (666, &#39;comment&#39;), (667, &#39;comment&#39;), (668, &#39;comment&#39;), (669, &#39;comment&#39;), (670, &#39;comment&#39;), (671, &#39;comment&#39;), (672, &#39;comment&#39;), (673, &#39;comment&#39;), (674, &#39;comment&#39;)]\r\nwrote cfg123/fixed2.yaml&quot;, &quot;exit_code&quot;: 0, &quot;error&quot;: null}</pre></details>
+<div class="turn assistant"><div class="who">agent</div><div class="text">Now copy the fixed config back over the real one, using terminal cp (not the desktop app):</div><div class="calls"><div class="call"><span class="name">terminal</span><span class="arg">cp C:/Users/User/cfg123/fixed2.yaml &#39;C:/Users/User/AppData/Local/hermes/config.yaml&#39; &amp;&amp; echo &quot;copy done&quot;</span></div></div></div>
+<details class="turn tool"><summary><span class="who">terminal</span><span class="preview">{&quot;output&quot;: &quot;copy done&quot;, &quot;exit_code&quot;: 0, &quot;error&quot;: null}</span></summary><pre>{&quot;output&quot;: &quot;copy done&quot;, &quot;exit_code&quot;: 0, &quot;error&quot;: null}</pre></details>
+<div class="turn assistant"><div class="who">agent</div><div class="text">Now verify NONASCII:</div><div class="calls"><div class="call"><span class="name">terminal</span><span class="arg">powershell -NoProfile -ExecutionPolicy Bypass -File &#39;C:/Users/User/cfgverify.ps1&#39;</span></div></div></div>
+<details class="turn tool"><summary><span class="who">terminal</span><span class="preview">{&quot;output&quot;: &quot;BYTES=16449 NONASCII=0&quot;, &quot;exit_code&quot;: 0, &quot;error&quot;: null}</span></summary><pre>{&quot;output&quot;: &quot;BYTES=16449 NONASCII=0&quot;, &quot;exit_code&quot;: 0, &quot;error&quot;: null}</pre></details>
+<div class="turn assistant"><div class="who">agent</div><div class="text">NONASCII=0 confirmed. Now verify hermes CLI:</div><div class="calls"><div class="call"><span class="name">terminal</span><span class="arg">hermes sessions list 2&gt;&amp;1 | head -20</span></div></div></div>
+<details class="turn tool"><summary><span class="who">terminal</span><span class="preview">{&quot;output&quot;: &quot;Title Workspace Last Active ID\r\n──────────────────────────────────────────────────────────────────────────</span></summary><pre>{&quot;output&quot;: &quot;Title                        Workspace          Last Active   ID\r\n──────────────────────────────────────────────────────────────────────────────────────────────────────────────\r\n—                            User               just now      20260813_003653_017010\r\nFleet Health Sweep Report    User               4m ago        20260813_003237_2d7145\r\nYour role is a low-priorit   —                  19m ago       cron_6d233f41b8e5_20260813_000832\r\nGGUF SHA256 Verification R   User               56m ago       20260812_224506_c385a7\r\n—                            User               2h ago        20260812_222505_81b7a7\r\n—                            User               2h ago        20260812_221929_4b4c83\r\n—                            User               2h ago        20260812_214434_c2ba3c\r\nhydra-daily-sweep · Aug 12   —                  3h ago        cron_763a6d226b33_20260812_210129\r\n—                            —                  3h ago        api-e361f0d92274022e\r\n—                            —                  4h ago        api-2970185178677021\r\n—                            —                  5h ago        api-42bfaac734418736\r\n—                            —                  6h ago        api-f4a814feeedfdd12\r\nYour role is a low-priorit   —                  6h ago        cron_6d233f41b8e5_20260812_170706\r\nYour role is a low-priorit   —       
+
+[…487 chars trimmed — full text: hermes sessions export --session-id &lt;id&gt; --format md]</pre></details>
+<div class="turn assistant"><div class="who">agent</div><div class="text">**Config ASCII Guard Report — Job 2/5: DONE**<br><br>| Check | Result |<br>|---|---|<br>| NONASCII count | **0** |<br>| cfgverify output | `BYTES=16449 NONASCII=0` |<br>| hermes CLI (`hermes sessions list`) | ✅ Returned session list (18 sessions listed, no errors) |<br>| **Verdict** | **PASS** — config.yaml has been rebuilt with pure ASCII. Non-ASCII characters (personas, comments, cursor) were sanitized. CLI is operational. |<br><br>**What was done:**<br>1. Created missing `fixcfg1.py` (pass-1: strip bytes &gt; 127 to `?`)<br>2. Ran pass-1 → `cfg123/fixed.yaml`<br>3. Ran pass-2 (`fixcfg2.py`) → `cfg123/fixed2.yaml` (replaced ?-soup with curated ASCII personas)<br>4. Copied fixed config over the real `config.yaml` via terminal `cp` (bypasses desktop app re-encoding)<br>5. Verified NONASCII=0 and hermes CLI working</div></div></div>
+</section>
+
+<footer class="foot">
+  <span class="mono small">20260813_003653_017010</span>
+  <span class="small"><a href="session_92e3454a.html">permalink</a> · <span class="dim">496 forked entries share the index</span></span>
+</footer>
+<script>window.SD_API="http://0.0.0.0:8134";window.SD_SESSION={"id":"20260813_003653_017010","ref":"92e3454a","title":"Config ASCII Guard Verification Report","seances":[]};</script>
+<script src="custom.js"></script>
+</body>
+</html>

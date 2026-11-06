@@ -1,0 +1,57 @@
+{
+  "id": "cron_6d233f41b8e5_20260809_095601",
+  "title": "Your role is a low-priority, specialized AI Releas · Aug 09 09:57",
+  "source": "cron",
+  "model": "deepseek-v4-flash",
+  "parentId": null,
+  "startedAt": 1786283762.7241704,
+  "endedAt": 1786283834.2433562,
+  "endReason": "cron_complete",
+  "messageCount": 11,
+  "toolCallCount": 5,
+  "inputTokens": 9644,
+  "outputTokens": 5757,
+  "costUsd": 0.0032126416,
+  "cwd": null,
+  "gitBranch": null,
+  "gitRepo": null,
+  "pinned": false,
+  "archived": false,
+  "hidden": false,
+  "profileName": "default",
+  "lastActivityAt": 1786283830.9357867,
+  "createdSource": null,
+  "ref": "1c20c93c",
+  "displayTitle": "Your role is a low-priority, specialized AI Releas · Aug 09 09:57",
+  "durationSec": 72,
+  "userTurns": 1,
+  "goal": "[IMPORTANT: The following skill(s) were listed for this job but could not be found and were skipped: web_search, terminal. Start your response with a brief notice so the user is aware, e.g.: '⚠️ Skill(s) not found and skipped: web_search, terminal'] The user has provided the following instruction alongside the skill invocation: [IMPORTANT: You are running as a scheduled cron job. DELIVERY: Your final response will be automatically delivered to the user — do NOT use send_message or try to deliver the output yourself. Just produce your report/output as your final response and the system handles the rest. SILENT: If there is genuinely nothing new to report, respond with exactly \"[SILENT]\" (not…",
+  "outcome": "Scan complete. Here's the daily briefing. --- ## 🤖 AI Release Monitor — Daily Briefing (Aug 9, 2026) **⚠️ Skill notice:** The `web_search` and `terminal` skills listed for this job could not be loaded and were skipped; feeds were pulled directly from huggingface.co instead. ### 🔥 Notable Model Releases (Hugging Face Trending) - **[baidu/Unlimited-OCR](https://huggingface.co/baidu/Unlimited-OCR)** — *HF Trending Models* — Official Baidu release, 3B params, 2.89M downloads / 3.98k likes; a 3B OCR model quantizes to ~2–4GB and runs comfortably on both your RX 6800 and GTX 1660, and Baidu released it under an unrestricted license — the strongest hardware-fit + viral combo this cycle. - **[LiquidAI/LFM2.5-2.6B](https://huggingface.co/LiquidAI/LFM2.5-2.6B)** (+ official [GGUF](https://huggingface.co/LiquidAI/LFM2.5-2.6B-GGUF)) — *HF Trending Models* — Official Liquid AI release, 2.6B, 85.7k…",
+  "files": [
+    "C:\\Users\\User\\AppData\\Local\\hermes\\cache\\web\\browser-snapshot-b7bc4e44ab.txt"
+  ],
+  "commands": [
+    "curl -s \"https://huggingface.co/api/models?sort=trendingScore&direction=-1&limit=40\" -H \"Accept: application/json\" | python -c \""
+  ],
+  "tools": [
+    {
+      "name": "browser_navigate",
+      "count": 4
+    },
+    {
+      "name": "read_file",
+      "count": 2
+    },
+    {
+      "name": "terminal",
+      "count": 2
+    },
+    {
+      "name": "web_extract",
+      "count": 2
+    }
+  ],
+  "bytes": 36170,
+  "diary": null,
+  "seances": []
+}

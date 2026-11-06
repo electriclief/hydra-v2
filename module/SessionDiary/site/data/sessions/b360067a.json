@@ -1,0 +1,79 @@
+{
+  "id": "local-b360067a1180185ea1254015b9eacc076b6cc50f17643112b23ac94131e09d1b",
+  "title": "Your role is a low-priority, specialized AI Releas · Nov 01 14:34",
+  "source": "cron",
+  "model": "deepseek-flash",
+  "parentId": null,
+  "startedAt": 1793561543.331984,
+  "endedAt": 1793561662.3203604,
+  "endReason": "cron_complete",
+  "messageCount": 39,
+  "toolCallCount": 19,
+  "inputTokens": 52356,
+  "outputTokens": 11443,
+  "costUsd": 0.017326176,
+  "cwd": "C:\\Users\\User\\Hermes\\gemma4site",
+  "gitBranch": null,
+  "gitRepo": null,
+  "pinned": false,
+  "archived": false,
+  "hidden": false,
+  "profileName": "default",
+  "lastActivityAt": 1793561610.086171,
+  "createdSource": "cron",
+  "ref": "b360067a",
+  "displayTitle": "Your role is a low-priority, specialized AI Releas · Nov 01 14:34",
+  "durationSec": 119,
+  "userTurns": 1,
+  "goal": "[IMPORTANT: The following skill(s) were listed for this job but could not be found and were skipped: web_search, terminal. Start your response with a brief notice so the user is aware, e.g.: '⚠️ Skill(s) not found and skipped: web_search, terminal'] The user has provided the following instruction alongside the skill invocation: [IMPORTANT: You are running as a scheduled cron job. DELIVERY: Your final response will be automatically delivered to the user — do NOT use send_message or try to deliver the output yourself. Just produce your report/output as your final response and the system handles the rest. SILENT: If there is genuinely nothing new to report, respond with exactly \"[SILENT]\" (not…",
+  "outcome": "**HF Release Monitor — 2026-11-01 19:35Z** (files verified against HF tree API; VRAM figures are real file sizes, not params÷bpw guesses) **Hardware-relevant finds (4 new trending ids this cycle, 4 left)** - **Qwen3.8-27B-Uncensored-HauhauCS-Aggressive-MTP-GGUF** — HF Trending (2193 likes / 2.38M downloads, newly trending, created 2026-08-17) — 27B uncensored *vision* GGUF ladder whose smallest whole stack is IQ2_M 9.61 GiB + mmproj-BF16 0.87 = **10.5 GiB, so the RX 6800 runs it at 2-bit and the 1660 cannot**; K_P files are standard GGUFs (no fork), embedded NextN MTP runs in stock llama.cpp via `--spec-type draft-mtp`, while the 0.87 GiB FastMTP sidecar needs `HauhauCS-FastMTP-llama.cpp.patch` rebuilt with `-DGGML_HIP=ON` / `-DGGML_VULKAN=ON` per the README — claimed, not verified on gfx1030. - **facebook/sam-3d-body-dinov3** — HF Trending (732 likes, 11.1k downloads, gated *manual*) —…",
+  "files": [
+    "C:\\Users\\User\\AppData\\Local\\hermes\\cache\\scratch\\hfmon\\fetch24.py",
+    "C:\\Users\\User\\AppData\\Local\\hermes\\cache\\scratch\\hfmon\\findings_2026-11-01T1935Z.json",
+    "C:\\Users\\User\\AppData\\Local\\hermes\\cache\\scratch\\hfmon\\scan24.py",
+    "C:\\Users\\User\\AppData\\Local\\hermes\\cache\\scratch\\hfmon\\scan25.py",
+    "C:\\Users\\User\\AppData\\Local\\hermes\\cache\\scratch\\hfmon\\scan26.py",
+    "C:\\Users\\User\\AppData\\Local\\hermes\\cache\\scratch\\hfmon\\scan27.py",
+    "C:\\Users\\User\\AppData\\Local\\hermes\\cache\\scratch\\hfmon\\scan28.py",
+    "C:\\Users\\User\\AppData\\Local\\hermes\\cache\\scratch\\hfmon\\fetch20.py"
+  ],
+  "commands": [
+    "cd \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon\" && echo \"=== RE-USE backend ===\" && grep -inE \"cuda|rocm|cpu|gpu|vram|install|pip |torch|…",
+    "cd \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon\" && python fetch24.py",
+    "cd \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon\" && python scan24.py 2>&1 | tail -90",
+    "cd \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon\" && python scan25.py 2>&1 | tail -100",
+    "cd \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon\" && python scan26.py 2>&1 | head -120",
+    "cd \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon\" && python scan27.py 2>&1 | head -110",
+    "cd \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon\" && python scan28.py 2>&1 | head -45",
+    "mkdir -p \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon\" && cd \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon\" && ls -la && date"
+  ],
+  "tools": [
+    {
+      "name": "terminal",
+      "count": 16
+    },
+    {
+      "name": "write_file",
+      "count": 14
+    },
+    {
+      "name": "read_file",
+      "count": 2
+    },
+    {
+      "name": "skill_manage",
+      "count": 2
+    },
+    {
+      "name": "skill_view",
+      "count": 2
+    },
+    {
+      "name": "web_extract",
+      "count": 2
+    }
+  ],
+  "bytes": 125892,
+  "diary": null,
+  "seances": []
+}

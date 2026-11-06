@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Event_Handler — the one door for a click and an agent</title>
+<style>
+  :root { color-scheme: dark; --bg:#111318; --panel:#191c23; --border:#303541; --text:#e5e7eb; --muted:#a1a8b7; --accent:#8ab4f8; }
+  * { box-sizing: border-box; }
+  body { margin:0; padding:32px; background:var(--bg); color:var(--text);
+         font:15px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif; max-width:78ch; }
+  h1 { margin:0 0 4px; font-size:24px; font-weight:600; letter-spacing:-.01em; }
+  h2 { margin:32px 0 10px; font-size:13px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; color:var(--muted); }
+  .kicker { margin:0 0 28px; color:var(--muted); font-size:13px; }
+  p { margin:0 0 12px; }
+  code { font:13px/1.5 ui-monospace,Consolas,monospace; background:#0b0d11; border:1px solid var(--border);
+         border-radius:5px; padding:1px 5px; color:#cfd6e4; }
+  pre { background:#0b0d11; border:1px solid var(--border); border-radius:8px; padding:12px 14px; overflow:auto; }
+  table { width:100%; border-collapse:collapse; margin:6px 0 16px; font-size:14px; }
+  th, td { text-align:left; padding:7px 10px; border-bottom:1px solid var(--border); vertical-align:top; }
+  th { color:var(--muted); font-weight:600; font-size:12px; letter-spacing:.06em; text-transform:uppercase; }
+  .note { color:var(--muted); font-size:13px; }
+  .lede { font-size:16px; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Event_Handler</h1>
+  <p class="kicker">the generic bus · own door on :8126 (not wired at boot) · loaded as a file into someone else's thread</p>
+</header>
+
+<section id="summary">
+  <p class="lede">Event_Handler is where a name becomes an action. A host registers named events, any hand
+  fires one by name, and every firing — plus its outcome, success or throw — lands as a line in one rolling
+  log that records who fired it. The same path serves a person's click and an agent's call, so the log is the
+  only place either of them can be checked against the other.</p>
+</section>
+
+<section id="concepts">
+  <h2>How it holds together</h2>
+  <p><b>Registering is the only way an event exists.</b> <code>register(name, handler, {description})</code>
+  puts a name on the palette and makes its handler the action; there is no wildcard, no prefix match, no
+  "default handler". Names are letters, digits, <code>.</code>, <code>_</code>, <code>-</code> and spaces, 1–64
+  characters, and <code>.result</code> / <code>.error</code> are refused because those two suffixes belong to
+  the wrap. Duplicates are refused too — one name, one handler, so a trigger can never be ambiguous about what
+  it did.</p>
+  <p><b>Trigger never waits.</b> <code>trigger(name, payload, {source})</code> writes the trigger line, bumps
+  the counters and returns a receipt immediately; the handler runs on a microtask after that. Whatever it
+  returns is written as its own line <code>&lt;name&gt;.result</code> with <code>of</code> pointing back at the
+  trigger; whatever it throws becomes <code>&lt;name&gt;.error</code> with the message. That wrap is the whole
+  design: a slow handler cannot block the caller, a throwing handler cannot lose the record, and "did it work"
+  is answerable from the file rather than from a promise nobody kept.</p>
+  <p><b>Source is who fired it, and it is copied, not judged.</b> The log line is
+  <code>{t, name, source, payload?, of?, result?, error?}</code>. The class defaults source to
+  <code>process</code>; the HTTP door defaults it to <code>user</code> and only accepts
+  <code>user · agent · process · system</code>; Basic_App's adapter passes <code>system</code>. The class itself
+  writes whatever string it is handed — ProcessWrapper's drain watch passes <code>system-watch</code>, so a log
+  can hold a source the four-value type does not name, and the GUI's source filter cannot select it. Read the
+  field, do not assume the enum.</p>
+  <p><b>One rolling file, kept small by itself.</b> <code>data/events.log</code> is JSONL, appended one line at
+  a time; the store trims lines older than <code>retentionHours</code> (default 24) and then, if still over
+  <code>maxBytes</code> (default 8 MiB), drops oldest-first — the rewrite is atomic (temp file + rename), so a
+  reader never sees half a log. The self-trim runs on a timer (default every 10 minutes) as well as on
+  <code>POST /api/events/purge</code>, which means the file's size is a policy, not an accident, and nobody has
+  to remember to clean it.</p>
+  <p><b>History is a query; live is a subscription — and they are different things.</b>
+  <code>GET /api/events/log?limit=&amp;sinceHours=&amp;name=&amp;source=</code> reads the file and answers
+  <code>{matched, fileBytes, lines}</code> (default 200 lines, capped at 5000).
+  <code>GET /api/events/stream</code> is SSE and fans out from in-memory watchers, so a subscriber sees what
+  happens while it is connected and nothing that happened before; a <code>: beat</code> every 15 s keeps the
+  connection honest. A page that wants both loads the file once and then opens the stream — that is exactly
+  what the GUI does.</p>
+  <p><b>The module is a file first and a service second.</b> <code>Event_Handler_module.js</code> exports
+  <code>createModule({logPath})</code> → <code>{handler, registry, logPath}</code> and
+  <code>startModule({port})</code> → the same plus an HTTP door. That is how it is actually used: ProcessWrapper
+  imports the embed file by relative path (<code>../../../Event_Handler/Event_Handler_module.js</code>) so the
+  bus runs inside the wrapper's own thread with the wrapper's log path, and Basic_App's Electron main loads it
+  through <code>loadShelf</code>, registering unknown names on first fire. Its own port <code>8126</code>
+  (<code>wiredAtBoot: false</code> in <code>join.json</code>) is the module's standalone life — the same code
+  with a door for a test, a tool, or a box that wants to watch the bus from outside.</p>
+  <p><b>Nothing here knows a project word.</b> The three events ProcessWrapper registers, the four MCP tools,
+  the four sources: all generic. The module holds no opinion about what an event means, which is why the same
+  file can be the wrapper's console palette and an app's own event sink without a fork.</p>
+</section>
+
+<section id="wiring">
+  <h2>Wiring, for humans</h2>
+  <p>What Event_Handler needs in order to be honest:</p>
+  <table>
+    <thead><tr><th>needs</th><th>from</th><th>required</th></tr></thead>
+    <tbody>
+      <tr><td>a log path — the host names the one file</td><td><code>createModule({logPath})</code>; own door defaults to <code>./data/events.log</code></td><td>yes — no path, no record</td></tr>
+      <tr><td>a folder it can write</td><td>the host's filesystem</td><td>yes — the store creates and appends to the file</td></tr>
+      <tr><td>self-registration from its host</td><td>the thread that loads it (ProcessWrapper's <code>consoleEvents.ts</code>, Basic_App's <code>electron/main.cjs</code>)</td><td>yes — an empty palette can be listed but nothing can be fired</td></tr>
+      <tr><td>nothing else, at boot</td><td><code>join.json</code> says <code>wiredAtBoot: false</code></td><td>— the :8126 door is optional; no module here waits on it</td></tr>
+    </tbody>
+  </table>
+  <p>What it gives back:</p>
+  <table>
+    <thead><tr><th>gives</th><th>to</th><th>shape</th></tr></thead>
+    <tbody>
+      <tr><td><code>register · unregister · trigger · read · on · list · stats</code></td><td>the host thread</td><td>in-process calls on one <code>EventHandler</code>; <code>on()</code> returns its own unsubscribe</td></tr>
+      <tr><td><code>createModule({logPath})</code></td><td>any module that wants a bus</td><td><code>{handler, registry, logPath, options}</code>, started and ready</td></tr>
+      <tr><td><code>data/events.log</code></td><td>whoever reads later</td><td>JSONL: <code>{t, name, source, payload?, of?, result?, error?}</code>, trimmed to 24 h / 8 MiB</td></tr>
+      <tr><td><code>GET /health</code></td><td>a monitor</td><td><code>{ok, module:"eventHandler", events, log:{file, bytes, lines, retentionHours}}</code></td></tr>
+      <tr><td><code>GET /api/events</code></td><td>a page, an agent</td><td><code>{ok, events[], stats}</code> — each event carries <code>fired, results, errors, lastAt</code></td></tr>
+      <tr><td><code>POST /api/events/trigger</code></td><td>any hand</td><td><code>{name, payload?, source?}</code> → <code>{ok, receipt}</code>; unknown name is <code>404 no_such_event</code></td></tr>
+      <tr><td><code>GET /api/events/log</code></td><td>a page, an agent</td><td><code>{ok, matched, fileBytes, lines[]}</code>, filtered by <code>limit, sinceHours, name, source</code></td></tr>
+      <tr><td><code>GET /api/events/stream</code></td><td>a live reader</td><td>SSE: <code>ready</code>, then <code>event</code> per line, <code>: beat</code> every 15 s</td></tr>
+      <tr><td><code>POST /api/events/purge</code></td><td>an operator</td><td><code>{ok, ...purge}</code> — trim by age, then by bytes</td></tr>
+      <tr><td><code>POST /mcp</code></td><td>an agent</td><td>tools <code>event_list</code>, <code>event_trigger</code>, <code>event_log</code>, <code>event_purge</code></td></tr>
+      <tr><td><code>GET /</code></td><td>a browser</td><td>the palette page: registered events, a payload box, the live log, filters, purge</td></tr>
+    </tbody>
+  </table>
+  <p class="note">This is wiring in words, not a type. The routes live in
+  <code>public/ts/apiServer.ts</code>, the wrap in <code>eventHandler.ts</code>, the file in
+  <code>logStore.ts</code>; if this page and those files disagree, the files are right and the page is a
+  bug.</p>
+</section>
+
+<footer>
+  <p class="note">If this page and the code disagree, the code is right and this page is a bug.</p>
+</footer>
+
+<script type="application/json" id="contract">
+{
+  "module": "Event_Handler",
+  "port": 8126,
+  "kind": "door",
+  "needs": [
+    { "name": "logPath", "from": "the host thread — createModule({logPath})", "required": true },
+    { "name": "writable folder", "from": "the host filesystem", "required": true },
+    { "name": "registrations", "from": "the loading thread (ProcessWrapper, Basic_App)", "required": true },
+    { "name": "own door", "from": ":8126, wiredAtBoot false", "required": false }
+  ],
+  "gives": [
+    { "name": "register", "to": "the host thread", "kind": "api" },
+    { "name": "trigger", "to": "the host thread", "kind": "api" },
+    { "name": "read", "to": "the host thread", "kind": "api" },
+    { "name": "on", "to": "the host thread", "kind": "api" },
+    { "name": "createModule", "to": "any module that wants a bus", "kind": "module" },
+    { "name": "data/events.log", "to": "whoever reads later", "kind": "jsonl" },
+    { "name": "/api/events", "to": "a page, an agent", "kind": "http" },
+    { "name": "/api/events/trigger", "to": "any hand", "kind": "http" },
+    { "name": "/api/events/log", "to": "a page, an agent", "kind": "http" },
+    { "name": "/api/events/stream", "to": "a live reader", "kind": "sse" },
+    { "name": "/api/events/purge", "to": "an operator", "kind": "http" },
+    { "name": "/mcp", "to": "an agent", "kind": "mcp" },
+    { "name": "/", "to": "a browser", "kind": "html" },
+    { "name": "/health", "to": "a monitor", "kind": "json" }
+  ]
+}
+</script>
+
+</body>
+</html>

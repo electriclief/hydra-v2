@@ -1,0 +1,88 @@
+{
+  "id": "20260927_095420_db8283",
+  "title": null,
+  "source": "desktop",
+  "model": "C:\\Users\\User\\Desktop\\llms\\Qwen3.8-9B-Q8_0.gguf",
+  "parentId": null,
+  "startedAt": 1790517261.025779,
+  "endedAt": 1790523066.0693135,
+  "endReason": "compression",
+  "messageCount": 99,
+  "toolCallCount": 45,
+  "inputTokens": 177655,
+  "outputTokens": 51792,
+  "costUsd": 0,
+  "cwd": null,
+  "gitBranch": null,
+  "gitRepo": null,
+  "pinned": false,
+  "archived": false,
+  "hidden": false,
+  "profileName": "default",
+  "lastActivityAt": 1790523065.824855,
+  "createdSource": null,
+  "ref": "82b1b45c",
+  "displayTitle": "say hello",
+  "durationSec": 5805,
+  "userTurns": 5,
+  "goal": "say hello",
+  "outcome": "The batch script failed because the **source paths in the manifest don't exist**. The paths stored in the manifest are relative to `C:\\Users\\User\\` but some are absolute paths that don't resolve correctly. Let me re-scan and fix the paths.",
+  "files": [
+    "C:\\Users\\User\\AppData\\Roaming\\hermes\\models\\migrate.py",
+    "C:\\Users\\User",
+    "D:\\Models",
+    "C:\\Users\\User\\AppData\\Roaming\\hermes\\models\\migrate_copy.bat",
+    "C:\\Users\\",
+    "C:\\Users\\User\\AppData\\Roaming\\hermes\\models\\migration_manifest.json",
+    "C:\\Users\\User\\Desktop\\llms\\Bonsai-1.7B.gguf",
+    "C:\\Users\\User\\Desktop\\llms\\gemma-4-E4B-it-Q5_K_M.gguf",
+    "C:\\Users\\User\\Desktop\\llms\\mmproj-F16.gguf",
+    "C:\\Users\\User\\Desktop\\llms\\phi-3.5-mini-instruct-q4f16_1-MLX-model\\phi-3.5-mini-instruct-q4f16_1-MLX-model-00001-of-00003.safetensors",
+    "C:\\Users\\User\\Desktop\\llms\\phi-3.5-mini-instruct-q4f16_1-MLX-model\\phi-3.5-mini-instruct-q4f16_1-MLX-model-00002-of-00003.safetensors",
+    "C:\\Users\\User\\Desktop\\llms\\phi-3.5-mini-instruct-q4f16_1-MLX-model\\phi-3.5-mini-instruct-q4f16_1-MLX-model-00003-of-00003.safetensors",
+    "C:\\Users\\User\\Desktop\\llms\\Qwen2.5-VL-7B-Instruct-Q5_K_S.gguf",
+    "C:\\Users\\User\\Desktop\\llms\\Qwen3-VL-8B-Instruct-Q4_K_M.gguf",
+    "C:\\Users\\User\\Desktop\\llms\\Qwen3.8-9B-Q8_0.gguf",
+    "C:\\Users\\User\\Desktop\\llms\\Qwen3VL-4B-Instruct-Q8_0.gguf",
+    "C:\\Users\\User\\Desktop\\llms\\Qwen3VL-8B-Instruct-Q4_K_M.gguf",
+    "D:\\Models\\",
+    "D:\\Models\\LLM\\Foundation"
+  ],
+  "commands": [
+    "robocopy \"C:\\Users\\User\" \"D:\\Models\" /E /XF \"*.pth\" /XF \"*.bin\" /XF \"*.h5\" /XF \"*.hdf5\" /XF \"TileCache*\" /XF \"v8_context*\" /XF \"KnownGame*\" /XF \"alph…",
+    "python \"C:\\Users\\User\\AppData\\Roaming\\hermes\\models\\migrate.py\"",
+    "tasklist /FI \"WINDOWTITLE eq migrate_copy.bat*\"",
+    "cmd /c \"C:\\Users\\User\\AppData\\Roaming\\hermes\\models\\migrate_copy.bat\"",
+    "cmd /c \"icacls D:\\ /grant Everyone:F\"",
+    "cmd /c \"timeout /t 5 /nobreak >nul 2>&1 && dir \\\"D:\\Models\\\" 2>nul\"",
+    "icacls \"D:\\\" /grant Everyone:F",
+    "powershell -Command \"$acl = Get-Acl 'D:\\'; $rule = New-Object System.Security.AccessControl.FileSystemAccessRule('Everyone', 'FullControl', 'Containe…",
+    "powershell -Command \"$files = @('C:\\Users\\User\\Desktop\\llms\\Qwen3.8-9B-Q8_0.gguf','C:\\Users\\User\\Desktop\\llms\\gemma-4-E4B-it-Q5_K_M.gguf','C:\\Users\\U…",
+    "powershell -Command \"Get-ChildItem -Path C:\\ -Recurse -Filter '*.gguf' -ErrorAction SilentlyContinue -Recurse | Select-Object FullName, @{Name='SizeM…",
+    "powershell -Command \"Get-Process | Where-Object {$_.CommandLine -like '*migrate_copy*'} | Select-Object Id, ProcessName, CPU\"",
+    "python - << 'ENDSCRIPT'",
+    "rg -il --max-depth 10 '\\.(gguf|safetensors|bin|onnx|ckpt|pth|tensors|weights|sharded|adapter|quantized|fp16|q4|q5|q8|q3|q2|q1|mlmodel|tflite|tflite-f…",
+    "rg -il --max-depth 10 '\\.(gguf|safetensors|bin|onnx|pb|ckpt|pth|tensors|weights|sharded|adapter|quantized|fp16|q4|q5|q8|q3|q2|q1|mlmodel|tflite|tflit…"
+  ],
+  "tools": [
+    {
+      "name": "terminal",
+      "count": 44
+    },
+    {
+      "name": "execute_code",
+      "count": 42
+    },
+    {
+      "name": "patch",
+      "count": 2
+    },
+    {
+      "name": "write_file",
+      "count": 2
+    }
+  ],
+  "bytes": 298262,
+  "diary": null,
+  "seances": []
+}

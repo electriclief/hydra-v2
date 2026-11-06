@@ -1,0 +1,831 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Resource Manager — module docs</title>
+<link rel="stylesheet" href="./index.css">
+</head>
+<body>
+<header><h1>Resource Manager</h1><p class="dim">generated 2026-09-24T22:24:01.916Z — re-run <code>npm run docs</code> after any change; never hand-edit</p></header>
+<main>
+<section class="purpose"><h2>Purpose</h2><p>Resource Manager — the register. Reads this node's resources (cpu cores · gpus with vram truth · ram · disks · Hydra shared folders · observed gpu-side processes) and keeps BOOKINGS: what a run holds (amounts for cores/ram/disk, a gpu whole+pinned, paths by subtree). No internal logic — poll is a pure read, book the one write, pop/clear the exits; the only rule is it won't allow double booking (1 app per gpu). Not enforcement — voluntary all the way.</p></section>
+<section class="entry"><h2>ResourceManager_module.js <span class="dim">— the embed entry</span></h2><p class="dim">Declared surface: <code>// the client + the page
+  createRmClient</code> · <code>// the faces
+  createMcpServer</code> · <code>// the machine reader (one PowerShell pass; vram truth; the observed row)
+  collectReads</code> · <code>// the register
+  createBookingStore</code> · <code>// the vocabulary + its two bits of bookkeeping
+  validateBookRequest</code> · <code>GUI_IDS</code> · <code>RmError</code> · <code>ToolRefusal</code> · <code>a registry (Api_Root will mount the SAME object)
+  buildTools</code> · <code>contentTypeFor</code> · <code>createApiServer</code> · <code>createModule</code> · <code>createRmMcpRegistry</code> · <code>loadShareList</code> · <code>mountGui</code> · <code>normalizePath</code> · <code>pathsCollide</code> · <code>resolveInside</code> · <code>serveStatic</code> · <code>startApiServer</code> · <code>startModule</code> · <code>summarizeBooking</code> · <code>totalsOf</code></p><pre>/**
+ * @module ResourceManager_module
+ * @description THE ONE FILE another code thread loads — the embed entry. It re-exports the
+ *              whole public surface and adds the two host hands: createModule() (the
+ *              pieces, in the host thread, no port) and startModule() (this module's own
+ *              little door on a port; port 0 = OS-assigned). Keep it thin — never a
+ *              second implementation.
+ * @intent House standard (2026-09-16, folder dialect): folder `ResourceManager` →
+ *         `ResourceManager_module.js`. A host (Api_Root, later) loads THIS file; `npm start`
+ *         (main.js) stands the module up as its own local thread instead. NOT re-exported:
+ *         main() — it attaches signal handlers to whoever calls it.
+ */
+
+import path from 'node:path';
+import { pathToFileURL, fileURLToPath } from 'node:url';
+import { createBookingStore } from './public/js/bookingStore.js';
+import { collectReads, loadShareList } from './public/js/resourceRead.js';
+import { validateBookRequest, normalizePath, pathsCollide, summarizeBooking, totalsOf } from './public/js/resourceSchema.js';
+import { buildTools, createRmMcpRegistry, ToolRefusal } from './public/js/mcpTools.js';
+import { createMcpServer } from './public/js/mcpServer.js';
+import { createApiServer, startApiServer } from './public/js/apiServer.js';
+import { serveStatic, contentTypeFor, resolveInside } from './public/js/staticFiles.js';
+import { createRmClient, RmError } from './public/js/client.js';
+import { mount as mountGui, GUI_IDS } from './public/js/browser/gui.js';
+
+export {
+  // the vocabulary + its two bits of bookkeeping
+  validateBookRequest,
+  normalizePath,
+  pathsCollide,
+  summarizeBooking,
+  totalsOf,
+  // the machine reader (one PowerShell pass; vram truth; the observed row)
+  collectReads,
+  loadShareList,
+  // the register
+  createBookingStore,
+  // the agent face as a registry (Api_Root will mount the SAME object)
+  buildTools,
+  createRmMcpRegistry,
+  ToolRefusal,
+  // the faces
+  createMcpServer,
+  createApiServer,
+  startApiServer,
+  serveStatic,
+  contentTypeFor,
+  resolveInside,
+  // the client + the page
+  createRmClient,
+  RmError,
+  mountGui,
+  GUI_IDS,
+};
+
+/** The pieces, in a host thread — no port, no banner. */
+export function createModule(options = {}) {
+  const dataDir = path.resolve(options.dataDir ?? './data');
+  const sharesFile = options.sharesFile ?? path.join(dataDir, 'shares.json');
+  const collect = { shares: loadShareList(sharesFile) };
+  const reads = options.reads ?? (() =&gt; collectReads(collect));
+  const store = createBookingStore({ dataDir, reads });
+  return { store, reads, registry: createRmMcpRegistry(store, reads), dataDir, sharesFile };
+}
+
+/** This module's own little door on a port (port 0 = OS-assigned). */
+export async function startModule(options = {}) {
+  const dataDir = path.resolve(options.dataDir ?? './data');
+  const sharesFile = options.sharesFile ?? path.join(dataDir, 'shares.json');
+  const collect = { shares: loadShareList(sharesFile) };
+  const reads = options.reads ?? (() =&gt; collectReads(collect));
+  const refreshReads = options.reads ?? (() =&gt; collectReads({ ...collect, force: true }));
+  const store = createBookingStore({ dataDir, reads });
+  const api = await startApiServer({
+    store,
+    reads,
+    refreshReads,
+    port: options.port ?? 8129,
+    host: options.host ?? '127.0.0.1',
+    token: options.token ?? null,
+    publicDir: options.publicDir ?? path.join(path.dirname(fileURLToPath(import.meta.url)), 'public'),
+  });
+  return {
+    store,
+    reads,
+    registry: createRmMcpRegistry(store, reads),
+    api,
+    url: api.url,
+    port: api.port,
+    dataDir,
+    stop: () =&gt; api.stop(),
+  };
+}
+
+// --- Direct-run self-check: node ResourceManager_module.js ---
+// Drives the REAL thing — a real store, a real port — and sets process.exitCode
+// (never process.exit). Same spirit as every module's runTests, at the entry level.
+
+async function selfCheck() {
+  const fs = await import('node:fs');
+  const os = await import('node:os');
+  let failures = 0;
+  const check = (label, cond) =&gt; {
+    console.log(`${cond ? 'pass' : 'FAIL'} ${label}`);
+    if (!cond) failures++;
+  };
+
+  const fakeReads = {
+    collectedAt: new Date().toISOString(),
+    node: 'entry-test',
+    platform: 'win32',
+    cpu: { model: 'fake', cores: 8, loadPct: 1 },
+    ram: { totalMb: 16000, freeMb: 9000 },
+    gpus: [{ name: 'RX 6800', vramMb: 16384, vramSource: 'registry', memUsedMb: null }],
+    gpusObserved: [],
+    disks: [{ device: 'C:', freeMb: 100000, totalMb: 500000 }],
+    shares: [],
+    notes: [],
+  };
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'rm-entry-'));
+
+  const pieces = createModule({ dataDir: dir, reads: () =&gt; fakeReads });
+  check('createModule: the registry advertises five tools', pieces.registry.list().length === 5);
+  const booked = await pieces.store.book({ service: 'demo', gpu: 'RX 6800', cores: 2 });
+  check('createModule: the register books for real', booked.ok === true &amp;&amp; booked.booking.id.startsWith('bk-'));
+  const refused = await pieces.store.book({ service: 'other', gpu: 'RX 6800' });
+  check('createModule: double booking is refused with the holder', refused.ok === false &amp;&amp; refused.error.blockers[0].heldBy?.service === 'demo');
+
+  const running = await startModule({ dataDir: dir, reads: () =&gt; fakeReads, port: 0 });
+  const health = await (await fetch(running.url + '/health')).json();
+  check('startModule: health answers', health.ok === true &amp;&amp; health.bookings === 1);
+  const poll = await (await fetch(running.url + '/api/resources')).json();
+  check('startModule: the poll answers', poll.ok === true &amp;&amp; poll.resources.cpu.cores === 8 &amp;&amp; poll.bookings.length === 1);
+  const bookViaHttp = await (
+    await fetch(running.url + '/api/book', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ service: 'via-http', cores: 1 }) })
+  ).json();
+  check('startModule: book answers over HTTP', bookViaHttp.ok === true &amp;&amp; bookViaHttp.booking.service === 'via-http');
+  const init = await (
+    await fetch(running.url + '/mcp', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'initialize', params: {} }),
+    })
+  ).json();
+  check('startModule: the agent door answers', init.result?.serverInfo?.name === 'resource-manager');
+  await running.stop();
+  let closed = false;
+  try {
+    await fetch(running.url + '/health');
+  } catch {
+    closed = true;
+  }
+  check('stop closes the door', closed);
+
+  console.log(failures === 0 ? '[ResourceManager_module] self-check GREEN' : `[ResourceManager_module] ${failures} FAILED`);
+  process.exitCode = failures === 0 ? 0 : 1;
+}
+
+if (process.argv[1] &amp;&amp; import.meta.url === pathToFileURL(process.argv[1]).href) {
+  void selfCheck();
+}
+</pre></section>
+<section class="source"><h2>public/ts/apiServer.ts</h2><pre class="header">/**
+ * @module apiServer
+ * @description The HTTP face: /health · GET /api/resources (THE POLL — pure read: the
+ *              machine + every current booking) · POST /api/resources/refresh · GET
+ *              /api/bookings[/:id] · POST /api/book (the ONE write — lands whole or is
+ *              refused whole) · POST /api/bookings/:id/pop · /clear · the static GUI at /,
+ *              and the MCP mount at /mcp. Dependency-free (node:http); an optional shared
+ *              token guards /api/* and /mcp.
+ * @intent One implementation, three faces (page · API · agent). Errors are always
+ *         {error:{code,message}} with a real code; a book REFUSAL is not an error — it
+ *         answers 200 with ok:false (the wait info). Static files are not actions and are
+ *         served without the token.
+ */</pre><pre class="contract">/**
+ * @module apiServer
+ * @description The HTTP face: /health · GET /api/resources (THE POLL — pure read: the
+ *              machine + every current booking) · POST /api/resources/refresh · GET
+ *              /api/bookings[/:id] · POST /api/book (the ONE write — lands whole or is
+ *              refused whole) · POST /api/bookings/:id/pop · /clear · the static GUI at /,
+ *              and the MCP mount at /mcp. Dependency-free (node:http); an optional shared
+ *              token guards /api/* and /mcp.
+ * @intent One implementation, three faces (page · API · agent). Errors are always
+ *         {error:{code,message}} with a real code; a book REFUSAL is not an error — it
+ *         answers 200 with ok:false (the wait info). Static files are not actions and are
+ *         served without the token.
+ */
+import http from 'node:http';
+import type { BookingStore, ReadsFn } from './bookingStore.js';
+export interface ApiServerOptions {
+    store: BookingStore;
+    /** The poll this API serves (default: whatever the store reads with). */
+    reads: ReadsFn;
+    /** A forced re-read for POST /api/resources/refresh (default: reads). */
+    refreshReads?: ReadsFn;
+    /** Port to listen on (default 8129; 0 asks the OS). */
+    port?: number;
+    /** Bind interface (default 127.0.0.1 — local unless said otherwise). */
+    host?: string;
+    /** Shared secret; when set, /api/* and /mcp need `x-rm-token` or `?token=`. */
+    token?: string | null;
+    /** Folder served at the root — the GUI (default: &lt;cwd&gt;/public). */
+    publicDir?: string;
+    /** Serve the MCP endpoint at /mcp (default true). */
+    enableMcp?: boolean;
+}
+export interface ApiServer {
+    server: http.Server;
+    /** The real bound URL (port resolved when 0 was asked for). */
+    url: string;
+    port: number;
+    close(): Promise&lt;void&gt;;
+}
+export declare function createApiServer(options: ApiServerOptions): ApiServer;
+/** createApiServer + listen, resolving once the port is really bound. */
+export declare function startApiServer(options: ApiServerOptions): Promise&lt;ApiServer &amp; {
+    stop(): Promise&lt;void&gt;;
+}&gt;;
+export declare function runTests(): Promise&lt;void&gt;;
+</pre></section>
+<section class="source"><h2>public/ts/bookingStore.ts</h2><pre class="header">/**
+ * @module bookingStore
+ * @description THE REGISTER — bookings in memory, persisted to data/bookings.json. Book
+ *              is the ONE write: it validates the request, compares it against the
+ *              current readings and everything already held, and either the whole book
+ *              lands or it is refused whole — the refusal names the holder (the wait
+ *              info). Pop and clear are the two exits. Nothing here schedules, queues,
+ *              orders, or computes ETAs: the only rule is it won't allow double booking
+ *              (1 app per gpu; booked = unassignable until popped or cleared).
+ * @intent Operator rulings (rounds 3-5): "no internal logic — the scheduler does the
+ *         thinking"; "poll and book are independant"; "Scheduling and ordering doesn't
+ *         happen here"; a booked path covers its subtree (children assumed).
+ */</pre><pre class="contract">/**
+ * @module bookingStore
+ * @description THE REGISTER — bookings in memory, persisted to data/bookings.json. Book
+ *              is the ONE write: it validates the request, compares it against the
+ *              current readings and everything already held, and either the whole book
+ *              lands or it is refused whole — the refusal names the holder (the wait
+ *              info). Pop and clear are the two exits. Nothing here schedules, queues,
+ *              orders, or computes ETAs: the only rule is it won't allow double booking
+ *              (1 app per gpu; booked = unassignable until popped or cleared).
+ * @intent Operator rulings (rounds 3-5): "no internal logic — the scheduler does the
+ *         thinking"; "poll and book are independant"; "Scheduling and ordering doesn't
+ *         happen here"; a booked path covers its subtree (children assumed).
+ */
+import type { Booking, BookOutcome, EndedBooking, ResourceReads } from './resourceSchema.js';
+import { type CollectOptions } from './resourceRead.js';
+export type ReadsFn = () =&gt; ResourceReads | Promise&lt;ResourceReads&gt;;
+export interface BookingStoreOptions {
+    /** Where bookings.json lives (default ./data). */
+    dataDir?: string;
+    /** Exact file (default &lt;dataDir&gt;/bookings.json). */
+    file?: string;
+    /** The poll this store validates against (default: the real machine reader). */
+    reads?: ReadsFn;
+    /** Passed to the default reader (shared folders etc.). */
+    collect?: CollectOptions;
+}
+export interface BookingStore {
+    /** Attempt the one write. Whole lands or whole refused — never partial, never queued. */
+    book(raw: unknown): Promise&lt;BookOutcome&gt;;
+    /** The exits. Returns the ended booking, or null when the id is unknown. */
+    pop(id: string): EndedBooking | null;
+    clear(id: string): EndedBooking | null;
+    get(id: string): Booking | EndedBooking | null;
+    active(): Booking[];
+    ended(): EndedBooking[];
+    /** Re-read bookings.json from disk (a hand edit — rare). */
+    reload(): void;
+    save(): void;
+    readonly dataFile: string;
+}
+export declare function createBookingStore(options?: BookingStoreOptions): BookingStore;
+export declare function runTests(): Promise&lt;void&gt;;
+</pre></section>
+<section class="source"><h2>public/ts/browser/gui.ts</h2><pre class="header">/**
+ * @module browser/gui
+ * @description The page — this node's register, live: the machine pane (cpu · ram · gpus
+ *              with the observed row · disks · shared folders), the register pane (every
+ *              booking with pop/clear), and the book form (the one write; a refusal shows
+ *              the wait info). Pure render functions keep it testable without a DOM; mount()
+ *              only wires what the page needs.
+ * @intent The page shows what the API says — the same client the tests use. Nothing here
+ *         decides anything: poll · book · pop · clear, exactly the module's four verbs.
+ */</pre><pre class="contract">/**
+ * @module browser/gui
+ * @description The page — this node's register, live: the machine pane (cpu · ram · gpus
+ *              with the observed row · disks · shared folders), the register pane (every
+ *              booking with pop/clear), and the book form (the one write; a refusal shows
+ *              the wait info). Pure render functions keep it testable without a DOM; mount()
+ *              only wires what the page needs.
+ * @intent The page shows what the API says — the same client the tests use. Nothing here
+ *         decides anything: poll · book · pop · clear, exactly the module's four verbs.
+ */
+import type { Booking, BookOutcome, EndedBooking, ResourceReads } from '../resourceSchema.js';
+import type { RmClient } from '../client.js';
+export interface GuiOptions {
+    client: RmClient;
+    /** Auto-refresh cadence (default 5000 ms; 0 = off). */
+    intervalMs?: number;
+}
+export declare const GUI_IDS: {
+    readonly root: "rm-root";
+    readonly sub: "rm-sub";
+    readonly resources: "rm-resources";
+    readonly bookings: "rm-bookings";
+    readonly form: "rm-form";
+    readonly outcome: "rm-outcome";
+};
+export declare function escapeHtml(text: string): string;
+export declare function fmtMb(value: number | null | undefined): string;
+/** The machine pane — what the poll just read. */
+export declare function renderResources(reads: ResourceReads): string;
+/** The register pane — every booking, with its exits. */
+export declare function renderBookings(active: Booking[], ended?: EndedBooking[]): string;
+export declare function renderOutcome(outcome: BookOutcome): string;
+/** Wire the page. DOM-only — the pure renderers above carry the tests. */
+export declare function mount(root: HTMLElement, options: GuiOptions): {
+    stop(): void;
+};
+export declare function runTests(): Promise&lt;void&gt;;
+</pre></section>
+<section class="source"><h2>public/ts/client.ts</h2><pre class="header">/**
+ * @module client
+ * @description The ES-module client for the API — fetch in Node or the browser, API
+ *              errors thrown as RmError carrying the server's own code. One implementation
+ *              for both, so the page and the tests cannot drift. A book REFUSAL is not an
+ *              error: it comes back as a normal outcome with ok:false (the wait info) — the
+ *              client only throws for real API errors.
+ * @intent The page imports the SAME client the tests use — one implementation, no drift.
+ */</pre><pre class="contract">/**
+ * @module client
+ * @description The ES-module client for the API — fetch in Node or the browser, API
+ *              errors thrown as RmError carrying the server's own code. One implementation
+ *              for both, so the page and the tests cannot drift. A book REFUSAL is not an
+ *              error: it comes back as a normal outcome with ok:false (the wait info) — the
+ *              client only throws for real API errors.
+ * @intent The page imports the SAME client the tests use — one implementation, no drift.
+ */
+import type { Booking, BookOutcome, BookRequest, EndedBooking, ResourceReads } from './resourceSchema.js';
+export interface RmClientOptions {
+    baseUrl?: string;
+    token?: string | null;
+}
+export interface RmResourcesView {
+    ok: boolean;
+    resources: ResourceReads;
+    bookings: Booking[];
+}
+export interface RmBookingsView {
+    ok: boolean;
+    active: Booking[];
+    ended?: EndedBooking[];
+}
+export interface RmBookingView {
+    ok: boolean;
+    booking: Booking | EndedBooking;
+}
+export interface RmClient {
+    health(): Promise&lt;Record&lt;string, unknown&gt;&gt;;
+    resources(refresh?: boolean): Promise&lt;RmResourcesView&gt;;
+    bookings(includeEnded?: boolean): Promise&lt;RmBookingsView&gt;;
+    getBooking(id: string): Promise&lt;RmBookingView&gt;;
+    /** The one write — a refusal returns ok:false, it never throws. */
+    book(request: BookRequest): Promise&lt;BookOutcome&gt;;
+    pop(id: string): Promise&lt;RmBookingView&gt;;
+    clear(id: string): Promise&lt;RmBookingView&gt;;
+}
+export declare class RmError extends Error {
+    code: string;
+    status: number;
+    constructor(message: string, code: string, status: number);
+}
+export declare function createRmClient(options?: RmClientOptions): RmClient;
+export declare function runTests(): Promise&lt;void&gt;;
+</pre></section>
+<section class="source"><h2>public/ts/main.ts</h2><pre class="header">/**
+ * @module main
+ * @description Boot: the register's door on 8129 — the booking store (data/bookings.json),
+ *              the machine reader, and the HTTP face (GUI · API · MCP) on one port. Flags &gt;
+ *              environment (RM_*) &gt; defaults; `--help` prints what this box is.
+ * @intent The module runs the moment it starts — `node public/js/main.js`. The banner names
+ *         every door and every file it owns; nothing runs invisibly. Nothing here decides
+ *         anything: poll · book · pop · clear — the scheduler (later) does the thinking.
+ */</pre><pre class="contract">/**
+ * @module main
+ * @description Boot: the register's door on 8129 — the booking store (data/bookings.json),
+ *              the machine reader, and the HTTP face (GUI · API · MCP) on one port. Flags &gt;
+ *              environment (RM_*) &gt; defaults; `--help` prints what this box is.
+ * @intent The module runs the moment it starts — `node public/js/main.js`. The banner names
+ *         every door and every file it owns; nothing runs invisibly. Nothing here decides
+ *         anything: poll · book · pop · clear — the scheduler (later) does the thinking.
+ */
+import { type BookingStore } from './bookingStore.js';
+import { startApiServer } from './apiServer.js';
+export interface MainOptions {
+    port: number;
+    host: string;
+    token: string | null;
+    /** The folder where bookings.json lives (default ./data). */
+    dataDir: string;
+    /** The declared shared folders file (default &lt;dataDir&gt;/shares.json; '' = follow dataDir). */
+    sharesFile: string;
+    quiet: boolean;
+}
+export interface RunningResourceManager {
+    store: BookingStore;
+    api: Awaited&lt;ReturnType&lt;typeof startApiServer&gt;&gt;;
+    options: MainOptions;
+    stop(): Promise&lt;void&gt;;
+}
+export declare const DEFAULTS: MainOptions;
+export declare function parseArgs(argv: string[], env?: NodeJS.ProcessEnv): {
+    options: MainOptions;
+    help: boolean;
+};
+export declare function printHelp(): void;
+export declare function startResourceManager(overrides?: Partial&lt;MainOptions&gt;): Promise&lt;RunningResourceManager&gt;;
+export declare function runTests(): Promise&lt;void&gt;;
+</pre></section>
+<section class="source"><h2>public/ts/mcpServer.ts</h2><pre class="header">/**
+ * @module mcpServer
+ * @description The MCP-over-HTTP face — streamable HTTP, JSON-RPC, sessions. It serves
+ *              whatever REGISTRY it is handed (list + call): this module's own registry
+ *              today, other registries later (Api_Root mounts them the same way). One
+ *              implementation, many faces.
+ * @intent House conventions (from ProcessWrapper/Services, kept here): plain JSON or
+ *         SSE-framed replies, `initialize` carries instructions that say how to pick a
+ *         tool, notifications answer 202 with no body, an unknown method is -32601, an
+ *         unknown tool/params is -32602, and a refused tool argument comes back as
+ *         `isError: true` with a message that says what to do.
+ */</pre><pre class="contract">/**
+ * @module mcpServer
+ * @description The MCP-over-HTTP face — streamable HTTP, JSON-RPC, sessions. It serves
+ *              whatever REGISTRY it is handed (list + call): this module's own registry
+ *              today, other registries later (Api_Root mounts them the same way). One
+ *              implementation, many faces.
+ * @intent House conventions (from ProcessWrapper/Services, kept here): plain JSON or
+ *         SSE-framed replies, `initialize` carries instructions that say how to pick a
+ *         tool, notifications answer 202 with no body, an unknown method is -32601, an
+ *         unknown tool/params is -32602, and a refused tool argument comes back as
+ *         `isError: true` with a message that says what to do.
+ */
+import type { IncomingMessage, ServerResponse } from 'node:http';
+import type { McpRegistry } from './mcpTools.js';
+export interface McpServerOptions {
+    registry: McpRegistry;
+    /** Sent in the initialize reply — say what this box is and how to pick a tool. */
+    instructions?: string;
+    /** Protocol revisions spoken, newest first (the first is the default). */
+    protocolVersions?: string[];
+}
+export interface McpServer {
+    /** Route POST/GET/DELETE /mcp here from the HTTP layer. */
+    handle(req: IncomingMessage, res: ServerResponse): Promise&lt;void&gt;;
+}
+export declare function createMcpServer(options: McpServerOptions): McpServer;
+export declare function runTests(): Promise&lt;void&gt;;
+</pre></section>
+<section class="source"><h2>public/ts/mcpTools.ts</h2><pre class="header">/**
+ * @module mcpTools
+ * @description The AGENT face as a REGISTRY — the register's tools, MCP-shaped: rm_resources
+ *              (THE POLL — pure read: cpu · gpus + observed · ram · disks · shared folders ·
+ *              every current booking), rm_book (the ONE write — the chosen resources land
+ *              whole or the book is refused whole, and the refusal carries the wait info),
+ *              rm_bookings, rm_pop and rm_clear (the exits). The module's own /mcp mounts
+ *              this registry today; Api_Root will mount the SAME object later.
+ * @intent A refusal is an ANSWER, not a tool failure: it rides as normal content with
+ *         ok:false (like "this node does not have those resources" — round-2 vocabulary).
+ *         ToolRefusal is only for arguments that cannot be answered at all.
+ */</pre><pre class="contract">/**
+ * @module mcpTools
+ * @description The AGENT face as a REGISTRY — the register's tools, MCP-shaped: rm_resources
+ *              (THE POLL — pure read: cpu · gpus + observed · ram · disks · shared folders ·
+ *              every current booking), rm_book (the ONE write — the chosen resources land
+ *              whole or the book is refused whole, and the refusal carries the wait info),
+ *              rm_bookings, rm_pop and rm_clear (the exits). The module's own /mcp mounts
+ *              this registry today; Api_Root will mount the SAME object later.
+ * @intent A refusal is an ANSWER, not a tool failure: it rides as normal content with
+ *         ok:false (like "this node does not have those resources" — round-2 vocabulary).
+ *         ToolRefusal is only for arguments that cannot be answered at all.
+ */
+import type { BookingStore, ReadsFn } from './bookingStore.js';
+export interface McpToolResult {
+    content: Array&lt;{
+        type: 'text';
+        text: string;
+    }&gt;;
+    isError?: boolean;
+}
+export interface McpToolProperty {
+    type: string;
+    description: string;
+    enum?: string[];
+}
+export interface McpToolSchema {
+    type: 'object';
+    properties: Record&lt;string, McpToolProperty&gt;;
+    required?: string[];
+}
+export interface McpTool {
+    name: string;
+    description: string;
+    inputSchema: McpToolSchema;
+    run: (args: Record&lt;string, unknown&gt;) =&gt; Promise&lt;McpToolResult&gt;;
+}
+/** THE REGISTRY — list + call, MCP-shaped. Same object on the module's /mcp and on Api_Root. */
+export interface McpRegistry {
+    module: string;
+    /** The advertised tools (no run hand). */
+    list(): Array&lt;Omit&lt;McpTool, 'run'&gt;&gt;;
+    /** The call hand. Throws ToolRefusal for arguments that can be answered better. */
+    call(name: string, args: Record&lt;string, unknown&gt;): Promise&lt;McpToolResult&gt;;
+}
+/** A refusal the caller can act on — travels as `isError: true`, never a protocol error. */
+export declare class ToolRefusal extends Error {
+}
+export declare function buildTools(store: BookingStore, reads: ReadsFn): McpTool[];
+export declare function createRmMcpRegistry(store: BookingStore, reads: ReadsFn): McpRegistry;
+export declare function runTests(): Promise&lt;void&gt;;
+</pre></section>
+<section class="source"><h2>public/ts/resourceRead.ts</h2><pre class="header">/**
+ * @module resourceRead
+ * @description THE MACHINE READER — what this node actually has, freshly read: cpu
+ *              (model · cores · a load sample), ram, gpus with VRAM TRUTH (nvidia-smi &gt;
+ *              driver registry qwMemorySize &gt; AdapterRAM &gt; unknown — the Windows UInt32
+ *              AdapterRAM caps at 4095 MB, the RX 6800 bug), disks, and the observed
+ *              gpu-side processes nobody booked (the V1-honest row: a miner or an
+ *              outside llama is VISIBLE, never blocking). Hydra shared folders are read
+ *              from a small declared list. A short cache keeps a poll cheap; `force`
+ *              re-reads. Every failure degrades to a note — a read never throws.
+ * @intent Operator rulings: "it reads cpu cores, gpu (assumes only 1 job possible on 1
+ *         gpu), ram, hard disk space, SHARE folders" · the register does no thinking —
+ *         reads are facts, bookings are the truth it answers from.
+ */</pre><pre class="contract">/**
+ * @module resourceRead
+ * @description THE MACHINE READER — what this node actually has, freshly read: cpu
+ *              (model · cores · a load sample), ram, gpus with VRAM TRUTH (nvidia-smi &gt;
+ *              driver registry qwMemorySize &gt; AdapterRAM &gt; unknown — the Windows UInt32
+ *              AdapterRAM caps at 4095 MB, the RX 6800 bug), disks, and the observed
+ *              gpu-side processes nobody booked (the V1-honest row: a miner or an
+ *              outside llama is VISIBLE, never blocking). Hydra shared folders are read
+ *              from a small declared list. A short cache keeps a poll cheap; `force`
+ *              re-reads. Every failure degrades to a note — a read never throws.
+ * @intent Operator rulings: "it reads cpu cores, gpu (assumes only 1 job possible on 1
+ *         gpu), ram, hard disk space, SHARE folders" · the register does no thinking —
+ *         reads are facts, bookings are the truth it answers from.
+ */
+import type { GpuObserved, ResourceReads } from './resourceSchema.js';
+export type Runner = (file: string, args: string[]) =&gt; Promise&lt;string&gt;;
+export interface CollectOptions {
+    /** Declared Hydra shared folders (strings, or {label,path} objects). */
+    shares?: Array&lt;string | {
+        label?: string;
+        path: string;
+    }&gt; | null;
+    /** Cached for this long (default 4000 ms); `force` skips the cache. */
+    ttlMs?: number;
+    force?: boolean;
+    /** Test seam — when given, spawns are replaced and the cache is skipped. */
+    runner?: Runner;
+    nvidiaRunner?: Runner;
+}
+/** One entry a node declares in data/shares.json. */
+export interface ShareDeclaration {
+    label?: string;
+    path: string;
+}
+/** The one PowerShell pass: drives · video controllers · the vram registry · processes. */
+export declare function buildPowerShellScript(): string;
+/** Parse the PowerShell JSON defensively (warnings may precede it). */
+export declare function parsePowerShellJson(stdout: string): Record&lt;string, unknown&gt; | null;
+/** Keep the honest observed row: gpu-side processes nobody booked. Information only. */
+export declare function classifyObserved(procs: Array&lt;{
+    name: string;
+    pid: number;
+    cmd: string | null;
+}&gt;): GpuObserved[];
+/** THE POLL's engine — facts about this machine. Never throws; failures become notes. */
+export declare function collectReads(options?: CollectOptions): Promise&lt;ResourceReads&gt;;
+/** Read data/shares.json — a tolerant list of declared shared folders. */
+export declare function loadShareList(file: string): ShareDeclaration[];
+export declare function runTests(): Promise&lt;void&gt;;
+</pre></section>
+<section class="source"><h2>public/ts/resourceSchema.ts</h2><pre class="header">/**
+ * @module resourceSchema
+ * @description THE RESOURCE MODEL — every shape this register speaks, in one place:
+ *              the READS (cpu · ram · gpus + observed processes · disks · Hydra shared
+ *              folders), the BOOKING (keyed to a service run; amounts for cores/ram/disk,
+ *              a gpu whole+pinned, paths[]) and the OUTCOMES (booked / refused with the
+ *              blockers). Plus the two bits of bookkeeping the register is allowed to do:
+ *              amount math (totals) and path overlap (a booked folder covers its subtree).
+ * @intent Operator rulings (Resource Manager rounds 1-5, 2026-09-24): the register has
+ *         NO internal logic — poll is a pure read, book is the one write, pop/clear the
+ *         two exits; the only rule is it won't allow double booking (1 app per gpu).
+ *         Paths are not locks — parallel agents book the folders they work in so they
+ *         don't step on each other. Nothing here is enforcement — voluntary all the way.
+ */</pre><pre class="contract">/**
+ * @module resourceSchema
+ * @description THE RESOURCE MODEL — every shape this register speaks, in one place:
+ *              the READS (cpu · ram · gpus + observed processes · disks · Hydra shared
+ *              folders), the BOOKING (keyed to a service run; amounts for cores/ram/disk,
+ *              a gpu whole+pinned, paths[]) and the OUTCOMES (booked / refused with the
+ *              blockers). Plus the two bits of bookkeeping the register is allowed to do:
+ *              amount math (totals) and path overlap (a booked folder covers its subtree).
+ * @intent Operator rulings (Resource Manager rounds 1-5, 2026-09-24): the register has
+ *         NO internal logic — poll is a pure read, book is the one write, pop/clear the
+ *         two exits; the only rule is it won't allow double booking (1 app per gpu).
+ *         Paths are not locks — parallel agents book the folders they work in so they
+ *         don't step on each other. Nothing here is enforcement — voluntary all the way.
+ */
+/** One gpu, as read on this node. vram truth: nvidia-smi &gt; driver registry (the
+ *  AdapterRAM UInt32 caps at 4095 MB) &gt; AdapterRAM &gt; unknown. */
+export interface GpuRead {
+    name: string;
+    vramMb: number | null;
+    vramSource: 'nvidia-smi' | 'registry' | 'adapterram' | 'unknown';
+    memUsedMb: number | null;
+}
+/** A process this node can SEE on the gpu side that nobody booked — information only,
+ *  never a rule (the V1 lesson: llama started outside the runner still counts). */
+export interface GpuObserved {
+    name: string;
+    pid: number;
+    reason: string;
+}
+export interface DiskRead {
+    device: string;
+    freeMb: number;
+    totalMb: number;
+}
+/** A Hydra shared folder on this node (space-gated: it exists when the disk allows).
+ *  The register READS these — it does not create or manage them. */
+export interface ShareRead {
+    label: string | null;
+    path: string;
+    exists: boolean;
+    freeMb: number | null;
+    totalMb: number | null;
+}
+/** THE POLL — a pure read. Asking holds nothing and remembers nothing. */
+export interface ResourceReads {
+    collectedAt: string;
+    node: string;
+    platform: string;
+    cpu: {
+        model: string;
+        cores: number;
+        loadPct: number | null;
+    };
+    ram: {
+        totalMb: number;
+        freeMb: number;
+    };
+    gpus: GpuRead[];
+    gpusObserved: GpuObserved[];
+    disks: DiskRead[];
+    shares: ShareRead[];
+    notes: string[];
+}
+/** A book request — the CALLER chose these resources; the register only checks them. */
+export interface BookRequest {
+    /** The service this run is (the booking's identity — the scheduler points at it). */
+    service: string;
+    mode?: string | null;
+    /** A gpu by name, exactly as the poll shows it. Whole and pinned — 1 app per gpu. */
+    gpu?: string | null;
+    cores?: number | null;
+    ramMb?: number | null;
+    diskMb?: number | null;
+    /** Folders this run works in. A booked folder covers its subtree. */
+    paths?: string[];
+    /** The scheduler's own expectation (recorded as info; null = unknown). */
+    expected?: string | null;
+    note?: string | null;
+    /** Optional run id, when the caller carries one. */
+    run?: string | null;
+}
+export interface Booking {
+    id: string;
+    service: string;
+    mode: string | null;
+    gpu: string | null;
+    cores: number | null;
+    ramMb: number | null;
+    diskMb: number | null;
+    paths: string[];
+    expected: string | null;
+    note: string | null;
+    run: string | null;
+    bookedAt: string;
+}
+export interface EndedBooking extends Booking {
+    endedAt: string;
+    endReason: 'popped' | 'cleared';
+}
+export interface BookingBlocker {
+    kind: 'gpu' | 'cores' | 'ram' | 'disk' | 'path';
+    detail: string;
+    /** The booking in the way, when a single one is responsible (the wait info). */
+    heldBy: {
+        id: string;
+        service: string;
+        since: string;
+    } | null;
+}
+export interface BookRefusal {
+    ok: false;
+    error: {
+        code: 'double_booked' | 'missing_resource' | 'invalid_book' | 'no_such_booking';
+        message: string;
+        blockers: BookingBlocker[];
+    };
+}
+export interface BookSuccess {
+    ok: true;
+    booking: Booking;
+}
+export type BookOutcome = BookSuccess | BookRefusal;
+export interface ReadingsTotals {
+    cores: number;
+    ramMb: number;
+    diskFreeMb: number;
+}
+/** Paths compare case-insensitively (Windows) and without a trailing separator. */
+export declare function normalizePath(input: string): string;
+/** A booked folder covers its subtree: equal paths collide, and so does ancestor/child. */
+export declare function pathsCollide(a: string, b: string): boolean;
+/** Validate a raw book request. Amounts are whole/free numbers ≥ 0; service required. */
+export declare function validateBookRequest(raw: unknown): {
+    ok: true;
+    request: BookRequest;
+} | {
+    ok: false;
+    message: string;
+};
+/** The totals amount-bookings compare against (cores and ram come from the machine itself). */
+export declare function totalsOf(readings: ResourceReads): ReadingsTotals;
+/** A one-line human shape of a booking, for tables and logs. */
+export declare function summarizeBooking(booking: Booking | EndedBooking): string;
+export declare function runTests(): Promise&lt;void&gt;;
+</pre></section>
+<section class="source"><h2>public/ts/selftest.ts</h2><pre class="header">/**
+ * @module selftest
+ * @description THE GATE — every module's own self-check, one after another, in one
+ *              process: resourceSchema · resourceRead · bookingStore · mcpTools ·
+ *              mcpServer · staticFiles · apiServer · client · browser/gui · main.
+ *              `npm run selftest` is the single command. console.assert failures are
+ *              COUNTED (a failed assertion, not only a thrown error, fails the gate),
+ *              and main goes last — it binds a real port — so the gate ends the way a
+ *              run starts.
+ * @intent THE MODULAR LAW (operator): every module carries its own self-check — a module
+ *         that cannot prove itself on demand does not ship.
+ */</pre><pre class="contract">/**
+ * @module selftest
+ * @description THE GATE — every module's own self-check, one after another, in one
+ *              process: resourceSchema · resourceRead · bookingStore · mcpTools ·
+ *              mcpServer · staticFiles · apiServer · client · browser/gui · main.
+ *              `npm run selftest` is the single command. console.assert failures are
+ *              COUNTED (a failed assertion, not only a thrown error, fails the gate),
+ *              and main goes last — it binds a real port — so the gate ends the way a
+ *              run starts.
+ * @intent THE MODULAR LAW (operator): every module carries its own self-check — a module
+ *         that cannot prove itself on demand does not ship.
+ */
+export interface GateResult {
+    module: string;
+    status: 'pass' | 'fail' | 'skip';
+    detail: string;
+}
+/** Every module this gate walks, in order. main last (it binds a real port). */
+export declare const DEFAULT_MODULES: string[];
+/** Run one module's own tests with assertion counting. Never throws. */
+export declare function runGate(modules?: string[], log?: (line: string) =&gt; void): Promise&lt;{
+    ok: boolean;
+    results: GateResult[];
+}&gt;;
+export declare function main(): Promise&lt;void&gt;;
+</pre></section>
+<section class="source"><h2>public/ts/staticFiles.ts</h2><pre class="header">/**
+ * @module staticFiles
+ * @description Serves public/ on the same port — the GUI, its CSS, its compiled script.
+ *              MIME map, index fallback, a traversal guard that resolves inside the root,
+ *              and a 404 that names the API routes.
+ * @intent Static files are not actions: the page is served WITHOUT the shared token so an
+ *         operator can load it and type one in; only /api/* and /mcp are guarded.
+ */</pre><pre class="contract">/**
+ * @module staticFiles
+ * @description Serves public/ on the same port — the GUI, its CSS, its compiled script.
+ *              MIME map, index fallback, a traversal guard that resolves inside the root,
+ *              and a 404 that names the API routes.
+ * @intent Static files are not actions: the page is served WITHOUT the shared token so an
+ *         operator can load it and type one in; only /api/* and /mcp are guarded.
+ */
+import type { IncomingMessage, ServerResponse } from 'node:http';
+export interface StaticOptions {
+    /** Folder served at the root (default: &lt;cwd&gt;/public). */
+    root?: string;
+}
+export interface StaticResult {
+    status: number;
+    file: string | null;
+}
+export declare function contentTypeFor(file: string): string;
+/** Resolve a URL path INSIDE root, or null when it tries to escape. */
+export declare function resolveInside(root: string, urlPath: string): string | null;
+/** Serve one request from the static root. Returns what happened. */
+export declare function serveStatic(req: IncomingMessage, res: ServerResponse, options?: StaticOptions): StaticResult;
+export declare function runTests(): Promise&lt;void&gt;;
+</pre></section>
+</main>
+</body>
+</html>

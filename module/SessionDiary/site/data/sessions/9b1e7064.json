@@ -1,0 +1,77 @@
+{
+  "id": "cron_6d233f41b8e5_20261019_105114",
+  "title": "Your role is a low-priority, specialized AI Releas · Oct 19 10:53",
+  "source": "cron",
+  "model": "deepseek-flash",
+  "parentId": null,
+  "startedAt": 1792421480.0358417,
+  "endedAt": 1792421589.5357087,
+  "endReason": "cron_complete",
+  "messageCount": 48,
+  "toolCallCount": 23,
+  "inputTokens": 30624,
+  "outputTokens": 11597,
+  "costUsd": 0.01420716,
+  "cwd": "C:\\Users\\User\\Hermes\\gemma4site",
+  "gitBranch": null,
+  "gitRepo": null,
+  "pinned": false,
+  "archived": false,
+  "hidden": false,
+  "profileName": "default",
+  "lastActivityAt": 1792421540.0267787,
+  "createdSource": "cron",
+  "ref": "9b1e7064",
+  "displayTitle": "Your role is a low-priority, specialized AI Releas · Oct 19 10:53",
+  "durationSec": 109,
+  "userTurns": 1,
+  "goal": "[IMPORTANT: The following skill(s) were listed for this job but could not be found and were skipped: web_search, terminal. Start your response with a brief notice so the user is aware, e.g.: '⚠️ Skill(s) not found and skipped: web_search, terminal'] The user has provided the following instruction alongside the skill invocation: [IMPORTANT: You are running as a scheduled cron job. DELIVERY: Your final response will be automatically delivered to the user — do NOT use send_message or try to deliver the output yourself. Just produce your report/output as your final response and the system handles the rest. SILENT: If there is genuinely nothing new to report, respond with exactly \"[SILENT]\" (not…",
+  "outcome": "**HF Release Scan — 19 Oct 2026, 10:51 ET** (feeds fetched live; job payload contained no pre-supplied data) - **Qwen3.8-27B GSQ-RCO GGUFs (ISTA-DASLab)** — HF Trending, newly charted (2,276 likes / 1.34M downloads) — a 27B vision-language model shipped as ordinary GGUF at 2.5–3.5 bits per weight, so IQ2_XS (7.84 GiB) + mmproj (0.87 GiB) runs on the RX 6800 with ~7 GiB left for KV cache, and the task-lossless IQ3_S (10.96 GiB) is the quality pick; runs unmodified in llama.cpp/Ollama/LM Studio, with optional `-mtp` builds for speculative decoding. Too big for the 1660. - **Xiaomi-Lens-0** — HF Daily Papers 2610.23279 (25 upvotes) + official weights in `SeerRay-Lab/Xiaomi-Lens-0` — a 4.62B Qwen3.5-based region-grounding MLLM whose full bf16 repo is 8.61 GiB, i.e. it fits the RX 6800 at native precision today; the 1660 would need a ~2.7 GiB Q4 GGUF, and none exists yet (ONNX/MNN stubs at 0…",
+  "files": [
+    "C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon/findings_20261019_1051.json",
+    "C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon/scan35.py",
+    "C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon/scan36.py",
+    "C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon/scan37.py",
+    "C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon/scan38.py",
+    "C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon/scan39.py",
+    "C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon/scan40.py",
+    "C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon/scan41.py",
+    "C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon/scan42.py",
+    "C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon/findings_20261019_0445.json"
+  ],
+  "commands": [
+    "cd \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon\" && cp models.json models_prev_1051.json && cp papers.json papers_prev_1051.json && curl -…",
+    "cd \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon\" && grep -l -i \"gsq\\|ISTA-DASLab\\|Kromoss\" findings_*.json 2>/dev/null; echo \"---exit $?\";…",
+    "cd \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon\" && python - <<'EOF'",
+    "cd \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon\" && python scan35.py 2>&1 | head -120",
+    "cd \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon\" && python scan36.py 2>&1 | head -130",
+    "cd \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon\" && python scan37.py 2>&1 | head -90",
+    "cd \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon\" && python scan38.py 2>&1 | head -120",
+    "cd \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon\" && python scan39.py 2>&1 | head -80",
+    "cd \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon\" && python scan40.py 2>&1 | head -80",
+    "cd \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon\" && python scan41.py 2>&1 | head -60",
+    "cd \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon\" && python scan42.py 2>&1 | head -30",
+    "mkdir -p \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon\" && cd \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon\" && ls -la && date"
+  ],
+  "tools": [
+    {
+      "name": "terminal",
+      "count": 24
+    },
+    {
+      "name": "write_file",
+      "count": 18
+    },
+    {
+      "name": "read_file",
+      "count": 2
+    },
+    {
+      "name": "skill_view",
+      "count": 2
+    }
+  ],
+  "bytes": 99865,
+  "diary": null,
+  "seances": []
+}

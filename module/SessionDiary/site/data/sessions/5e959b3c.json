@@ -1,0 +1,45 @@
+{
+  "id": "20260814_110506_433f2b",
+  "title": "Ready for Your Instructions",
+  "source": "desktop",
+  "model": "Qwen3.6-35B-A3B-UD-IQ3_S (1).gguf",
+  "parentId": null,
+  "startedAt": 1786719906.694609,
+  "endedAt": 1787610168.8434205,
+  "endReason": "startup_orphan_reap",
+  "messageCount": 6,
+  "toolCallCount": 2,
+  "inputTokens": 19403,
+  "outputTokens": 291,
+  "costUsd": 0,
+  "cwd": "C:\\Users\\User",
+  "gitBranch": null,
+  "gitRepo": null,
+  "pinned": false,
+  "archived": false,
+  "hidden": false,
+  "profileName": "default",
+  "lastActivityAt": 1786720733.9669826,
+  "createdSource": null,
+  "ref": "5e959b3c",
+  "displayTitle": "Ready for Your Instructions",
+  "durationSec": 890262,
+  "userTurns": 1,
+  "goal": "v",
+  "outcome": "I'm ready when you are — just let me know what you'd like to work on!",
+  "files": [],
+  "commands": [],
+  "tools": [
+    {
+      "name": "browser_snapshot",
+      "count": 2
+    },
+    {
+      "name": "clarify",
+      "count": 2
+    }
+  ],
+  "bytes": 1514,
+  "diary": null,
+  "seances": []
+}

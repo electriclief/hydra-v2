@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Menu — the way in</title>
+<style>
+  :root { color-scheme: dark; --bg:#111318; --panel:#191c23; --border:#303541; --text:#e5e7eb; --muted:#a1a8b7; --accent:#8ab4f8; }
+  * { box-sizing: border-box; }
+  body { margin:0; padding:32px; background:var(--bg); color:var(--text);
+         font:15px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif; max-width:78ch; }
+  h1 { margin:0 0 4px; font-size:24px; font-weight:600; letter-spacing:-.01em; }
+  h2 { margin:32px 0 10px; font-size:13px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; color:var(--muted); }
+  .kicker { margin:0 0 28px; color:var(--muted); font-size:13px; }
+  p { margin:0 0 12px; }
+  code { font:13px/1.5 ui-monospace,Consolas,monospace; background:#0b0d11; border:1px solid var(--border);
+         border-radius:5px; padding:1px 5px; color:#cfd6e4; }
+  pre { background:#0b0d11; border:1px solid var(--border); border-radius:8px; padding:12px 14px; overflow:auto; }
+  table { width:100%; border-collapse:collapse; margin:6px 0 16px; font-size:14px; }
+  th, td { text-align:left; padding:7px 10px; border-bottom:1px solid var(--border); vertical-align:top; }
+  th { color:var(--muted); font-weight:600; font-size:12px; letter-spacing:.06em; text-transform:uppercase; }
+  .note { color:var(--muted); font-size:13px; }
+  .lede { font-size:16px; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Menu</h1>
+  <p class="kicker">the way in · door on :8133 · the tree of what this node can make, the LAN underneath it</p>
+</header>
+
+<section id="summary">
+  <p class="lede">Menu is the page a person opens to find out what this box can make and to ask for one of it.
+  It draws one row per service from the Services catalog, shows that service's own advert beside the row, opens
+  its inputs page on click, and turns the filled form into a single booking on the Scheduler. It starts nothing,
+  stores nothing, and copies no description: the words a row shows are the words the service file already
+  says.</p>
+</section>
+
+<section id="concepts">
+  <h2>How it holds together</h2>
+  <p><b>The tree is a view, not a copy.</b> Every read goes out to Services (<code>:8128</code>):
+  <code>GET /api/services</code> gives the list, then one <code>GET /api/services/&lt;name&gt;</code> per row
+  gives the task, the declared <code>variables.input</code> fields, the models and the advert. The rows are
+  kept for <code>2000 ms</code> (<code>cacheMs</code>) so a hover-swap does not re-read the catalog four times,
+  and <code>/api/menu?fresh=1</code> exists for a caller who refuses the cache. A service file edited on disk
+  therefore changes the tree without touching Menu.</p>
+  <p><b>A refusal is drawn, not hidden.</b> When the catalog marks a row <code>ok: false</code>, Menu still
+  lists it — labelled <code>Refused</code>, with <code>⛔</code> — and refuses to open its advert or inputs. A
+  broken service file is news; a missing row would be silence, and silence is what the catalog exists to
+  prevent.</p>
+  <p><b>One origin, so the browser never hears about three ports.</b> The page loads only from
+  <code>:8133</code>. Adverts and inputs are fetched by the door from
+  <code>/api/services/&lt;name&gt;/ad</code> and <code>/api/services/&lt;name&gt;/inputs</code>, then wrapped
+  in Menu's own chrome and framed with <code>?embed=1</code>. Booking, reading and cancelling all go through
+  the same door. There is no CORS anywhere in this design because there is only one origin.</p>
+  <p><b>Booking is a relay, not a run.</b> <code>POST /api/run</code> forwards its body to the Scheduler's
+  <code>POST /api/jobs</code>; <code>GET /api/jobs</code>, <code>GET /api/jobs/&lt;id&gt;</code> and
+  <code>POST /api/jobs/&lt;id&gt;/cancel</code> are passed through unchanged. Every upstream call is bounded at
+  eight seconds, and a dead Scheduler comes back as <code>502</code> with
+  <code>{error:{code:"upstream_down"}}</code> rather than a hung request — the failure is the answer. This is
+  also why <code>/health</code> never asks upstream anything: it reports what the door is (its URLs, the last
+  catalog counts, or <code>"not read yet"</code>), not how fast someone else is.</p>
+  <p><b>The LAN is a second, separate read — and it comes from the browser.</b> Beneath the tree, one script
+  does a single <code>fetch('http://127.0.0.1:8137/api/lan.json')</code> every 5 s, straight to Mirror, and
+  renders <code>nodes[]</code> minus <code>role === 'self'</code>: each peer's verdict, cycle, misses,
+  degraded flag and age, its services (<code>ready</code>, <code>karma</code>), and what it has booked. Peer
+  services arrive as <code>{slug, name, provider, karma, ready, modes}</code>; booked jobs as
+  <code>{id, service, at, state}</code>. Absence is drawn as absence: no peers means the section is
+  <code>hidden</code>, an unanswered Mirror means the section says <em>"the Mirror door (8137) is not
+  answering"</em> — never a stale list. This node's own services are the tree above, not this list.</p>
+  <p><b>The page follows its own file.</b> <code>GET /api/page-version</code> returns
+  <code>&lt;size&gt;-&lt;mtime&gt;</code> for <code>public/index.html</code>; the page polls it every 4 s and
+  reloads itself when the stamp moves. Editing the page is a file edit — no esbuild, no tsc, no door restart.
+  The door reads <code>index.html</code> from disk on every <code>GET /</code> for the same reason.</p>
+  <p><b>What a service needs from the machine is instance data.</b> <code>data/node.json</code> holds
+  <code>name</code>, <code>ref</code>, <code>gpu</code>, <code>modelsDir</code> and per-service
+  <code>modelsDirs</code>. Only <code>/api/models/&lt;name&gt;</code> reads it, and only to find where a
+  declared weights file sits on <em>this</em> box — so the same service file can run on another node
+  unchanged. Sizes seen last time are cached in <code>data/models-cache.json</code>, which is why the model pane
+  can draw before the disk answers, and why it then corrects itself with <code>?verify=1</code>.</p>
+</section>
+
+<section id="wiring">
+  <h2>Wiring, for humans</h2>
+  <p>What Menu needs in order to be honest:</p>
+  <table>
+    <thead><tr><th>needs</th><th>from</th><th>required</th></tr></thead>
+    <tbody>
+      <tr><td>the catalog — <code>GET /api/services</code>, then one <code>/api/services/&lt;name&gt;</code> per row</td><td>Services, <code>:8128</code></td><td>yes — without it the door still serves, but the tree says the catalog is not answering</td></tr>
+      <tr><td>booking — <code>POST /api/jobs</code>, <code>GET /api/jobs</code>, <code>POST /api/jobs/&lt;id&gt;/cancel</code>, <code>GET /api/queue</code></td><td>Scheduler, <code>:8132</code></td><td>to book only — every relay answers <code>502 upstream_down</code> when it is gone</td></tr>
+      <tr><td>the LAN view — <code>GET /api/lan.json</code>, called by the browser</td><td>Mirror, <code>:8137</code></td><td>no — the LAN section says it is not answering</td></tr>
+      <tr><td><code>public/index.html</code> — the tree page itself, read per request</td><td>its own folder</td><td>yes — without it <code>GET /</code> is a 500 notice</td></tr>
+      <tr><td><code>data/node.json</code> — <code>modelsDir</code>, <code>modelsDirs</code>, <code>gpu</code></td><td>this instance</td><td>no — missing file falls back to <code>"this node"</code> with no dirs</td></tr>
+    </tbody>
+  </table>
+  <p>What it gives back:</p>
+  <table>
+    <thead><tr><th>gives</th><th>to</th><th>shape</th></tr></thead>
+    <tbody>
+      <tr><td><code>GET /</code></td><td>a browser</td><td><code>index.html</code> from disk, <code>no-store</code></td></tr>
+      <tr><td><code>GET /api/menu</code></td><td>the page</td><td><code>{ok, error, services[], schedulerUrl}</code> — rows carry <code>name, label, emoji, task, what, karma, fields[], models[], ok</code></td></tr>
+      <tr><td><code>GET /advert/&lt;name&gt;</code> · <code>GET /inputs/&lt;name&gt;</code></td><td>a browser or an iframe</td><td>HTML: the service's own page, proxied from Services and wrapped (<code>?embed=1</code> drops the chrome)</td></tr>
+      <tr><td><code>POST /api/run</code></td><td>the inputs form</td><td>relayed to Scheduler <code>POST /api/jobs</code>; status and body passed through</td></tr>
+      <tr><td><code>GET /api/jobs</code> · <code>GET /api/jobs/&lt;id&gt;</code> · <code>POST /api/jobs/&lt;id&gt;/cancel</code></td><td>the page</td><td>relayed to the Scheduler unchanged</td></tr>
+      <tr><td><code>GET /api/models/&lt;name&gt;</code></td><td>the model pane</td><td>declared weights + the path each one resolves to here; <code>?verify=1</code> re-checks the disk</td></tr>
+      <tr><td><code>GET /api/runs/&lt;name&gt;</code></td><td>the model pane</td><td>the last 5 jobs for that service: <code>{id, status, model, at, ms, runner, executed, outputs}</code></td></tr>
+      <tr><td><code>GET /api/gpu</code></td><td>the page</td><td><code>{ok, busy, running, queued, rule:"one job per GPU"}</code>, read from Scheduler <code>/api/queue</code></td></tr>
+      <tr><td><code>GET /api/page-version</code></td><td>the page itself</td><td><code>{ok, page: "&lt;size&gt;-&lt;mtime&gt;"}</code></td></tr>
+      <tr><td><code>GET /health</code></td><td>an operator</td><td><code>{ok, module, servicesUrl, schedulerUrl, services, refused, catalog}</code> — answers without touching upstream</td></tr>
+    </tbody>
+  </table>
+  <p class="note">This is wiring in words, not a type. The routes live in <code>public/ts/apiServer.ts</code>, the
+  catalog read in <code>catalog.ts</code>, the LAN read in <code>public/index.html</code>; if this page and those
+  files disagree, the files are right and the page is a bug.</p>
+</section>
+
+<footer>
+  <p class="note">If this page and the code disagree, the code is right and this page is a bug.</p>
+</footer>
+
+<script type="application/json" id="contract">
+{
+  "module": "Menu",
+  "port": 8133,
+  "kind": "door",
+  "needs": [
+    { "name": "catalog", "from": "Services :8128", "required": true },
+    { "name": "booking", "from": "Scheduler :8132", "required": false },
+    { "name": "lan.json", "from": "Mirror :8137", "required": false },
+    { "name": "index.html", "from": "Menu/public/index.html", "required": true },
+    { "name": "node.json", "from": "Menu/data/node.json", "required": false }
+  ],
+  "gives": [
+    { "name": "/", "to": "a browser", "kind": "http" },
+    { "name": "/api/menu", "to": "the page", "kind": "http" },
+    { "name": "/advert/<name>", "to": "a browser", "kind": "http" },
+    { "name": "/inputs/<name>", "to": "a browser", "kind": "http" },
+    { "name": "POST /api/run", "to": "Scheduler", "kind": "relay" },
+    { "name": "/api/jobs", "to": "Scheduler", "kind": "relay" },
+    { "name": "/api/jobs/<id>", "to": "Scheduler", "kind": "relay" },
+    { "name": "POST /api/jobs/<id>/cancel", "to": "Scheduler", "kind": "relay" },
+    { "name": "/api/models/<name>", "to": "the page", "kind": "http" },
+    { "name": "/api/runs/<name>", "to": "the page", "kind": "http" },
+    { "name": "/api/gpu", "to": "the page", "kind": "http" },
+    { "name": "/api/page-version", "to": "the page", "kind": "http" },
+    { "name": "/health", "to": "an operator", "kind": "http" }
+  ]
+}
+</script>
+
+</body>
+</html>

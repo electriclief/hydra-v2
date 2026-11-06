@@ -1,0 +1,72 @@
+{
+  "id": "cron_6d233f41b8e5_20261016_161914",
+  "title": "Your role is a low-priority, specialized AI Releas · Oct 16 16:21",
+  "source": "cron",
+  "model": "deepseek-flash",
+  "parentId": null,
+  "startedAt": 1792181963.8018847,
+  "endedAt": 1792182097.6127138,
+  "endReason": "cron_complete",
+  "messageCount": 35,
+  "toolCallCount": 17,
+  "inputTokens": 37008,
+  "outputTokens": 18319,
+  "costUsd": 0.018113544000000002,
+  "cwd": "C:\\Users\\User\\Hermes\\gemma4site",
+  "gitBranch": null,
+  "gitRepo": null,
+  "pinned": false,
+  "archived": false,
+  "hidden": false,
+  "profileName": "default",
+  "lastActivityAt": 1792182082.162032,
+  "createdSource": "cron",
+  "ref": "b47b23f5",
+  "displayTitle": "Your role is a low-priority, specialized AI Releas · Oct 16 16:21",
+  "durationSec": 134,
+  "userTurns": 1,
+  "goal": "[IMPORTANT: The following skill(s) were listed for this job but could not be found and were skipped: web_search, terminal. Start your response with a brief notice so the user is aware, e.g.: '⚠️ Skill(s) not found and skipped: web_search, terminal'] The user has provided the following instruction alongside the skill invocation: [IMPORTANT: You are running as a scheduled cron job. DELIVERY: Your final response will be automatically delivered to the user — do NOT use send_message or try to deliver the output yourself. Just produce your report/output as your final response and the system handles the rest. SILENT: If there is genuinely nothing new to report, respond with exactly \"[SILENT]\" (not…",
+  "outcome": "**HF Release Monitor — cycle 2026-10-16, 16:19 local.** Live pulls: `daily_papers?limit=50` and `models?sort=trendingScore&limit=80`; every size below is from the model tree API this cycle (GiB as measured; decimal-GB figures quoted by READMEs noted where they differ). All 80 trending entries were diffed against the previous snapshot in the same workspace. **New vs. previous snapshot (only 3 ids)** - [OpenMOSS-Team/MOSS-Image-SFT + MOSS-Image-Base] — [HF Trending Models] — brand-new official image model (ts 105/104, ~105 likes) with ComfyUI int8 quants already up; the Comfy-Org int8 diT (5.04 GiB) + w4a8 text encoder (6.84 GiB) stack is ~11.9 GiB, so it is an RX 6800-only target and needs heavy offload on the 1660. - [reflection/Beam-1.0-501B-A23B] — [HF Trending Models] — new trending entry but 501B parameters, out of reach on both cards; ignore. **Best hardware fits (verified file siz…",
+  "files": [
+    "C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon/findings_20261016_1620.json",
+    "C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon/scan3.py",
+    "C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon/scan4.py",
+    "C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon/scan5.py",
+    "C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon/scan6.py"
+  ],
+  "commands": [
+    "cd /c/Users/User/AppData/Local/hermes/cache/scratch/hfmon && \"$LOCALAPPDATA/hermes/tools/python-3.14.7+202****0901-win32-x64/python\" scan3.py 2>&1 | …",
+    "cd /c/Users/User/AppData/Local/hermes/cache/scratch/hfmon && python scan3.py 2>&1 | head -150",
+    "cd /c/Users/User/AppData/Local/hermes/cache/scratch/hfmon && python scan4.py 2>&1 | head -200",
+    "cd /c/Users/User/AppData/Local/hermes/cache/scratch/hfmon && python scan5.py 2>&1 | head -120",
+    "cd /c/Users/User/AppData/Local/hermes/cache/scratch/hfmon && python scan6.py 2>&1 | head -160",
+    "ls -d \"$LOCALAPPDATA/hermes/tools/\"*python*/ 2>/dev/null; ls -d \"$LOCALAPPDATA/hermes/tools/\"*/ 2>/dev/null | head",
+    "ls -d $LOCALAPPDATA/hermes/tools/python-* 2>/dev/null; which python python3 2>/dev/null; python -c \"import sys;print(sys.version)\" 2>&1 | head -3",
+    "mkdir -p /c/Users/User/AppData/Local/hermes/cache/scratch/hfmon && cd /c/Users/User/AppData/Local/hermes/cache/scratch/hfmon && curl -s --max-time 90…"
+  ],
+  "tools": [
+    {
+      "name": "terminal",
+      "count": 16
+    },
+    {
+      "name": "write_file",
+      "count": 10
+    },
+    {
+      "name": "skill_manage",
+      "count": 4
+    },
+    {
+      "name": "execute_code",
+      "count": 2
+    },
+    {
+      "name": "skill_view",
+      "count": 2
+    }
+  ],
+  "bytes": 88941,
+  "diary": null,
+  "seances": []
+}

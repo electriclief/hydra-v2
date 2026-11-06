@@ -1,0 +1,63 @@
+{
+  "id": "cron_6d233f41b8e5_20260811_224837",
+  "title": "Your role is a low-priority, specialized AI Releas · Aug 11 22:50",
+  "source": "cron",
+  "model": "deepseek-v4-flash",
+  "parentId": null,
+  "startedAt": 1786502919.106619,
+  "endedAt": 1786503054.0209234,
+  "endReason": "cron_complete",
+  "messageCount": 25,
+  "toolCallCount": 14,
+  "inputTokens": 18134,
+  "outputTokens": 9635,
+  "costUsd": 0.005996368,
+  "cwd": null,
+  "gitBranch": null,
+  "gitRepo": null,
+  "pinned": false,
+  "archived": false,
+  "hidden": false,
+  "profileName": "default",
+  "lastActivityAt": 1786503053.986647,
+  "createdSource": null,
+  "ref": "8db15030",
+  "displayTitle": "Your role is a low-priority, specialized AI Releas · Aug 11 22:50",
+  "durationSec": 135,
+  "userTurns": 1,
+  "goal": "[IMPORTANT: The following skill(s) were listed for this job but could not be found and were skipped: web_search, terminal. Start your response with a brief notice so the user is aware, e.g.: '⚠️ Skill(s) not found and skipped: web_search, terminal'] The user has provided the following instruction alongside the skill invocation: [IMPORTANT: You are running as a scheduled cron job. DELIVERY: Your final response will be automatically delivered to the user — do NOT use send_message or try to deliver the output yourself. Just produce your report/output as your final response and the system handles the rest. SILENT: If there is genuinely nothing new to report, respond with exactly \"[SILENT]\" (not…",
+  "outcome": "Verification confirms the hardware-relevant claims — including a direct AMD hook in the DavidAU GGUF quants. Analysis complete. --- **🤖 HF Release Scan — 2026-08-11 cycle** *(Feeds pulled live from the Hugging Face API: `api/trending` + `api/daily_papers`)* **Trending Models — 4 notable** - **MiniMax-H3 (image/video gen)** — *Source: HF Trending (MiniMaxAI/MiniMax-H3, Comfy-Org/MiniMax-H3)* — The viral release of the cycle (3.6K likes official, 6.8M downloads via Comfy-Org weights, updated today) — the community `Minimax-h3-Turbo` 4-step/8-step ComfyUI builds (768p, ~65GB BF16 with offloading) are the practical way to run a 33B video model on the RX 6800's 16GB, though it will require aggressive quantization/offloading; GTX 1660 is realistically out of range for video gen. - **Meta Muse-Glimmer-30B (multimodal LLM) + official Unsloth GGUF** — *Source: HF Trending (meta-models/Muse-Glim…",
+  "files": [
+    "C:\\Users\\User\\Hermes\\gemma4site\\scan_trending.py",
+    "C:\\Users\\User\\Hermes\\gemma4site\\verify_repos.py"
+  ],
+  "commands": [
+    "curl -s \"https://huggingface.co/api/daily_papers?limit=15\" -H \"User-Agent: release-monitor\" | head -c 12000",
+    "curl -s \"https://huggingface.co/api/daily_papers?limit=20\" -H \"User-Agent: release-monitor\" | python -c \"",
+    "curl -s \"https://huggingface.co/api/models/DavidAU/Qwen3.6-27B-Fable-Fusion-711-Uncensored-Heretic-NM-DAU-NEO-MAX-MTP-GGUF\" -H \"User-Agent: release-m…",
+    "curl -s \"https://huggingface.co/api/models/lightx2v/Minimax-h3-Turbo\" -H \"User-Agent: release-monitor\" | python -c \"import json,sys; d=json.load(sys.…",
+    "curl -s \"https://huggingface.co/api/models/unsloth/Muse-Glimmer-30B-GGUF\" -H \"User-Agent: release-monitor\" | python -c \"import json,sys; d=json.load(…",
+    "curl -s \"https://huggingface.co/api/trending\" -H \"User-Agent: release-monitor\" | head -c 12000",
+    "curl -s \"https://huggingface.co/api/trending\" -H \"User-Agent: release-monitor\" | python -c \"",
+    "python \"C:\\Users\\User\\Hermes\\gemma4site\\scan_trending.py\"",
+    "python \"C:\\Users\\User\\Hermes\\gemma4site\\verify_repos.py\"",
+    "which jq && jq --version"
+  ],
+  "tools": [
+    {
+      "name": "terminal",
+      "count": 20
+    },
+    {
+      "name": "execute_code",
+      "count": 4
+    },
+    {
+      "name": "write_file",
+      "count": 4
+    }
+  ],
+  "bytes": 72586,
+  "diary": null,
+  "seances": []
+}

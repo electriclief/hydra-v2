@@ -1,0 +1,81 @@
+{
+  "id": "local-be6209a6b4223d3ab01030414e55534247cd2ec9897ed3ae5a0223a7f3e9820a",
+  "title": "Your role is a low-priority, specialized AI Releas · Nov 06 01:12",
+  "source": "cron",
+  "model": "deepseek-flash",
+  "parentId": null,
+  "startedAt": 1793945315.62999,
+  "endedAt": 1793945521.6306493,
+  "endReason": "cron_complete",
+  "messageCount": 50,
+  "toolCallCount": 24,
+  "inputTokens": 76453,
+  "outputTokens": 22017,
+  "costUsd": 0.029652870000000005,
+  "cwd": "C:\\Users\\User\\Hermes\\gemma4site",
+  "gitBranch": null,
+  "gitRepo": null,
+  "pinned": false,
+  "archived": false,
+  "hidden": false,
+  "profileName": "default",
+  "lastActivityAt": 1793945503.402222,
+  "createdSource": "cron",
+  "ref": "be6209a6",
+  "displayTitle": "Your role is a low-priority, specialized AI Releas · Nov 06 01:12",
+  "durationSec": 206,
+  "userTurns": 1,
+  "goal": "[IMPORTANT: The following skill(s) were listed for this job but could not be found and were skipped: web_search, terminal. Start your response with a brief notice so the user is aware, e.g.: '⚠️ Skill(s) not found and skipped: web_search, terminal'] The user has provided the following instruction alongside the skill invocation: [IMPORTANT: You are running as a scheduled cron job. DELIVERY: Your final response will be automatically delivered to the user — do NOT use send_message or try to deliver the output yourself. Just produce your report/output as your final response and the system handles the rest. SILENT: If there is genuinely nothing new to report, respond with exactly \"[SILENT]\" (not…",
+  "outcome": "⚠️ Skill(s) not found and skipped: web_search, terminal [Agent: 123 on 192.168.1.123] **HF Release Monitor — 2026-11-06 06:10Z** · papers feed through 2026-11-05 · trending top-80 diff: 1 in / 1 out • **DeepSeek-V4-Pro-Qwen3.5-9B-UNCENSORED-heretic (i1 GGUF ladder)** — HF Trending, newly trending (68 likes / 22.6k downloads, created 2026-10-31) — 9.41B `qwen3_5` VLM distilled from DeepSeek-V4-Pro and Heretic-abliterated (refusals 100/100 → 3/100, KL 0.0422), with a full imatrix ladder from IQ2_M 3.36 GiB to Q6_K 6.85 GiB plus a 0.58 GiB mmproj: the RX 6800 runs it whole at Q6_K (~7.43 GiB) and the 6 GB 1660 runs IQ3_M + mmproj at ~4.69 GiB, all on stock llama.cpp (vision file lives in the static repo, not the i1 one). • **Drex — \"Towards Foundation Decision Models\" (2611.07854) + `nace-ai/drex-v1.5`** — HF Daily Papers (10 upvotes) — a 9B decision model returning calibrated option proba…",
+  "files": [
+    "C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon/fetch73.py",
+    "C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon/findings_2026-11-06T0608Z.json",
+    "C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon/probe73.py",
+    "C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon/probe74.py",
+    "C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon/probe75.py",
+    "C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon/probe76.py",
+    "C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon/probe77.py",
+    "C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon/probe78.py",
+    "C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon/probe79.py",
+    "C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon/scan73.py",
+    "C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon/scan67.py"
+  ],
+  "commands": [
+    "cd \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon\" && python fetch73.py",
+    "cd \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon\" && python probe73.py",
+    "cd \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon\" && python probe74.py",
+    "cd \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon\" && python probe75.py",
+    "cd \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon\" && python probe76.py",
+    "cd \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon\" && python probe77.py",
+    "cd \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon\" && python probe78.py",
+    "cd \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon\" && python probe79.py",
+    "cd \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon\" && python scan73.py",
+    "date -u; ls -la \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon/\" 2>/dev/null | head -40",
+    "ls -la \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon/\" | tail -20; echo ---; cat \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon/fe…"
+  ],
+  "tools": [
+    {
+      "name": "terminal",
+      "count": 22
+    },
+    {
+      "name": "write_file",
+      "count": 20
+    },
+    {
+      "name": "read_file",
+      "count": 2
+    },
+    {
+      "name": "skill_manage",
+      "count": 2
+    },
+    {
+      "name": "skill_view",
+      "count": 2
+    }
+  ],
+  "bytes": 200778,
+  "diary": null,
+  "seances": []
+}

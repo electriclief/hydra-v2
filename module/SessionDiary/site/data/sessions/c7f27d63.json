@@ -1,0 +1,77 @@
+{
+  "id": "local-c7f27d6326137fccc03b694d77b3ecdfb4b540cc242e32c713a268ebdac65b32",
+  "title": "hydra-daily-sweep · Oct 29 09:12",
+  "source": "cron",
+  "model": "deepseek-flash",
+  "parentId": null,
+  "startedAt": 1793278816.545531,
+  "endedAt": 1793279576.3661914,
+  "endReason": "cron_complete",
+  "messageCount": 60,
+  "toolCallCount": 34,
+  "inputTokens": 33518,
+  "outputTokens": 12868,
+  "costUsd": 0.015014099999999999,
+  "cwd": "C:\\Users\\User",
+  "gitBranch": null,
+  "gitRepo": null,
+  "pinned": false,
+  "archived": false,
+  "hidden": false,
+  "profileName": "default",
+  "lastActivityAt": 1793279568.1300254,
+  "createdSource": "cron",
+  "ref": "c7f27d63",
+  "displayTitle": "hydra-daily-sweep · Oct 29 09:12",
+  "durationSec": 760,
+  "userTurns": 1,
+  "goal": "[IMPORTANT: The following skill(s) were listed for this job but could not be found and were skipped: terminal. Start your response with a brief notice so the user is aware, e.g.: '⚠️ Skill(s) not found and skipped: terminal'] The user has provided the following instruction alongside the skill invocation: [IMPORTANT: You are running as a scheduled cron job. DELIVERY: Your final response will be automatically delivered to the user — do NOT use send_message or try to deliver the output yourself. Just produce your report/output as your final response and the system handles the rest. SILENT: If there is genuinely nothing new to report, respond with exactly \"[SILENT]\" (nothing else) to suppress d…",
+  "outcome": "**Hydra daily fleet sweep — 2026-10-29** (NOTE 12 committed as `262fb03`) **123 (this box): recovered.** No `llama-server.exe` at all on arrival; both inference ports were dead. - Brain :8080 — restarted with `Qwen3.8-9B-Q8_0.gguf` (the documented 35B weights are still absent from `Desktop\\llms`) → pid **16296**, 200, smoke-tested. - VL :8081 — restarted via its own task → `Qwen2.5-VL-7B-Instruct-Q5_K_S` + BF16 mmproj → pid **9480**, 200, replied `VL OK`. - Gateway :8642 — already up, untouched: 200, `hermes-agent 0.22.5`. - cfgverify: `BYTES=17066 NONASCII=0`. No fix needed. **New defect worth flagging:** the visible-console (`/it`) launch now dies on arrival — task Last Result `-1073741510` (0xC000013A, console close), no process left, and it also killed the already-running :8080 instance. Workaround adopted: `C:\\Users\\User\\hydra-detach-launch.py` spawns both servers `DETACHED_PROCESS…",
+  "files": [
+    "C:\\Users\\User\\hydra-detach-launch.py",
+    "C:\\\\Users\\\\User\\\\llmctl.ps1",
+    "C:\\Users\\User\\llm-logs\\llama-",
+    "C:\\Users\\User\\llmctl.ps1"
+  ],
+  "commands": [
+    "cat /c/Users/User/llm-visible.cmd; echo \"=== git state ===\"; cd \"//192.168.1.100/Receive/deepseek/app/Hydra\" && git status --porcelain | head -10; gi…",
+    "cd \"//192.168.1.100/Receive/deepseek/app/Hydra\" && cat >> OPERATOR-NOTES.md <<'EOF'",
+    "cd \"//192.168.1.100/Receive/deepseek/app/Hydra\" && echo \"=== NOTE COUNT ===\"; grep -c \"^## NOTE \" OPERATOR-NOTES.md; echo \"=== LAST NOTE HEADERS ===\"…",
+    "cd \"//192.168.1.100/Receive/deepseek/app/Hydra\" && git add -A && git -c user.name=\"Hydra\" -c user.email=\"hydra@local\" commit -m \"fleet sweep 2026-10-…",
+    "cd /c/Users/User && powershell -NoProfile -ExecutionPolicy Bypass -File C:/Users/User/cfgverify.ps1 2>&1 | tail -20; echo \"EXIT=$?\"",
+    "cd /c/Users/User && powershell -NoProfile -ExecutionPolicy Bypass -File C:/Users/User/llmctl.ps1 -action start -port 8080 2>&1 | head -10",
+    "cd /c/Users/User && powershell -NoProfile -ExecutionPolicy Bypass -File C:/Users/User/llmctl.ps1 -action status 2>&1 | head -10; echo \"=== list ===\";…",
+    "cd /c/Users/User && python hydra-detach-launch.py 2>&1; sleep 12; echo \"=== procs ===\"; tasklist | grep -i llama-server",
+    "D=\"//192.168.1.100/Receive/deepseek/app/Hydra/data/worker-completions\"; echo \"=== json count ===\"; ls \"$D\"/*.json 2>/dev/null | wc -l; echo \"=== newe…",
+    "date \"+NOW=%Y-%m-%d %H:%M:%S %Z\"; echo \"=== ping 149 ===\"; ping -n 2 192.168.1.149 2>&1 | tail -3; echo \"=== completions by mtime ===\"; ls -lt --time…",
+    "echo \"=== 1660 ===\"; printf \"8080 -> \"; curl -s -m 8 -o /dev/null -w \"%{http_code}\\n\" http://192.168.1.149:8080/health; printf \"8642 -> \"; curl -s -m…",
+    "echo \"=== 8080 smoke ===\"; curl -s -m 60 http://127.0.0.1:8080/v1/chat/completions -H \"Content-Type: application/json\" -d '{\"model\":\"x\",\"messages\":[{…",
+    "echo \"=== door POST ===\"; curl -s -m 15 -X POST http://192.168.1.100:8111/api/cmd -H \"Content-Type: application/json\" -d '{\"clientId\":\"hydra-d0df9ae6…",
+    "echo \"=== FINAL ===\"; for p in 8080 8081 8642; do printf \"123:%s -> \" $p; curl -s -m 6 -o /dev/null -w \"%{http_code}\\n\" http://127.0.0.1:$p/health; d…"
+  ],
+  "tools": [
+    {
+      "name": "terminal",
+      "count": 60
+    },
+    {
+      "name": "read_file",
+      "count": 2
+    },
+    {
+      "name": "skill_manage",
+      "count": 2
+    },
+    {
+      "name": "skill_view",
+      "count": 2
+    },
+    {
+      "name": "write_file",
+      "count": 2
+    }
+  ],
+  "bytes": 90141,
+  "diary": null,
+  "seances": []
+}

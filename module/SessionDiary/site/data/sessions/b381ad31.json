@@ -1,0 +1,65 @@
+{
+  "id": "local-b381ad31eb18e220ba0278fd21fb8421a4ffd7c37e4ae991ce7248eec58e7681",
+  "title": "Your role is a low-priority, specialized AI Releas · Nov 04 13:09",
+  "source": "cron",
+  "model": "deepseek-flash",
+  "parentId": null,
+  "startedAt": 1793815664.802989,
+  "endedAt": 1793815749.334341,
+  "endReason": "cron_complete",
+  "messageCount": 30,
+  "toolCallCount": 14,
+  "inputTokens": 20050,
+  "outputTokens": 7951,
+  "costUsd": 0.008965812,
+  "cwd": "C:\\Users\\User\\Hermes\\gemma4site",
+  "gitBranch": null,
+  "gitRepo": null,
+  "pinned": false,
+  "archived": false,
+  "hidden": false,
+  "profileName": "default",
+  "lastActivityAt": 1793815730.0396373,
+  "createdSource": "cron",
+  "ref": "b381ad31",
+  "displayTitle": "Your role is a low-priority, specialized AI Releas · Nov 04 13:09",
+  "durationSec": 85,
+  "userTurns": 1,
+  "goal": "[IMPORTANT: The following skill(s) were listed for this job but could not be found and were skipped: web_search, terminal. Start your response with a brief notice so the user is aware, e.g.: '⚠️ Skill(s) not found and skipped: web_search, terminal'] The user has provided the following instruction alongside the skill invocation: [IMPORTANT: You are running as a scheduled cron job. DELIVERY: Your final response will be automatically delivered to the user — do NOT use send_message or try to deliver the output yourself. Just produce your report/output as your final response and the system handles the rest. SILENT: If there is genuinely nothing new to report, respond with exactly \"[SILENT]\" (not…",
+  "outcome": "⚠️ Skill(s) not found and skipped: `web_search`, `terminal` (I used the built-in equivalents instead). [Agent: 123 on DESKTOP-QUCA6R5] — AI Release Monitor, scan run 2026-11-04 13:07 EST. Pulled live: HF daily_papers (30 entries) + trending models (40 entries, sorted by trendingScore). No ROCm/AMD-kernel-specific items in this cycle; everything below is GGUF/quantization or ≤8GB-class. **Notable items** - **Dory1.0-4B — Looped Normalized-GPT** | HF Daily Papers (arXiv 2611.03998) + official NVIDIA GGUF repo | 4B model with *elastic depth* where the recurrent block's KV cache is only kept from the last loop, so cache footprint stays flat regardless of loop count — official `Q5_K_M` GGUF is **3.67 GB**, and at 2+ loops it beats Qwen3.5-9B / Gemma 4 12B / Gemma 4 26B-A4B on 12-benchmark average, i.e. 12B-class quality inside an 8 GB card. https://huggingface.co/nvidia/NVIDIA-Nemotron-Labs-…",
+  "files": [
+    "C:/Users/User/AppData/Local/hermes/cache/scratch/hfscan/detail.py",
+    "C:/Users/User/AppData/Local/hermes/cache/scratch/hfscan/filter.py",
+    "C:/Users/User/AppData/Local/hermes/cache/scratch/hfscan/scan.py",
+    "C:/Users/User/AppData/Local/hermes/cache/scratch/hfscan/out.txt"
+  ],
+  "commands": [
+    "cd \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfscan\" && curl -sS --max-time 30 \"https://huggingface.co/api/models?search=Dory&limit=12\" | pyt…",
+    "cd \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfscan\" && curl -sS --max-time 40 \"https://huggingface.co/api/models/nvidia/NVIDIA-Nemotron-Labs…",
+    "cd \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfscan\" && curl -sSL --max-time 30 \"https://arxiv.org/abs/2611.04814\" | python -c \"",
+    "cd \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfscan\" && for r in \"ccore/Qwen3.5-4B-3D-Coder\" \"abenzerps/Qwen-Image-2.1-Turbo-Quantized\" \"Liqu…",
+    "cd \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfscan\" && python -c \"import sys,json;print(sys.version)\"",
+    "cd \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfscan\" && python detail.py",
+    "cd \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfscan\" && python filter.py",
+    "cd \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfscan\" && python scan.py > out.txt 2>&1; wc -l out.txt",
+    "hostname; date; curl -s --max-time 30 \"https://huggingface.co/api/daily_papers?limit=30\" -o \"$TMPDIR/papers.json\"; echo \"papers bytes: $(wc -c < \"$TM…",
+    "S=\"C:/Users/User/AppData/Local/hermes/cache/scratch/hfscan\"; mkdir -p \"$S\"; cd \"$S\"; curl -sS --max-time 40 \"https://huggingface.co/api/daily_papers?…"
+  ],
+  "tools": [
+    {
+      "name": "terminal",
+      "count": 20
+    },
+    {
+      "name": "write_file",
+      "count": 6
+    },
+    {
+      "name": "read_file",
+      "count": 2
+    }
+  ],
+  "bytes": 77918,
+  "diary": null,
+  "seances": []
+}

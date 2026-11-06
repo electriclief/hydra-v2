@@ -1,0 +1,60 @@
+{
+  "id": "cron_6d233f41b8e5_20260806_085838",
+  "title": "Your role is a low-priority, specialized AI Releas · Aug 06 09:10",
+  "source": "cron",
+  "model": "deepseek-v4-flash",
+  "parentId": null,
+  "startedAt": 1786021127.906578,
+  "endedAt": 1786021810.1669488,
+  "endReason": "cron_complete",
+  "messageCount": 36,
+  "toolCallCount": 17,
+  "inputTokens": 39500,
+  "outputTokens": 15766,
+  "costUsd": 0.011069139200000001,
+  "cwd": null,
+  "gitBranch": null,
+  "gitRepo": null,
+  "pinned": false,
+  "archived": false,
+  "hidden": false,
+  "profileName": "default",
+  "lastActivityAt": 1786021761.0088398,
+  "createdSource": null,
+  "ref": "db1a868c",
+  "displayTitle": "Your role is a low-priority, specialized AI Releas · Aug 06 09:10",
+  "durationSec": 682,
+  "userTurns": 1,
+  "goal": "[IMPORTANT: The following skill(s) were listed for this job but could not be found and were skipped: web_search, terminal. Start your response with a brief notice so the user is aware, e.g.: '⚠️ Skill(s) not found and skipped: web_search, terminal'] The user has provided the following instruction alongside the skill invocation: [IMPORTANT: You are running as a scheduled cron job. DELIVERY: Your final response will be automatically delivered to the user — do NOT use send_message or try to deliver the output yourself. Just produce your report/output as your final response and the system handles the rest. SILENT: If there is genuinely nothing new to report, respond with exactly \"[SILENT]\" (not…",
+  "outcome": "All data gathered and filtered. Here's the daily release briefing. --- **📡 AI Release Monitor — Daily Briefing (cycle date: 2026-08-06)** Sources scanned: Hugging Face Trending Models (`sort=trendingScore`, full feed) + HF Daily Papers (Aug 6 submission, 50 papers). Filtered for hardware fit (≤8GB-class quantized / AMD-optimized) and signal strength (likes, downloads, official releases). **Models — trending & hardware-relevant** - **DeepSeek-V4-Flash-0731** — [HF Trending Models: `deepseek-ai/DeepSeek-V4-Flash-0731`, #2 trending, 2.6K likes / 618K downloads] — DeepSeek's compact-tier flagship of the V4 wave: the GGUF ecosystem around it is massive (official `ggml-org` quants, `unsloth` GGUF 145K dl, `antirez/deepseek-v4-gguf` 967K dl) and there is even a dedicated ROCm quant (`Lucebox/...-ROCMFPX`), making it the most local-friendly big release this cycle for your RX 6800 (and small qu…",
+  "files": [
+    "C:/Users/User/AppData/Local/hermes/cache/terminal/hermes-results/call_00_t9XU6oz2wdODbOIDPwkn0211.txt",
+    "C:\\Users\\User\\AppData\\Local\\hermes\\cache\\web\\browser-snapshot-11778d7bf5.txt"
+  ],
+  "commands": [],
+  "tools": [
+    {
+      "name": "browser_console",
+      "count": 18
+    },
+    {
+      "name": "browser_navigate",
+      "count": 8
+    },
+    {
+      "name": "read_file",
+      "count": 4
+    },
+    {
+      "name": "execute_code",
+      "count": 2
+    },
+    {
+      "name": "web_extract",
+      "count": 2
+    }
+  ],
+  "bytes": 113312,
+  "diary": null,
+  "seances": []
+}

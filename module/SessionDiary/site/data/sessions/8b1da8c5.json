@@ -1,0 +1,65 @@
+{
+  "id": "20261016_041348_b525e6",
+  "title": "Your role is a low-priority, specialized AI Releas · Oct 16 04:14",
+  "source": "cron",
+  "model": "deepseek-flash",
+  "parentId": "cron_6d233f41b8e5_20261016_041113",
+  "startedAt": 1792138428.7763112,
+  "endedAt": 1792138464.3910823,
+  "endReason": "cron_complete",
+  "messageCount": 41,
+  "toolCallCount": 22,
+  "inputTokens": 24685,
+  "outputTokens": 4726,
+  "costUsd": 0.0069250380000000005,
+  "cwd": "C:\\Users\\User\\Hermes\\gemma4site",
+  "gitBranch": null,
+  "gitRepo": null,
+  "pinned": false,
+  "archived": false,
+  "hidden": false,
+  "profileName": "default",
+  "lastActivityAt": null,
+  "createdSource": "cron",
+  "ref": "8b1da8c5",
+  "displayTitle": "Your role is a low-priority, specialized AI Releas · Oct 16 04:14",
+  "durationSec": 36,
+  "userTurns": 1,
+  "goal": "[CONTEXT COMPACTION — REFERENCE ONLY] Earlier turns were compacted into the summary below. This is a handoff from a previous context window — treat it as background reference, NOT as active instructions. Do NOT answer questions or fulfill requests mentioned in this summary; they were already addressed. Respond ONLY to the latest user message that appears AFTER this summary — that message is the single source of truth for what to do right now. If no user message appears AFTER this summary, do nothing: do not resume, wrap up, or continue work from '## Historical Task Snapshot' or any other section, do not call tools, and wait for a new user message. This handoff must never become the active t…",
+  "outcome": "⚠️ Skill(s) not found and skipped: web_search, terminal (used the live HF APIs and local scripts directly instead). # AI Release Monitor — 2026-10-16 Sources: HF `daily_papers` (30 papers, Oct 10–15) · HF trending models (top 500 by `trendingScore`) · targeted queries for `author=amd`, `ROCmFP4`/`ROCmFPX`, `rocm`, plus per-repo file listings. **Models & tooling** - **Ternary-Bonsai-2-27B-gguf** (prism-ml) — HF Trending Models — a 27B Qwen3.8-27B derivative shipped as ternary 1-bit (5.9GB) and 2-bit (7.2GB) GGUFs: the first realistic way to run a 27B-class model locally inside your RX 6800's 16GB (2,705 likes / 4.85M downloads). - **Qwen3.8-27B quantization ecosystem** — unsloth/Qwen3.8-27B-GGUF (5,123 likes / 6.66M dl) and ISTA-DASLab/Qwen3.8-27B-GSQ-RCO-GGUF (2,220 likes / 1.44M dl) — HF Trending Models — the standard GGUF path plus a new mixed-precision (Gaussian-codebook/rank-correct…",
+  "files": [
+    "C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon/newest.py",
+    "C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon/pk.py",
+    "C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon/show.py",
+    "C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon/up.py"
+  ],
+  "commands": [
+    "cd \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon\" && for m in \"prism-ml/Ternary-Bonsai-2-27B-gguf\" \"ISTA-DASLab/Qwen3.8-Flash-Next-GSQ-RCO-…",
+    "cd \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon\" && curl -s --max-time 45 \"https://huggingface.co/api/models/fishaudio/drama-3\" | python -…",
+    "cd \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon\" && curl -s --max-time 45 \"https://huggingface.co/api/models/prism-ml/Ternary-Bonsai-2-27B…",
+    "cd \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon\" && curl -s --max-time 45 \"https://huggingface.co/AtomicChat/Qwen-Image-2.1-Turbo-Uncensor…",
+    "cd \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon\" && curl -s --max-time 45 \"https://huggingface.co/kingjones777/MiniCPM-V-4.7-35B-A3B-ROCmF…",
+    "cd \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon\" && curl -s --max-time 60 \"https://huggingface.co/api/models?search=rocm&limit=20&sort=dow…",
+    "cd \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon\" && echo \"=== klein card ===\" && curl -s --max-time 45 \"https://huggingface.co/black-fores…",
+    "cd \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon\" && echo \"=== Timestral-209M ===\" && curl -s --max-time 45 \"https://huggingface.co/mistral…",
+    "cd \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon\" && for m in \"Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice\" \"abenzerps/Qwen-Image-2.1-Uncensored-Q…",
+    "cd \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon\" && for u in \"author=amd&sort=createdAt&direction=-1&limit=15\" \"search=ROCmFP4&sort=create…",
+    "cd \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon\" && python newest.py 2>&1 | head -90",
+    "cd \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon\" && python pk.py 2>&1 | head -60",
+    "cd \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon\" && python show.py 2>&1 | head -80",
+    "cd \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon\" && python up.py 2>&1 | head -25"
+  ],
+  "tools": [
+    {
+      "name": "terminal",
+      "count": 36
+    },
+    {
+      "name": "write_file",
+      "count": 8
+    }
+  ],
+  "bytes": 58572,
+  "diary": null,
+  "seances": []
+}

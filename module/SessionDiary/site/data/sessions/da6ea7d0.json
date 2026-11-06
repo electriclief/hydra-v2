@@ -1,0 +1,86 @@
+{
+  "id": "local-da6ea7d07f37ef46f3b2835b7949bb6c176581b25d7b2cad4c474c2ae31f01a6",
+  "title": "Your role is a low-priority, specialized AI Releas · Nov 06 07:15",
+  "source": "cron",
+  "model": "deepseek-flash",
+  "parentId": null,
+  "startedAt": 1793967155.566294,
+  "endedAt": 1793967344.9357295,
+  "endReason": "cron_complete",
+  "messageCount": 52,
+  "toolCallCount": 26,
+  "inputTokens": 66444,
+  "outputTokens": 18466,
+  "costUsd": 0.025776311999999996,
+  "cwd": "C:\\Users\\User\\Hermes\\gemma4site",
+  "gitBranch": null,
+  "gitRepo": null,
+  "pinned": false,
+  "archived": false,
+  "hidden": false,
+  "profileName": "default",
+  "lastActivityAt": 1793967343.0623128,
+  "createdSource": "cron",
+  "ref": "da6ea7d0",
+  "displayTitle": "Your role is a low-priority, specialized AI Releas · Nov 06 07:15",
+  "durationSec": 189,
+  "userTurns": 1,
+  "goal": "[IMPORTANT: The following skill(s) were listed for this job but could not be found and were skipped: web_search, terminal. Start your response with a brief notice so the user is aware, e.g.: '⚠️ Skill(s) not found and skipped: web_search, terminal'] The user has provided the following instruction alongside the skill invocation: [IMPORTANT: You are running as a scheduled cron job. DELIVERY: Your final response will be automatically delivered to the user — do NOT use send_message or try to deliver the output yourself. Just produce your report/output as your final response and the system handles the rest. SILENT: If there is genuinely nothing new to report, respond with exactly \"[SILENT]\" (not…",
+  "outcome": "⚠️ Skill(s) not found and skipped: web_search, terminal [Agent: 123 on 123] **HF Release Monitor — 2026-11-06 12:12Z** (prev pull 06:08Z, ~6 h) • **[llama.cpp `--moe-cache-mib` is now in stock master]** — PR #31233 ClassLRU MoE cache, merged 09:32:55Z (verified: the flag is in master `common/arg.cpp`) — the out-of-core expert path that lets 2-bit Clover/Nanbeige/Flint-class MoE weights stream from RAM instead of fitting 16 GB VRAM no longer needs a fork, so those already-downloadable ~10 GiB MoE builds are worth a smoke test on the RX 6800. • **[llama.cpp Vulkan ReBAR detection]** — PR #31658, merged 09:35:04Z — with SAM/ReBAR *off* the backend no longer grabs the 256 MB BAR and stalls its own copies, and the device-info string now prints ReBAR status, so you can confirm SAM is actually enabled before blaming drivers; no behaviour change when SAM is on. • **[MatterSeek — 2,912 likes, no…",
+  "files": [
+    "C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon/fetch74.py",
+    "C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon/findings_2026-11-06T1212Z.json",
+    "C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon/probe_1206a.py",
+    "C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon/probe_1206b.py",
+    "C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon/probe_1206c.py",
+    "C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon/probe_1206d.py",
+    "C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon/probe_1206e.py",
+    "C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon/probe74.py",
+    "C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon/probe75.py",
+    "C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon/probe76.py",
+    "C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon/scan74.py",
+    "C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon/scan75.py",
+    "C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon/fetch73.py",
+    "C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon/findings_2026-11-06T0608Z.json"
+  ],
+  "commands": [
+    "cd \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon\" && python fetch74.py",
+    "cd \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon\" && python probe_1206a.py 2>&1 | head -80",
+    "cd \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon\" && python probe_1206b.py 2>&1 | head -90",
+    "cd \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon\" && python probe_1206c.py 2>&1 | head -70",
+    "cd \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon\" && python probe_1206d.py 2>&1 | head -60",
+    "cd \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon\" && python probe_1206e.py 2>&1 | head -40",
+    "cd \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon\" && python scan74.py 2>&1 | head -120",
+    "cd \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon\" && python scan75.py 2>&1 | head -110",
+    "date -u; echo \"---\"; ls -la \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon/\" 2>/dev/null | head -50"
+  ],
+  "tools": [
+    {
+      "name": "write_file",
+      "count": 24
+    },
+    {
+      "name": "terminal",
+      "count": 18
+    },
+    {
+      "name": "read_file",
+      "count": 4
+    },
+    {
+      "name": "skill_manage",
+      "count": 2
+    },
+    {
+      "name": "skill_view",
+      "count": 2
+    },
+    {
+      "name": "skills_list",
+      "count": 2
+    }
+  ],
+  "bytes": 178501,
+  "diary": null,
+  "seances": []
+}

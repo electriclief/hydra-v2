@@ -1,0 +1,50 @@
+{
+  "id": "cron_6d233f41b8e5_20260807_153706",
+  "title": "Your role is a low-priority, specialized AI Releas · Aug 07 15:37",
+  "source": "cron",
+  "model": "deepseek-v4-flash",
+  "parentId": null,
+  "startedAt": 1786131426.7874827,
+  "endedAt": 1786131475.9316783,
+  "endReason": "cron_complete",
+  "messageCount": 11,
+  "toolCallCount": 6,
+  "inputTokens": 14757,
+  "outputTokens": 4744,
+  "costUsd": 0.0035577303999999995,
+  "cwd": null,
+  "gitBranch": null,
+  "gitRepo": null,
+  "pinned": false,
+  "archived": false,
+  "hidden": false,
+  "profileName": "default",
+  "lastActivityAt": 1786131426.7944815,
+  "createdSource": null,
+  "ref": "23aaf8bb",
+  "displayTitle": "Your role is a low-priority, specialized AI Releas · Aug 07 15:37",
+  "durationSec": 49,
+  "userTurns": 1,
+  "goal": "[IMPORTANT: The following skill(s) were listed for this job but could not be found and were skipped: web_search, terminal. Start your response with a brief notice so the user is aware, e.g.: '⚠️ Skill(s) not found and skipped: web_search, terminal'] The user has provided the following instruction alongside the skill invocation: [IMPORTANT: You are running as a scheduled cron job. DELIVERY: Your final response will be automatically delivered to the user — do NOT use send_message or try to deliver the output yourself. Just produce your report/output as your final response and the system handles the rest. SILENT: If there is genuinely nothing new to report, respond with exactly \"[SILENT]\" (not…",
+  "outcome": "Scan complete — full 50-paper list checked, and all 30 trending models profiled (including GGUF/VRAM/pipeline tags). Here's the briefing: ## 🤖 AI Release Monitor — Daily Briefing (Aug 07, 2026) **Trending Models — notable for RX 6800 / GTX 1660:** - **DeepSeek-V4-Flash-0731 (GGUF)** — *Source: HuggingFace Trending Models* (`unsloth/DeepSeek-V4-Flash-0731-GGUF`, 161K downloads, 581 likes) — Official-quality GGUF quantizations of DeepSeek's latest Flash model, so it runs natively via llama.cpp on your RX 6800's ROCm/Vulkan stack — the strongest hardware-fit release this cycle. - **LFM2.5-2.6B (+GGUF)** — *Source: HuggingFace Trending Models* (`LiquidAI/LFM2.5-2.6B` & `LFM2.5-2.6B-GGUF`, 78K/31K downloads) — Liquid AI's 2.6B model ships with an *official* GGUF; at ~2.6B params it fits even your GTX 1660's 6GB comfortably, making it a prime candidate for local experiments. - **Shieldstral-…",
+  "files": [],
+  "commands": [
+    "curl -s \"https://huggingface.co/api/models?sort=trendingScore&direction=-1&limit=30\" | python -c \"",
+    "curl -s \"https://huggingface.co/api/daily_papers?limit=50\" | python -c \"",
+    "curl -s \"https://huggingface.co/api/daily_papers\" | python -c \"",
+    "for m in \"unsloth/DeepSeek-V4-Flash-0731-GGUF\" \"LiquidAI/LFM2.5-2.6B-GGUF\" \"LiquidAI/LFM2.5-2.6B\" \"mistralai/Shieldstral-1.0-3B\"; do"
+  ],
+  "tools": [
+    {
+      "name": "terminal",
+      "count": 10
+    },
+    {
+      "name": "web_extract",
+      "count": 2
+    }
+  ],
+  "bytes": 17196,
+  "diary": null,
+  "seances": []
+}

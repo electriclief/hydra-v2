@@ -1,0 +1,101 @@
+/* The wrapper page's own skin: panes, iframes, and the tab visual ladder. */
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  background: #1e2430;
+  color: #d8dee9;
+  font: 13px/1.4 "Segoe UI", system-ui, sans-serif;
+  overflow: hidden;
+}
+
+#ew-root {
+  position: absolute;
+  inset: 0;
+}
+
+#ew-waiting {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #55607a;
+  font-size: 14px;
+  pointer-events: none;
+}
+
+#ew-waiting.ew-hidden {
+  display: none;
+}
+
+/* --- a pane: the tab body, filled by its iframe --- */
+
+.ew-pane {
+  width: 100%;
+  height: 100%;
+  background: #232a38;
+  position: relative;
+}
+
+.ew-pane iframe {
+  border: 0;
+  width: 100%;
+  height: 100%;
+  background: #ffffff;
+}
+
+/* --- the tab visual ladder: solid (silent default) · highlighted · flashing --- */
+
+.lm_tab.ew-tab--solid {
+  /* the silent default — nothing extra */
+}
+
+.lm_tab.ew-tab--highlighted {
+  background: #3b4a68 !important;
+  box-shadow: inset 0 -2px 0 #7aa2f7;
+}
+
+.lm_tab.ew-tab--flashing {
+  animation: ew-flash 0.9s steps(2, jump-none) infinite;
+}
+
+@keyframes ew-flash {
+  0% {
+    background: #b3403a;
+  }
+  100% {
+    background: #6e2b28;
+  }
+}
+
+.lm_tab.ew-tab--flashing .lm_title {
+  color: #ffe9e6;
+}
+
+/* The one-line footer: what the card is doing. It takes its own height out of #ew-root so the layout
+   never sits underneath it; the wrapper shows it only when its host hands over a status URL. */
+#ew-footer {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 24px;
+  padding: 0 10px;
+  display: flex;
+  align-items: center;
+  font-size: 11.5px;
+  letter-spacing: 0.01em;
+  color: #8b98a9;
+  background: #161b23;
+  border-top: 1px solid #232b36;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-variant-numeric: tabular-nums;
+}
+#ew-footer.ew-hidden { display: none; }
+body.ew-has-footer #ew-root { bottom: 24px; }
+#ew-footer.ew-footer-bad { color: #d86c61; }

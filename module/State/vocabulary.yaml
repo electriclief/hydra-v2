@@ -1,0 +1,268 @@
+# state.vocabulary.yaml — what every value in State can be, and what it means
+#
+# This is not a schema for one module. It is the vocabulary of the registry itself: the names, the entry kinds,
+# every enumerated value, and what absence means at each branch. If a value is not in this file, it is not part
+# of the State contract yet — either it is local detail nobody should read, or the file is out of date.
+#
+# Two rules make the rest of this readable:
+#   1. A name is a path. `node.jims.services.llama-chat` is a position in a tree, not a key in a bag.
+#   2. Nothing is normalised across machines. Every number is either a counter (comparable with itself, by
+#      watching it move) or a local wall-clock stamp (never compared with another node's).
+
+schemaVersion: 1
+owner: State (module/State, :8127)
+written_by: the process that registered the entry — never by a reader
+read_by: Core, Mirror, the Menu, the Scheduler, any agent
+
+name:
+  grammar: "node.<ref>.<branch>[.<child>...]"
+  segments:
+    node: literal — the root of everything a node publishes about itself
+    ref: this box's short name, lowercase, one segment (123, jims, gtx-980ti), from Menu/data/node.json
+    branch: one of the branches documented under `paths` below
+    child: a single path segment — a service slug, a job id, a peer ref, a resource name
+  rules:
+    - segments are lowercase; a segment never contains a dot (a dot would create a level)
+    - slugs match ^[a-z0-9_-]+$ — anything else is normalised to that, never rejected
+    - the same name on two nodes is two entries — node.jims exists in jims' registry, not in 123's
+    - a reader may ask for the shortest unique suffix (State resolves suffixes); writers always write the full path
+
+entry:
+  shape:
+    name: string — the full path
+    content: any JSON value — whatever the registrant chose to put there
+    meta: optional object — at, marks, serving, render, update (see `meta` below)
+  kinds:
+    data:
+      means: the content IS the fact. Read it, render it, ignore it — there is no second call.
+      when: id, doors, cycle, services, scheduler, health, resources
+    link:
+      means: the rest of this path lives somewhere else
+      content:
+        kind: link
+        to: a State base url, e.g. http://192.168.1.127:8127
+        at: epoch_ms
+      when: node.<ref> for an attached peer
+      behaviour: State stores it and does NOT follow it. Only a query engine follows a link, at read time.
+    index:
+      means: a rollup of several child entries, so one pull replaces N pulls
+      when: node.<ref>.services (carries the whole service map)
+      rule: an index must never be the only place a fact exists — the child entries are the truth and the index
+        is a convenience. If they disagree, the children win.
+
+meta:
+  at: epoch_ms — when the entry was registered
+  marks: object — the registrant's own watermarks, for delta reads
+  serving: object — set to a log delta hint when the entry is streamable
+  render: string — a hint for a display (never required)
+  update: string — the registrant's own idea of how often it changes
+
+paths:
+  node.<ref>:
+    kind: link
+    content:
+      kind: link
+      to: string — the peer's State base url
+      at: epoch_ms
+    means_when_absent: this node has never heard of that peer — not that the peer is down
+    reader_rule: on a miss for node.<ref>.<anything>, resolve this link and ask the target for the full name
+
+  node.<ref>.id:
+    kind: data
+    content:
+      ref: string — the path segment this node publishes under
+      name: string — what a human calls it (Jims Laptop)
+      gpu: string|null — the card, as the operator wrote it (GTX 1050 2 GB)
+      modelsDir: string|null — where the weights live on THAT box (informational, never used to fetch)
+      ready_for: list of string — tasks this box claims it can do (chat, stt, tts)
+      acting_main: boolean — this node is currently standing in for the main box
+      platform: string — process.platform of the registrant (win32, linux, darwin)
+      pid: integer — process id, for an operator to find it (not stable, not an address)
+      startedAt: epoch_ms
+      since: iso8601 of the same instant
+    means_when_absent: the node runs but has registered no identity (older build, or State was blank at boot for it)
+
+  node.<ref>.doors:
+    kind: data
+    content:
+      at: epoch_ms
+      since: iso8601
+      count: integer — doors listed
+      up: integer — how many answered when the sample was taken
+      doors: list of objects, each with name, port, up
+    means_when_absent: this node does not report its doors; absence is not a claim that they are closed
+    note: taken periodically, so `up` is a sample, not a live probe
+
+  node.<ref>.cycle:
+    kind: data
+    content:
+      cycle: integer — monotonic counter, +1 per tick. The heartbeat.
+      at: epoch_ms — when this entry was written (local clock, never compared across nodes)
+      since: iso8601
+      tickMs: integer — the interval the writer chose
+      uptimeSec: integer — seconds since that process started
+      fillPct: number|null — reserved for the Phoenix cycle's context-fill handoff (null until it lands)
+      sessions: integer|null — reserved for the session count
+    means_when_absent: the node has not started its tick — treat as unknown, not dead
+    reader_rule: alive is decided by this number comparing with itself (did it go up since my last look). No clock comparison, ever.
+
+  node.<ref>.services:
+    kind: index
+    content:
+      at: iso8601
+      count: integer
+      names: list of slug
+      services: map of slug to the same content as the child entry below
+    means_when_absent: this node advertises nothing, or is too old to publish an index — fall back to pulling each slug
+
+  node.<ref>.services.<slug>:
+    kind: data
+    content:
+      name: string — the service's own name (llama-chat)
+      what: string|null — one line a stranger can understand
+      provider: string|null — the software that runs it (llama.cpp)
+      modes: list of string — declared modes (transcribe, gpu-full)
+      karma: number|null — the cost the operator set; null is unset, 0 is free
+      output: string|null — the kind of result (text, image)
+      ready: boolean — can it run right now on this box
+      at: iso8601 — when the publisher observed this
+    means_when_absent: the service is not offered here. Absence means cannot, not busy.
+    ready_semantics:
+      true: it will accept a job now
+      false: it exists here, but not now (a model is loading, the card is full) — the honest not yet
+    warning: ready is a claim by the publisher, not a probe by the reader. A reader that needs certainty asks the service.
+
+  node.<ref>.scheduler:
+    kind: data
+    content:
+      at: iso8601
+      queued: integer
+      running: integer
+      done: integer
+      failed: integer
+      cancelled: integer
+      total: integer
+      booked: integer — how many of those are currently advertised individually
+      nextAt: iso8601|null — the start time of the oldest booking, when there is one
+    means_when_absent: this node does not publish its book; its bookings are private
+    note: finished jobs are counted, never published one by one — history stays local so State does not grow without bound
+
+  node.<ref>.scheduler.booked.<jobId>:
+    kind: data
+    content:
+      id: string
+      service: string
+      state: job_state
+      at: iso8601 — when it started, or when it was created if it has not started
+      created: iso8601
+      keys: list of string — the input names only, never the values
+      graph: boolean — true when the job is a DAG
+    means_when_absent: that job is not queued or running (it finished, failed, or was cancelled)
+    privacy: inputs are published as keys, never as values. What you asked for is yours.
+
+  node.<ref>.resources.<name>:
+    kind: data
+    content: resource-specific (a gpu, a disk, a queue) — publishers own the shape
+    means_when_absent: this node does not publish that resource
+
+  node.<ref>.health.<path>:
+    kind: data
+    content: module-specific; a failing gate is normally an object with ok false
+    means_when_absent: the module runs no gate, or has not run one since boot
+
+  node.<ref>.observed.<peer>:
+    kind: data
+    content:
+      cycle: integer|null — the last counter value this node saw from that peer
+      seenAt: epoch_ms — when this node last looked
+      verdict: verdict
+      reason: string|null — why, when it is not alive
+    means_when_absent: this node has not looked at that peer yet
+    the_point: this is an opinion about another node, written under the observer. It is never written into the peer's branch, and a disagreement between two observers is information, not an error.
+
+values:
+  verdict:
+    alive:
+      means: the counter went up since the previous look
+    stalled:
+      means: the port answered but the counter did not move for stalled_after_ticks
+      typical_cause: a busy box, a paused process, a closed lid
+    gone:
+      means: nothing answered (refused, timed out, no route) for gone_after_ticks
+      typical_cause: powered off, off the LAN, process dead
+    unknown:
+      means: no observation has ever been made — Mirror's word for a node it has just met
+      note: Core never writes this; it starts at stalled and moves on evidence
+  hysteresis:
+    stalled_after_ticks: 3
+    gone_after_ticks: 12
+    why: one missed pull must never read gone, or every closed laptop is an outage; and a counter that resets is not alive
+  job_state:
+    queued: accepted, not started
+    running: executing now
+    done: finished with a result
+    failed: finished with an error
+    cancelled: stopped by an operator before it finished
+  resolve_outcome:
+    ok: the value was read at this moment; value carries it
+    absent: the path is not registered anywhere along the chain
+    unreachable: a hop refused the connection
+    timeout: a hop did not answer inside the read budget
+    cycle: the links point back at one already followed (depth limit hit)
+  broadcast_projection:
+    shape: an object with schemaVersion, ref, cycle, at, optional ready_for and pressure, and services as a map of slug to name, provider, karma, ready, optional modes
+    excludes: paths, inventories, logs, unadvertised doors, argv, env, the state tree
+
+absence:
+  rule: a registration lives as long as its registrant. Nothing expires, nothing is purged, nothing is merged.
+  therefore:
+    - a dead node's branch is simply not there — absence reads as absence
+    - no TTL, no heartbeat sweep, no CRDT, no conflict resolution
+    - a reader that wants to know why something is absent must look at an observation, not at emptiness
+
+freshness:
+  fields:
+    at: epoch_ms, authored by the writer on the writer's clock
+    since: iso8601 of the same instant, for a human
+    seenAt: epoch_ms of when an observer looked, not when the peer wrote
+    at_iso: iso8601 stamps inside service and scheduler content
+  rules:
+    - never compare a peer's at with your own clock
+    - a value read through a link is fresh at read time; a value read from a snapshot is as old as the snapshot
+    - a UI must be able to say how old a number is; if it cannot, it is presenting a number as a fact it is not
+
+verbs:
+  register:
+    http: POST /api/state/register
+    body: name, content, and optional at, marks, serving, render, update
+    effect: creates or replaces the entry; the registrant is whoever holds the connection to State, not a field
+  drop:
+    http: POST /api/state/drop
+    body: name
+    effect: removes exactly that name
+  pull:
+    http: GET /api/state/pull with a name parameter, and an optional marks parameter
+    returns: an entry object with name, content and meta, or 404
+    marks: the requester's own watermark — full state to a stranger, the delta past the mark to a familiar caller
+  resolve:
+    http: GET /api/resolve with a name parameter (Core, :8136 — a query engine, not State)
+    returns: ok, path, value, source, hops, ms, via, and why when it failed
+    rule: follows links at read time; never returns a stale value as if it were fresh
+  refuse:
+    codes: [absent, unreachable, timeout, cycle]
+
+who_writes_what:
+  Core: node.<self>.id, .doors, .cycle, .services.*, .observed.*, and node.<peer> links
+  Services: nothing — Core reads the catalog and publishes what it finds
+  Scheduler: node.<self>.scheduler, .scheduler.booked.<jobId>
+  ResourceManager: node.<self>.resources.*
+  Bench: node.<self>.capacity.*   (not built yet)
+  Ward: node.<self>.health.*      (not built yet)
+  Ledger: node.<self>.ledger.*    (not built yet)
+  Mirror: nothing — a reader that writes is a second source of truth
+
+open_questions:
+  - is ready a boolean or a reason code? today false is honest but does not say why
+  - should a link carry a hint (last known cycle) so a reader can show last-seen without a second call?
+  - do we need node.<ref>.capacity before Bench exists, or is silence better than a guess?
+  - the Phoenix seam defines fillPct and sessions; they sit in cycle now and are null — is cycle the right home?

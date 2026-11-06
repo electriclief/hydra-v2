@@ -1,0 +1,13 @@
+{
+  "name": "123 — this box",
+  "gpu": "Radeon RX 6800, 16 GB",
+  "modelsDir": "C:/Users/User/Desktop/llms",
+  "note": "The instance layer. Paths live here, never in a service file, so the same service can run on another node unchanged.",
+  "modelsDirs": {
+    "llama-chat": "C:/Users/User/Desktop/llms",
+    "minimax-h3": "C:/Users/User/Desktop/sd-master-c678dfe-bin-win-vulkan-x64/models/diffusion_models",
+    "qwen-image-2.1": "C:/Users/User/Desktop/sd-master-74988b2-bin-win-vulkan-x64/models/diffusion_models",
+    "yue-music": "C:/AI/hf/YuE2-3B"
+  },
+  "ref": "123"
+}

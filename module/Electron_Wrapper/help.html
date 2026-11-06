@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Electron_Wrapper — the one window</title>
+<style>
+  :root { color-scheme: dark; --bg:#111318; --panel:#171a21; --line:#2b303a; --ink:#e6e8ee; --dim:#9aa3b2; --acc:#63bd58; }
+  * { box-sizing: border-box; }
+  body { margin:0; padding:44px 24px 72px; background:var(--bg); color:var(--ink);
+         font:15px/1.65 system-ui, "Segoe UI", Roboto, sans-serif; }
+  main { max-width: 78ch; margin: 0 auto; }
+  h1 { font-size:26px; font-weight:650; letter-spacing:-.01em; margin:0 0 6px; }
+  .kicker { color:var(--dim); font-size:13px; letter-spacing:.04em; text-transform:uppercase; margin:0 0 28px; }
+  h2 { font-size:14px; letter-spacing:.09em; text-transform:uppercase; color:var(--acc); margin:36px 0 10px; font-weight:600; }
+  p { margin:0 0 14px; }
+  code, .m { font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; font-size:.92em; color:#cfd6e4; }
+  table { width:100%; border-collapse:collapse; margin:6px 0 18px; font-size:14px; }
+  th, td { text-align:left; padding:8px 10px; border-bottom:1px solid var(--line); vertical-align:top; }
+  th { font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--dim); font-weight:600; }
+  td:first-child { white-space:nowrap; }
+  .note { border-left:2px solid var(--acc); padding:2px 2px 2px 14px; color:var(--dim); }
+  pre { background:var(--panel); border:1px solid var(--line); border-radius:6px; padding:12px 14px; overflow:auto;
+        font-family: ui-monospace, Consolas, monospace; font-size:13px; color:#cfd6e4; }
+  footer { margin-top:44px; padding-top:14px; border-top:1px solid var(--line); color:var(--dim); font-size:13px; }
+  ul { margin:0 0 14px; padding-left:20px; } li { margin:4px 0; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Electron_Wrapper</h1>
+  <p class="kicker">generic window shell — tabs, menus, tray, and the events that come back out</p>
+
+  <section id="summary">
+  <p>Electron_Wrapper is the piece of an app that owns the window. It is not an application: it is a
+  module you load inside some other Electron main process, and it gives that process one window with a tab strip, a
+  native menu bar, a tray, and a small event channel out. The compiled shell never needs updating, because tabs and
+  menus are registered at run time and the window is told to redraw. It knows nothing about Hydra: it maps an
+  address to a pane and a label to a menu item, which is why the same module is also its own demo app.</p>
+  </section>
+
+  <section id="concepts">
+  <h2>How it holds together</h2>
+  <p>Everything is a <strong>registration</strong>. A tab is <span class="m">{type:'tab', name, path, spot?, closable?}</span>
+  where <span class="m">path</span> is an address — <span class="m">host:port</span> is completed to
+  <span class="m">http://</span>, a full URL is used as-is. A menu is
+  <span class="m">{type:'menu', id, label, items[]}</span>, and each item is
+  <span class="m">{label, enabled?, checked?, type?, submenu?, onClick}</span> — the description of a native menu,
+  not a live object. The registry holds both, keyed by kind and key, so registering the same name twice is an
+  update, not a second tab.</p>
+
+  <p>The page in the window is dumb on purpose. It subscribes, sends <span class="m">ew:ready</span>, and receives
+  one <span class="m">ew:bootstrap</span> carrying <span class="m">{template, panes, layout, window}</span>; after
+  that any change arrives as <span class="m">ew:panes</span>. A pane is a view of a tab:
+  <span class="m">{name, title, url, visual, closable, spot}</span>. <span class="m">visual</span> is how a tab
+  looks when nothing is wrong with it — solid, highlighted or flashing — and it is a CSS class, not a colour, so the
+  theme stays in the stylesheet. The renderer bundles a layout engine that draws the strip and one iframe per pane;
+  <span class="m">contextIsolation</span> is on and <span class="m">nodeIntegration</span> is off, with the only
+  bridge being <span class="m">window.ElectronWrapperBridge</span> from <span class="m">public/preload.cjs</span>.</p>
+
+  <p>Closing a tab is an event, not a disposal. The renderer sends
+  <span class="m">ew:event {kind:'tab-close', name}</span>, the module unregisters that tab so the host's own state
+  and the window agree, and then dispatches the event to the sink the host supplied. The host decides what "closed"
+  means; the wrapper only guarantees the two sides are told the same thing in the same order.</p>
+
+  <p class="note">The window is a viewer. It never owns a process, never reads a database, and never decides whether
+  a service is up — it renders whatever address it was handed. A tab pointing at a dead door is a blank frame, and
+  that is honest: the frame is not the service.</p>
+
+  <p>The template is the shape of the glass: <span class="m">defaultSpot</span> names the pane region every tab
+  lands in unless it asks for another by <span class="m">spot</span>. That is the one place layout is allowed to be
+  creative, and it is data in the caller's options rather than a setting inside this module.</p></section>
+
+  <section id="wiring">
+  <h2>Wiring</h2>
+  <table>
+    <tr><th>needs</th><th>from where</th><th>required</th></tr>
+    <tr><td class="m">an Electron main process</td><td>the host application, which loads <span class="m">Electron_Wrapper_module.js</span></td><td>yes</td></tr>
+    <tr><td class="m">window options</td><td><span class="m">createModule({window:{width,height,title,icon,show}})</span></td><td>no — defaults 1200×800</td></tr>
+    <tr><td class="m">a template</td><td><span class="m">{defaultSpot, spots:[{id,title}]}</span></td><td>no — normalized to one spot</td></tr>
+    <tr><td class="m">entries</td><td><span class="m">[{type:'tab',...}, {type:'menu',...}]</span>, or the same objects later through <span class="m">register()</span></td><td>at least one tab</td></tr>
+    <tr><td class="m">an event sink</td><td>the host's event handler instance, via <span class="m">eventHandler</span></td><td>no</td></tr>
+    <tr><td class="m">an icon</td><td><span class="m">assets/tray.png</span> unless given one</td><td>no</td></tr>
+  </table>
+
+  <table>
+    <tr><th>gives</th><th>to</th><th>shape</th></tr>
+    <tr><td class="m">the window</td><td>the person at the machine</td><td>one BrowserWindow, tabs + native menus + tray</td></tr>
+    <tr><td class="m">register(entry)</td><td>the host, at any time</td><td>tab or menu; same key updates</td></tr>
+    <tr><td class="m">unregister(kind, key)</td><td>the host</td><td><span class="m">true</span> if something was removed</td></tr>
+    <tr><td class="m">list()</td><td>the host, for tests or a debug page</td><td><span class="m">{tabs:[...], menus:[...]}</span></td></tr>
+    <tr><td class="m">show() / hide() / quit() / stop()</td><td>the host</td><td>window and lifecycle verbs; <span class="m">stop()</span> also destroys the tray and IPC listeners</td></tr>
+    <tr><td class="m">sendEvent(kind, detail)</td><td>the host</td><td>one event into the sink, same shape as a click</td></tr>
+    <tr><td class="m">events out</td><td><span class="m">eventHandler</span></td><td><span class="m">{kind:'tab-close'|'menu'|'app-closed', ...}</span></td></tr>
+  </table>
+
+  <p>Used from a host, the whole setup is a handful of lines:</p>
+  <pre>const wrapper = await createModule({
+  window: { title: 'Hydra V2', width: 1200, height: 800 },
+  template: { defaultSpot: 'main', spots: [{ id: 'main', title: 'Main' }] },
+  entries: [{ type: 'tab', name: 'Menu', path: 'localhost:8133' }],
+});
+await wrapper.whenBooted;
+wrapper.register({ type: 'menu', id: 'view', label: 'View', items: [{ label: 'Basic', onClick() {} }] });</pre></section>
+
+  <h2>Contract</h2>
+  <script type="application/json" id="contract">
+  {
+    "module": "Electron_Wrapper",
+    "port": null,
+    "kind": "shell",
+    "needs": ["an Electron main process", "window options", "template", "entries (tabs and menus)", "event handler sink"],
+    "gives": ["the window", "register(entry)", "unregister(kind,key)", "list()", "panes()", "show/hide/quit/stop", "sendEvent(kind,detail)", "tab-close and menu events"]
+  }
+  </script>
+
+  <footer>Files: <span class="m">Electron_Wrapper_module.js</span> (the one file loaded),
+  <span class="m">public/preload.cjs</span> (the only bridge), <span class="m">public/index.html</span> +
+  <span class="m">public/js/renderer.js</span> (the page and its layout engine),
+  <span class="m">public/js/main/wrapperMain.js</span> (window, menus, tray, IPC),
+  <span class="m">public/js/core/{registry,menuTree,template,trayModel,statePull}.js</span>.
+  The module ships a runnable demo (<span class="m">npm start</span>) and headless tests against a fake electron.
+  If this page and the code disagree, the code is right and this page is a bug.</footer>
+</main>
+</body>
+</html>

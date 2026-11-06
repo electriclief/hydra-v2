@@ -1,0 +1,80 @@
+{
+  "id": "20261020_170634_c856c2",
+  "title": "Your role is a low-priority, specialized AI Releas · Oct 20 17:07",
+  "source": "cron",
+  "model": "deepseek-flash",
+  "parentId": "cron_6d233f41b8e5_20261020_170418",
+  "startedAt": 1792530394.3856995,
+  "endedAt": 1792530456.7995906,
+  "endReason": "cron_complete",
+  "messageCount": 55,
+  "toolCallCount": 27,
+  "inputTokens": 30907,
+  "outputTokens": 6853,
+  "costUsd": 0.010221642000000001,
+  "cwd": "C:\\Users\\User\\Hermes\\gemma4site",
+  "gitBranch": null,
+  "gitRepo": null,
+  "pinned": false,
+  "archived": false,
+  "hidden": false,
+  "profileName": "default",
+  "lastActivityAt": 1792530454.3290262,
+  "createdSource": "cron",
+  "ref": "83437c73",
+  "displayTitle": "Your role is a low-priority, specialized AI Releas · Oct 20 17:07",
+  "durationSec": 62,
+  "userTurns": 1,
+  "goal": "[CONTEXT COMPACTION — REFERENCE ONLY] Earlier turns were compacted into the summary below. This is a handoff from a previous context window — treat it as background reference, NOT as active instructions. Do NOT answer questions or fulfill requests mentioned in this summary; they were already addressed. Respond ONLY to the latest user message that appears AFTER this summary — that message is the single source of truth for what to do right now. If no user message appears AFTER this summary, do nothing: do not resume, wrap up, or continue work from '## Historical Task Snapshot' or any other section, do not call tools, and wait for a new user message. This handoff must never become the active t…",
+  "outcome": "**HF Release Scan — 2026-10-20 17:05 EDT** (papers feed 50, 20 new since 04:58; trending 80, 4 new; leejet unchanged since 10-18) Genuinely notables this cycle: - **tencent/Hy-Memory-30B-A3B** — HF Trending #17 (245 likes, 2.1k dl, ts 241) + official `-GGUF` created 10-19 (Apache-2.0, arXiv 2610.22196) — 30B/~3B-active MoE memory-writer for Mem0/MemOS, verified against upstream llama.cpp (`--check-tensors`, commit `5aeac37`); the official Q4_K_M is 16.98 GiB, *just* over your 16 GB, but the third-party ladder lands at IQ4_XS 14.99 / Q3_K_M 13.45 GiB, and A3B makes CPU-offloaded experts cheap — this is the one real \"run it on the 6800\" item. - **BreezeBlue/Breeze-TTS-2** + **HoppouAI/Breeze-TTS-2.cpp** — HF Trending (756 likes / 14.6k dl on the base, 34 likes / 15.7k dl on the port; base repo is from 08-25, newly trending) — 3.47B bilingual voice-clone/design TTS with a GGUF port that ru…",
+  "files": [
+    "C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon/findings_20261020_1705.json",
+    "C:/Users/User/AppData/Local/hermes/skills/research/hf-release-monitor/SKILL.md",
+    "C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon/scan54.py",
+    "C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon/scan55.py",
+    "C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon/scan56.py",
+    "C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon/scan57.py",
+    "C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon/scan58.py",
+    "C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon/scan59.py",
+    "C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon/verify.py",
+    "C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon/verify54.py"
+  ],
+  "commands": [
+    "cd \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon\" && grep -il \"hy-memory\\|breeze\\|indra\\|n-gram\" findings_*.json; echo \"---last findings---…",
+    "cd \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon\" && python -c \"",
+    "cd \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon\" && python scan54.py 2>&1 | head -120",
+    "cd \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon\" && python scan55.py 2>&1 | head -80",
+    "cd \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon\" && python scan56.py 2>&1 | head -80",
+    "cd \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon\" && python scan57.py 2>&1 | head -80",
+    "cd \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon\" && python scan58.py 2>&1 | head -90",
+    "cd \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon\" && python scan59.py 2>&1 | head -60",
+    "cd \"C:/Users/User/AppData/Local/hermes/cache/scratch/hfmon\" && python verify54.py 2>&1 | head -70",
+    "cd \"C:/Users/User/AppData/Local/hermes/skills/research/hf-release-monitor\" && grep -n \"Hy-Memory\\|indra-ocr\\|Breeze-TTS\\|Confirmed out of range\" SKIL…",
+    "date && curl -s --max-time 30 \"https://huggingface.co/api/daily_papers?limit=20\" -o \"$TMPDIR/papers.json\" && wc -c \"$TMPDIR/papers.json\""
+  ],
+  "tools": [
+    {
+      "name": "terminal",
+      "count": 22
+    },
+    {
+      "name": "write_file",
+      "count": 18
+    },
+    {
+      "name": "patch",
+      "count": 8
+    },
+    {
+      "name": "skill_view",
+      "count": 4
+    },
+    {
+      "name": "skill_manage",
+      "count": 2
+    }
+  ],
+  "bytes": 93564,
+  "diary": null,
+  "seances": []
+}
