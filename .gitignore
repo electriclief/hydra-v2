@@ -38,3 +38,8 @@ module/Menu/data/node.json
 module/Menu/data/models-cache.json
 module/Scheduler/data/jobs.json
 module/Core/data/*.log
+
+# Echidna runtime: the conversation and its prompts are this node's, not the repo's
+module/Echidna/data/thread.jsonl
+module/Echidna/data/agent.json
+module/Echidna/data/prompts/
