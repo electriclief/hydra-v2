@@ -80,8 +80,29 @@ export interface StatusParts {
   parked?: number;
   /** where the standby report came from: State is the LAN truth, the file is this box's fallback */
   standbySource?: 'state' | 'file' | 'none';
+  /** the Scheduler's own idle branch: when the book says the card may go back to the Idle Service */
+  idle?: IdleState | null;
+  /** who computed the countdown: the book, an older guard's own timer, or nobody */
+  idleSource?: 'book' | 'guard' | 'none';
   /** seconds until the Idle Service is expected to take the card, when that is knowable */
   idleInS: number | null;
+}
+
+/**
+ * `node.<ref>.idle` as the Scheduler publishes it. The Scheduler owns this branch because idle is a statement about
+ * its book; the guard only executes the consequence (stop or start the standby).
+ */
+export interface IdleState {
+  idle?: boolean;
+  idleSince?: string | null;
+  resumeAt?: string | null;
+  after?: number;
+  queued?: number;
+  running?: number;
+  lastJobEnd?: string | null;
+  label?: string | null;
+  pinned?: boolean;
+  at?: string;
 }
 
 export interface RunningApi {
@@ -194,11 +215,27 @@ function span(seconds: number): string {
 }
 
 /** Pure: the scheduler's own facts plus the standby report -> the parts an agent or a footer wants. */
+export async function readIdleLive(
+  ref: string,
+  stateUrl: string | null | undefined,
+): Promise<IdleState | null> {
+  if (!stateUrl) return null;
+  try {
+    const res = await fetch(`${stateUrl}/api/state/pull?name=node.${ref}.idle`, { signal: AbortSignal.timeout(900) });
+    if (!res.ok) return null;
+    const body = (await res.json()) as { content?: IdleState };
+    return body.content && typeof body.content === 'object' ? body.content : null;
+  } catch {
+    return null;
+  }
+}
+
 export function statusParts(
   scheduler: Scheduler,
   ref: string,
   standby: StandbyState | null,
   standbySource: 'state' | 'file' | 'none' = 'none',
+  idle: IdleState | null = null,
 ): StatusParts {
   const running = scheduler.current();
   const started = running?.startedAt ? Date.parse(running.startedAt) : NaN;
@@ -207,13 +244,18 @@ export function statusParts(
   const runner = typeof runnerOpt === 'string'
     ? runnerOpt
     : String((runnerOpt as { kind?: unknown } | null)?.kind ?? 'unknown');
-  // The countdown exists only when the guard said when it will resume AND the card is genuinely free. A timer
+  // The countdown exists only when someone said when the card becomes free AND the card is genuinely free. A timer
   // shown during AI work would be a guess about how long the operator's job runs.
   // WORK, NOT PRESENCE: an idle server holding a model is parked, not busy. `working` is the guard's count of
   // processes that need the card; a guard too old to send it is read the old way, ai-string presence.
   const aiWork = standby ? (standby.mode ? standby.mode === 'ai' : (typeof standby.working === 'number' ? standby.working > 0 : Boolean(standby.ai))) : false;
   const parked = standby?.parked ?? 0;
-  const resumeAtMs = standby?.resumeAt ? Date.parse(standby.resumeAt) : NaN;
+  // The book's answer wins over the guard's own timer: idle is the Scheduler's statement, and an older guard that
+  // still computes `resumeAt` itself is a fallback, not an equal.
+  const idleResumeMs = idle?.resumeAt ? Date.parse(idle.resumeAt) : NaN;
+  const guardResumeMs = standby?.resumeAt ? Date.parse(standby.resumeAt) : NaN;
+  const resumeAtMs = Number.isFinite(idleResumeMs) ? idleResumeMs : guardResumeMs;
+  const idleSource: 'book' | 'guard' | 'none' = Number.isFinite(idleResumeMs) ? 'book' : (Number.isFinite(guardResumeMs) ? 'guard' : 'none');
   const cardFree = !running && !standby?.miner && !aiWork;
   const idleInS = cardFree && Number.isFinite(resumeAtMs)
     ? Math.max(0, Math.round((resumeAtMs - Date.now()) / 1000))
@@ -227,6 +269,8 @@ export function statusParts(
     standbySource,
     aiWork,
     parked,
+    idle,
+    idleSource,
     idleInS,
   };
 }
@@ -256,7 +300,12 @@ export function statusLineOf(parts: StatusParts): string {
     const held = parts.parked ? ` · ${parts.parked} parked` : '';
     return `${node}GPU · Idle Service · ${doing}${held} (AI preempts)`;
   }
-  if (parts.idleInS != null) return `${node}GPU · idle · Idle Service resumes in ${span(parts.idleInS)}`;
+  if (parts.idleInS != null) {
+    // a deadline that has passed is not "0 seconds" forever: the guard is in the middle of starting the standby,
+    // and the line should say so rather than freeze at zero
+    if (parts.idleInS <= 0) return `${node}GPU · idle · Idle Service starting`;
+    return `${node}GPU · idle · Idle Service resumes in ${span(parts.idleInS)}`;
+  }
   if (parts.standby) return `${node}GPU · idle · Idle Service standing by, no job booked`;
   return `${node}GPU · idle · nothing booked, no standby report`;
 }
@@ -404,7 +453,8 @@ export function createSchedulerTools(
       inputSchema: { type: 'object', properties: {} },
       async run() {
         const live = await readStandbyLive(extras.ref ?? 'scheduler', extras.stateUrl, extras.standbyFile);
-        const parts = statusParts(scheduler, extras.ref ?? 'scheduler', live.standby, live.source);
+        const idle = await readIdleLive(extras.ref ?? 'scheduler', extras.stateUrl);
+        const parts = statusParts(scheduler, extras.ref ?? 'scheduler', live.standby, live.source, idle);
         return {
           text: JSON.stringify(
             {
@@ -537,7 +587,8 @@ export async function startApiServer(options: ApiOptions): Promise<RunningApi> {
         // One line, one call: what this node's card is doing right now. The shell's footer reads this, and so
         // can a parent scheduler asking its children the same question - which is what makes it nest.
         const live = await readStandbyLive(options.ref ?? 'scheduler', options.stateUrl, options.standbyFile);
-        const parts = statusParts(options.scheduler, options.ref ?? 'scheduler', live.standby, live.source);
+        const idle = await readIdleLive(options.ref ?? 'scheduler', options.stateUrl);
+        const parts = statusParts(options.scheduler, options.ref ?? 'scheduler', live.standby, live.source, idle);
         sendJson(res, 200, { ok: true, line: statusLineOf(parts), parts });
         return;
       }

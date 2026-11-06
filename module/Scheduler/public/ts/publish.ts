@@ -152,6 +152,82 @@ async function fire(eventUrl: string | null, name: string, payload: Record<strin
  * Start the loop. Returns a stop function; the caller (startScheduler) wires it into shutdown.
  * `getJobs` and `getStats` are passed in, so this file never imports the scheduler's instance.
  */
+/**
+ * How this box is idle belongs to the node, not to a service definition: `standby` rides in the instance layer's
+ * node.json so the same code can hold a card busy on one machine and let it mine on another.
+ */
+export interface StandbyPolicy {
+  /** what the standby is, for the footer: "PearlPow mining" */
+  label?: string;
+  /** seconds of quiet before the standby may start */
+  after?: number;
+  /** the operator pinned it: no job may stop it */
+  pinned?: boolean;
+}
+
+export function readStandbyPolicy(root: string | null): StandbyPolicy {
+  if (!root) return {};
+  for (const rel of [path.join('Core', 'data', 'node.json'), path.join('Menu', 'data', 'node.json')]) {
+    try {
+      const parsed = JSON.parse(readFileSync(path.join(root, rel), 'utf8')) as { standby?: StandbyPolicy };
+      if (parsed && parsed.standby && typeof parsed.standby === 'object') return parsed.standby;
+    } catch {
+      /* next */
+    }
+  }
+  return {};
+}
+
+/**
+ * `node.<ref>.idle` - the Scheduler's own answer to "when may the card go back to the Idle Service", computed from
+ * its book and nothing else. Pure, so the gate can prove it without a State process and without a clock.
+ *
+ * A node that has never run a job is idle NOW, not idle since 1970: idleSince is the later of the book going quiet
+ * and the moment this process started looking.
+ */
+export function idlePublish(
+  jobs: Job[],
+  ref: string,
+  policy: StandbyPolicy,
+  now: Date = new Date(),
+  bootAt: Date | null = null,
+): { name: string; content: Record<string, unknown> } {
+  const after = typeof policy.after === 'number' && policy.after >= 0 ? policy.after : 45;
+  const active = jobs.filter((job) => PUBLISHED.has(job.status));
+  const ends = jobs
+    .map((job) => job.finishedAt)
+    .filter((v): v is string => typeof v === 'string' && v.length > 0)
+    .sort();
+  const lastEnd = ends.length ? ends[ends.length - 1] : null;
+  const busy = active.length > 0;
+
+  // A book with no history is not "idle since forever" and not "idle since this tick": it is idle since this
+  // Scheduler started watching. Anchoring to boot is what keeps `resumeAt` from sliding forward every tick, which
+  // would leave the guard waiting on a deadline that never arrives.
+  const quietFrom = lastEnd ? new Date(lastEnd) : (bootAt ?? now);
+  const base = quietFrom.getTime() > now.getTime() ? now : quietFrom;
+  const idleSince = busy ? null : base.toISOString();
+  const resumeAt = busy || !idleSince ? null : new Date(base.getTime() + after * 1000).toISOString();
+
+  return {
+    name: `node.${ref}.idle`,
+    content: {
+      owner: 'scheduler',
+      ref,
+      at: now.toISOString(),
+      idle: !busy,
+      idleSince,
+      resumeAt,
+      after,
+      queued: active.filter((job) => job.status === 'queued').length,
+      running: active.filter((job) => job.status === 'running').length,
+      lastJobEnd: lastEnd,
+      label: policy.label ?? null,
+      pinned: policy.pinned === true,
+    },
+  };
+}
+
 export function startPublisher(
   options: PublisherOptions,
   getJobs: () => Job[],
@@ -160,6 +236,8 @@ export function startPublisher(
 ): { stop: () => void; tick: () => Promise<void> } {
   const interval = options.intervalMs ?? 5000;
   const eventUrl = process.env.SCHEDULER_EVENT_URL ?? 'http://127.0.0.1:8126';
+  // the moment this book started watching: the anchor for "idle with no jobs yet"
+  const bootAt = new Date();
   // which jobs have been announced, and the last status seen: the pair is enough to tell a new job from a
   // finished one without a second clock or a second store
   const announced = new Map<string, string>();
@@ -204,6 +282,10 @@ export function startPublisher(
     for (const name of stale) {
       if (await drop(options.stateUrl, name)) published = published.filter((n) => n !== name);
     }
+    // the idle branch is this module's own fact, published every tick: the guard reads it to decide when the card
+    // may go back to the Idle Service, so a reader never has to guess at the book
+    const idle = idlePublish(jobs, options.ref, readStandbyPolicy(options.root ?? null), new Date(), bootAt);
+    await register(options.stateUrl, idle.name, idle.content);
     if (written || stale.length) log(`[publish] ${written} booked entries, ${stale.length} dropped`);
   };
 

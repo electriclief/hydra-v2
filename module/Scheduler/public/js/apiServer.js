@@ -74,7 +74,18 @@ function span(seconds) {
   if (m < 60) return `${m}m ${String(seconds % 60).padStart(2, "0")}s`;
   return `${Math.floor(m / 60)}h ${String(m % 60).padStart(2, "0")}m`;
 }
-function statusParts(scheduler, ref, standby, standbySource = "none") {
+async function readIdleLive(ref, stateUrl) {
+  if (!stateUrl) return null;
+  try {
+    const res = await fetch(`${stateUrl}/api/state/pull?name=node.${ref}.idle`, { signal: AbortSignal.timeout(900) });
+    if (!res.ok) return null;
+    const body = await res.json();
+    return body.content && typeof body.content === "object" ? body.content : null;
+  } catch {
+    return null;
+  }
+}
+function statusParts(scheduler, ref, standby, standbySource = "none", idle = null) {
   const running = scheduler.current();
   const started = running?.startedAt ? Date.parse(running.startedAt) : NaN;
   const elapsedS = Number.isFinite(started) ? Math.max(0, Math.round((Date.now() - started) / 1e3)) : 0;
@@ -82,7 +93,10 @@ function statusParts(scheduler, ref, standby, standbySource = "none") {
   const runner = typeof runnerOpt === "string" ? runnerOpt : String(runnerOpt?.kind ?? "unknown");
   const aiWork = standby ? standby.mode ? standby.mode === "ai" : typeof standby.working === "number" ? standby.working > 0 : Boolean(standby.ai) : false;
   const parked = standby?.parked ?? 0;
-  const resumeAtMs = standby?.resumeAt ? Date.parse(standby.resumeAt) : NaN;
+  const idleResumeMs = idle?.resumeAt ? Date.parse(idle.resumeAt) : NaN;
+  const guardResumeMs = standby?.resumeAt ? Date.parse(standby.resumeAt) : NaN;
+  const resumeAtMs = Number.isFinite(idleResumeMs) ? idleResumeMs : guardResumeMs;
+  const idleSource = Number.isFinite(idleResumeMs) ? "book" : Number.isFinite(guardResumeMs) ? "guard" : "none";
   const cardFree = !running && !standby?.miner && !aiWork;
   const idleInS = cardFree && Number.isFinite(resumeAtMs) ? Math.max(0, Math.round((resumeAtMs - Date.now()) / 1e3)) : null;
   return {
@@ -94,6 +108,8 @@ function statusParts(scheduler, ref, standby, standbySource = "none") {
     standbySource,
     aiWork,
     parked,
+    idle,
+    idleSource,
     idleInS
   };
 }
@@ -112,7 +128,10 @@ function statusLineOf(parts) {
     const held = parts.parked ? ` \xB7 ${parts.parked} parked` : "";
     return `${node}GPU \xB7 Idle Service \xB7 ${doing}${held} (AI preempts)`;
   }
-  if (parts.idleInS != null) return `${node}GPU \xB7 idle \xB7 Idle Service resumes in ${span(parts.idleInS)}`;
+  if (parts.idleInS != null) {
+    if (parts.idleInS <= 0) return `${node}GPU \xB7 idle \xB7 Idle Service starting`;
+    return `${node}GPU \xB7 idle \xB7 Idle Service resumes in ${span(parts.idleInS)}`;
+  }
   if (parts.standby) return `${node}GPU \xB7 idle \xB7 Idle Service standing by, no job booked`;
   return `${node}GPU \xB7 idle \xB7 nothing booked, no standby report`;
 }
@@ -242,7 +261,8 @@ function createSchedulerTools(scheduler, extras = {}) {
       inputSchema: { type: "object", properties: {} },
       async run() {
         const live = await readStandbyLive(extras.ref ?? "scheduler", extras.stateUrl, extras.standbyFile);
-        const parts = statusParts(scheduler, extras.ref ?? "scheduler", live.standby, live.source);
+        const idle = await readIdleLive(extras.ref ?? "scheduler", extras.stateUrl);
+        const parts = statusParts(scheduler, extras.ref ?? "scheduler", live.standby, live.source, idle);
         return {
           text: JSON.stringify(
             {
@@ -368,7 +388,8 @@ async function startApiServer(options) {
       }
       if (method === "GET" && p === "/api/statusline") {
         const live = await readStandbyLive(options.ref ?? "scheduler", options.stateUrl, options.standbyFile);
-        const parts = statusParts(options.scheduler, options.ref ?? "scheduler", live.standby, live.source);
+        const idle = await readIdleLive(options.ref ?? "scheduler", options.stateUrl);
+        const parts = statusParts(options.scheduler, options.ref ?? "scheduler", live.standby, live.source, idle);
         sendJson(res, 200, { ok: true, line: statusLineOf(parts), parts });
         return;
       }
@@ -442,6 +463,7 @@ async function startApiServer(options) {
 export {
   createSchedulerTools,
   normalizeStandby,
+  readIdleLive,
   readStandby,
   readStandbyLive,
   renderPage,

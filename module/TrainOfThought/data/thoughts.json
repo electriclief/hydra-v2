@@ -616,16 +616,13 @@
       "ref": "db39b286",
       "title": "Idle Service: the Scheduler decides when a node is idle",
       "intent": "Done means the Scheduler - the one thing that knows whether a job is queued, running or finished - is the single authority on idle. After N idle minutes (default 30, a config value) it starts the node standby claim; the moment a job is booked it stops the claim, waits for the process to actually leave the card, and only then launches. Mining stays addressable directly, and no other door keeps its own idea of idle.",
-      "state": "parked",
+      "state": "open",
       "deps": [],
       "next": [
-        "standby{label,start,stop,verify,after,pinned} in node.json - node data, read by the Scheduler, never a service definition",
-        "Scheduler owns idleSince computed from its own book: no queued job, no running job, now - lastJobEnd > after",
-        "on book: stop the standby through ProcessWrapper, poll until the process is gone, then launch - a timeout is blocked, never a half-run",
-        "on idle: start the standby and verify it (miner API answers or the process is in PW table) before reporting green",
-        "direct control: POST /api/standby {action:start|stop|pin} on the Scheduler so mining is addressable without a job",
-        "publish node.<self>.scheduler.idle.state so every node can see who is earning and who is busy",
-        "prove end to end on one node: idle 30 min -> miner starts and verifies, book a job -> miner gone in seconds, release -> miner returns"
+        "standby{start,stop,verify} still live in scripts/standby-guard.ps1 - move the commands into node.json so the guard is generic (label, after, pinned already read from there)",
+        "on book: stop the standby through ProcessWrapper, poll until the process is really gone, then launch - today the guard kills processes directly",
+        "on idle: verify the standby before reporting green (miner API answers, or the process is in the PW table) - today it trusts schtasks SUCCESS",
+        "direct control: POST /api/standby {action:start|stop|pin} on the Scheduler so mining is addressable without booking a job"
       ],
       "tags": [
         "hydra",
@@ -681,10 +678,28 @@
           "kind": "state",
           "text": "state -> parked",
           "by": "hermes-agent"
+        },
+        {
+          "at": 1794006358850,
+          "kind": "done",
+          "text": "Scheduler owns idleSince computed from its own book: no queued job, no running job, now - lastJobEnd > after :: built: publish.idlePublish() writes node.<ref>.idle from the book alone (idle, idleSince, resumeAt, after, running, queued); 14 new gate assertions",
+          "by": "hermes-agent"
+        },
+        {
+          "at": 1794006358850,
+          "kind": "done",
+          "text": "publish node.<self>.scheduler.idle.state so every node can see who is earning and who is busy :: built as node.<ref>.idle (a branch of its own, not a child of scheduler - idle is a fact, not a job)",
+          "by": "hermes-agent"
+        },
+        {
+          "at": 1794006358850,
+          "kind": "done",
+          "text": "prove end to end on one node: idle 30 min -> miner starts and verifies, book a job -> miner gone in seconds, release -> miner returns :: proved twice: 18 booked jobs -> YIELD 18:00:17 -> countdown from the book (12s/7s/2s) -> RESUME 18:01:22; second run overshoot 2.5s after the nap-to-deadline fix",
+          "by": "hermes-agent"
         }
       ],
       "created": 1793923776255,
-      "touched": 1793924370539,
+      "touched": 1794006358850,
       "dir": "thoughts/db39b286"
     },
     {

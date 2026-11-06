@@ -2,8 +2,8 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { Scheduler, createDummyRunner } from "./scheduler.js";
-import { startApiServer, renderPage } from "./apiServer.js";
-import { schedulerPublish } from "./publish.js";
+import { startApiServer, renderPage, statusParts } from "./apiServer.js";
+import { idlePublish, schedulerPublish } from "./publish.js";
 function ok(label, cond, extra = "") {
   console.assert(cond, `FAIL ${label}${extra ? " :: " + extra : ""}`);
   globalThis.__pass = (globalThis.__pass ?? 0) + (cond ? 1 : 0);
@@ -250,6 +250,55 @@ async function runTests() {
     const after = schedulerPublish(finished, s.stats(), "123", [name]);
     ok("a job that left the book is dropped", after.stale.includes(name), after.stale.join(","));
     ok("a finished job is not an entry", !after.entries[name]);
+  }
+  {
+    const now = /* @__PURE__ */ new Date("2026-11-06T12:00:00.000Z");
+    const job = (over) => ({
+      id: "j1",
+      service: "llama-chat",
+      inputs: {},
+      note: null,
+      status: "queued",
+      createdAt: now.toISOString(),
+      startedAt: null,
+      finishedAt: null,
+      runner: "dummy",
+      result: null,
+      error: null,
+      ...over
+    });
+    const empty = idlePublish([], "123", { after: 45 }, now);
+    ok("the idle branch is named for the node", empty.name === "node.123.idle", empty.name);
+    ok("an empty book is idle now, not idle since 1970", empty.content.idleSince === now.toISOString());
+    ok("an empty book resumes after `after` seconds", empty.content.resumeAt === new Date(now.getTime() + 45e3).toISOString());
+    ok("the ledger records who wrote it", empty.content.owner === "scheduler");
+    const booted = idlePublish([], "123", { after: 45 }, now, new Date(now.getTime() - 6e4));
+    ok("an empty book is idle since boot, not since this tick", booted.content.idleSince === new Date(now.getTime() - 6e4).toISOString());
+    ok("a deadline in the past stays in the past", booted.content.resumeAt === new Date(now.getTime() - 15e3).toISOString());
+    const busy = idlePublish([job({ status: "running" })], "123", { after: 45 }, now);
+    ok("a running job means not idle", busy.content.idle === false);
+    ok("a running job has no resume deadline", busy.content.resumeAt === null);
+    ok("a running job is counted", busy.content.running === 1);
+    const recent = idlePublish(
+      [job({ status: "done", finishedAt: new Date(now.getTime() - 1e4).toISOString() })],
+      "123",
+      { after: 45 },
+      now
+    );
+    ok("idle since the last job ended", recent.content.idleSince === new Date(now.getTime() - 1e4).toISOString());
+    ok("the deadline is last end + after", recent.content.resumeAt === new Date(now.getTime() + 35e3).toISOString());
+    ok("the policy label rides along", idlePublish([], "123", { after: 45, label: "PearlPow mining" }, now).content.label === "PearlPow mining");
+    ok("pinned comes from the node, not a default", idlePublish([], "123", { pinned: true }, now).content.pinned === true);
+    const s2 = new Scheduler({ runner: createDummyRunner({ ms: 5 }) });
+    const parts = statusParts(s2, "123", { miner: false }, "state", {
+      idle: true,
+      resumeAt: new Date(Date.now() + 3e4).toISOString(),
+      after: 45
+    });
+    ok("the countdown reads the book when the book has one", parts.idleSource === "book", String(parts.idleSource));
+    ok("the countdown is in the future", typeof parts.idleInS === "number" && parts.idleInS > 0, String(parts.idleInS));
+    const old = statusParts(s2, "123", { miner: false, resumeAt: new Date(Date.now() + 5e3).toISOString() }, "state", null);
+    ok("an older guard timer is only a fallback", old.idleSource === "guard", String(old.idleSource));
   }
   fs.rmSync(root, { recursive: true, force: true });
   const pass = g.__pass ?? 0;

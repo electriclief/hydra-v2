@@ -53,11 +53,19 @@ module\Menu\data\node.json
   "gpu": "Radeon RX 6800, 16 GB",
   "modelsDirs": {                  // where THIS box keeps weights, per service
     "llama-chat": "D:/llms"
+  },
+  "standby": {                     // how this box is idle; the Scheduler reads it, nothing else decides
+    "label": "PearlPow mining",
+    "after": 45,                   // seconds of quiet before the standby may start
+    "pinned": false                // true = no job may stop it
   }
 }
 ```
 
 `ref` is what appears in `node.<ref>.*` on State, in the LAN view, and in every event. Pick it once.
+`standby.after` is the only tuning knob for the idle/working rhythm: the Scheduler publishes
+`node.<ref>.idle` with `idleSince`, `resumeAt` and `after`, and the guard starts the standby when that deadline
+passes — it does not keep a timer of its own.
 
 ## 3. Dependencies, build, gates
 

@@ -160,12 +160,32 @@ function Get-MinerDetail {
   catch { return $null }
 }
 
-function Get-MinerRunning {
-  $t = schtasks /query /tn $MinerTask /fo list 2>$null | Out-String
-  if ($t -match 'Running') { return $true }
-  foreach ($n in @('unMiner','SRBMiner-MULTI','lolMiner','xmrig','pearl')) {
-    if (Get-Process -Name $n -ErrorAction SilentlyContinue) { return $true }
+# The Scheduler owns "when is this node idle": it publishes node.<ref>.idle from its own book. This guard only
+# EXECUTES that consequence - stop the standby when the book says work, start it when the book says quiet. A guard
+# that invents its own timer is a second opinion about a fact it does not own, and the two drift.
+function Get-IdleState {
+  if (-not $Ref) { return $null }
+  try {
+    $r = Invoke-RestMethod -Uri ($StateUrl + '/api/state/pull?name=node.' + $Ref + '.idle') -TimeoutSec 3
+    if ($r -and $r.content) { return $r.content }
   }
+  catch { }
+  return $null
+}
+
+function Get-MinerRunning {
+  # Process presence is the truth. A scheduled task that still says "Running" with no children is a wrapper that
+  # outlived its miner, and trusting it made the footer claim "mining" with nothing hashing.
+  $procs = @(Get-Process -Name 'SRBMiner-MULTI', 'unMiner' -ErrorAction SilentlyContinue)
+  if ($procs.Count -gt 0) { return $true }
+  $t = schtasks /query /tn $MinerTask /fo list 2>$null | Out-String
+  if ($t -match 'Running') {
+    # give a just-launched task a moment before calling it dead: a restart takes a couple of seconds
+    if ($null -eq $script:taskRunningSince) { $script:taskRunningSince = Get-Date }
+    if (((Get-Date) - $script:taskRunningSince).TotalSeconds -lt 8) { return $true }
+    return $false
+  }
+  $script:taskRunningSince = $null
   return $false
 }
 
@@ -179,6 +199,14 @@ function Stop-Miner {
 }
 
 function Start-Miner {
+  # A task that still claims Running with no children is a wrapper that outlived its miner, and /run on it does
+  # nothing at all. End it first, so "start" means what it says. This cost 20 seconds of dead air once.
+  $procs = @(Get-Process -Name 'SRBMiner-MULTI', 'unMiner' -ErrorAction SilentlyContinue)
+  if ($procs.Count -eq 0) {
+    schtasks /end /tn $MinerTask 2>$null | Out-Null
+    Start-Sleep -Milliseconds 600
+  }
+  $script:taskRunningSince = $null
   $r = schtasks /run /tn $MinerTask 2>$null | Out-String
   if ($r -match 'SUCCESS') { LogIt "RESUME  miner started" } else { LogIt ("RESUME failed: " + $r.Trim()) }
 }
@@ -211,37 +239,52 @@ while ($true) {
   $pinned = Test-Path $PinFile
   $ai = @(Get-AiWork)
   $miner = Get-MinerRunning
+  $idle = Get-IdleState
 
   # Work that needs the card: a batch job, or a server with a request in flight on GPU layers. An idle server
   # holding a model is parked, not working - it does not get to stop the miner and it does not get a timer.
+  # A RUNNING JOB from the book also counts, before its GPU load shows up: the Scheduler already said the card is
+  # taken, and waiting for the load to prove it would let the miner fight a job for a few seconds.
   $preempt = @($ai | Where-Object { $_.gpu -and ($_.busy -ne $false) })
+  $bookBusy = ($null -ne $idle -and [int]$idle.running -gt 0)
 
-  if ($preempt.Count -gt 0) {
+  if ($preempt.Count -gt 0 -or $bookBusy) {
     if ($null -eq $busySince) { $busySince = Get-Date }
     $freeSince = $null
     if (-not $pinned -and $miner) {
       Stop-Miner
-      Send-Event 'standby.yield' @{ ref = $Ref; ai = (@(Describe-AiWork $preempt) -join ','); at = (Get-Date).ToString('s') }
+      Send-Event 'standby.yield' @{ ref = $Ref; ai = (@(Describe-AiWork $preempt) -join ','); bookBusy = $bookBusy; at = (Get-Date).ToString('s') }
     }
   }
   else {
     $busySince = $null
     if ($null -eq $freeSince) { $freeSince = Get-Date }
-    $idleFor = ((Get-Date) - $freeSince).TotalSeconds
-    if (-not $miner -and $idleFor -ge $ResumeGraceSeconds) {
-      if ($pinned) { LogIt "pinned - miner left alone" }
+
+    # the deadline belongs to the book; this guard only waits for it. With no idle branch (Scheduler not running,
+    # or a node that does not have one yet) the guard falls back to its own grace so it cannot stall forever.
+    $after = $ResumeGraceSeconds
+    if ($null -ne $idle -and $null -ne $idle.after) { $after = [int]$idle.after }
+    $deadline = $null
+    if ($null -ne $idle -and $idle.resumeAt) {
+      try { $deadline = [datetime]::Parse($idle.resumeAt, [System.Globalization.CultureInfo]::InvariantCulture) } catch { $deadline = $null }
+    }
+    if ($null -eq $deadline) { $deadline = $freeSince.AddSeconds($after) }
+
+    if (-not $miner -and (Get-Date) -ge $deadline) {
+      if ($pinned -and -not $idle.pinned) { LogIt "pinned locally - miner left alone" }
       else {
         Start-Miner
-        Send-Event 'standby.resume' @{ ref = $Ref; idleForS = [int]$idleFor; at = (Get-Date).ToString('s') }
+        Send-Event 'standby.resume' @{ ref = $Ref; afterS = $after; source = $(if ($null -ne $idle) { 'book' } else { 'guard' }); at = (Get-Date).ToString('s') }
         $freeSince = Get-Date
       }
     }
   }
 
-  # The countdown belongs to the guard, because the guard owns the timer. A reader that recomputes it would drift
-  # from the thing that actually restarts the miner.
+  # Reported, not computed: the deadline is the book's, so a reader can compare it with node.<ref>.idle and see the
+  # same number. A guard that published its own timer would be publishing somebody else's fact.
   $resumeAt = $null
-  if ($null -ne $freeSince -and -not $miner -and -not $pinned) {
+  if ($null -ne $idle -and $idle.resumeAt -and -not $miner -and -not $pinned) { $resumeAt = $idle.resumeAt }
+  elseif ($null -eq $idle -and $null -ne $freeSince -and -not $miner -and -not $pinned) {
     $resumeAt = $freeSince.AddSeconds($ResumeGraceSeconds).ToString('s')
   }
 
@@ -279,6 +322,8 @@ while ($true) {
     idleSince  = $(if ($null -ne $freeSince) { $freeSince.ToString('s') } else { $null })
     resumeAt   = $resumeAt
     grace      = $ResumeGraceSeconds
+    after      = $(if ($null -ne $idle -and $null -ne $idle.after) { [int]$idle.after } else { $null })
+    idleSource = $(if ($null -ne $idle) { 'book' } else { 'guard' })
     poll       = $PollSeconds
   }
   ($st | ConvertTo-Json -Depth 5 -Compress) | Set-Content -Path $StatePath -Encoding ascii
@@ -295,5 +340,16 @@ while ($true) {
     if ($msg -ne $lastPublishError) { LogIt ("state publish failed: " + $msg); $lastPublishError = $msg }
   }
 
-  Start-Sleep -Seconds $PollSeconds
+  # Sleep to the poll, OR to the book's deadline if that comes first: a 15s tick that starts the miner 14s after
+  # the card went free is a countdown showing 0 while nothing happens, which looks broken to the operator.
+  $nap = $PollSeconds
+  if (-not $miner -and -not $pinned -and $null -ne $idle -and $idle.resumeAt) {
+    try {
+      $d = [datetime]::Parse([string]$idle.resumeAt, [System.Globalization.CultureInfo]::InvariantCulture)
+      $secs = ($d - (Get-Date)).TotalSeconds
+      if ($secs -gt 0 -and $secs -lt $nap) { $nap = [int][math]::Ceiling($secs) + 1 }
+    }
+    catch { }
+  }
+  Start-Sleep -Seconds $nap
 }
