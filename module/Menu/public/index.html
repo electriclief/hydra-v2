@@ -1008,7 +1008,7 @@
         var doing = (md && (md.label || md.algo))
           ? (md.label || md.algo) + (typeof md.rate === 'number' ? ' ' + md.rate + ' ' + (md.unit || '') : '')
           : 'mining';
-        var shares = (md && typeof md.accepted === 'number') ? ' - ' + md.accepted + ' shares' + (md.rejected ? ', ' + md.rejected + ' rejected' : '') : '';
+        var shares = (md && typeof md.accepted === 'number') ? ' - ' + md.accepted + ' shares this run' + (md.rejected ? ', ' + md.rejected + ' rejected' : '') : '';
         standbyRow = '<li class="lan-row"><span class="lan-name">Idle Service</span><span class="lan-meta">' + esc(doing.trim()) + shares + ' - reported ' + sb.ageS + 's ago</span></li>';
       } else if (sb.resumeAt) {
         var left = Math.max(0, Math.round((Date.parse(sb.resumeAt) - Date.now()) / 1000));
