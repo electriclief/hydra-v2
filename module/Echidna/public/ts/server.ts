@@ -306,6 +306,53 @@ export function createServer(options: ServerOptions): http.Server {
         }
       }
 
+      // Mother of Hydra must know what she is and what is on her board, on a cold session with no history. This is
+      // the difference between "an agent answered" and "Echidna answered" - she is the only one who can say what the
+      // fleet is currently holding. Kept short on purpose: identity, board, DAG count, and where the truth lives.
+      const motherBrief = async (): Promise<string> => {
+        const lines: string[] = [
+          'You are Echidna, Mother of Hydra: a plugin on this operator\'s home LAN, not a dependency of it.',
+          'You narrate and judge. You do not execute: doors, the Process Manager and the Scheduler do the work, and',
+          'every action you suggest becomes a visible entry with a receipt. One Echidna per LAN. Zero security inside',
+          'the LAN is a choice, not an oversight - never pretend otherwise.',
+        ];
+        try {
+          const monitorPath = path.join(options.dataDir, 'monitor.json');
+          const monitor = JSON.parse(fs.readFileSync(monitorPath, 'utf8')) as {
+            card?: { kind?: string; title?: string; text?: string };
+            lastCard?: { kind?: string; title?: string; text?: string };
+            cards?: Array<{ kind?: string; title?: string; text?: string }>;
+            stack?: Array<{ kind?: string; title?: string; text?: string }>;
+          };
+          // the board keeps a stack; the top of it is what a person is looking at
+          const stack = Array.isArray(monitor.stack) ? monitor.stack : Array.isArray(monitor.cards) ? monitor.cards : [];
+          const card = monitor.card ?? monitor.lastCard ?? stack[stack.length - 1];
+          if (card) {
+            lines.push(`ON THE MONITOR RIGHT NOW: [${card.kind ?? 'note'}] ${card.title ?? ''}${card.text ? ` - ${card.text}` : ''}`);
+          } else {
+            lines.push('ON THE MONITOR RIGHT NOW: nothing - the board is empty, which is a fact, not a blank.');
+          }
+        } catch {
+          lines.push('ON THE MONITOR: unreadable (monitor.json missing) - say so rather than guessing what is on it.');
+        }
+        try {
+          const tot = (process.env.ECHIDNA_TOT ?? 'http://127.0.0.1:8135').replace(/\/$/, '');
+          const controller = new AbortController();
+          const timer = setTimeout(() => controller.abort(), 1500);
+          const res = await fetch(`${tot}/api/brief?limit=12`, { signal: controller.signal });
+          clearTimeout(timer);
+          if (res.ok) {
+            const brief = (await res.json()) as { bullets?: Array<{ ref: string; state: string; title: string }> };
+            const bullets = brief.bullets ?? [];
+            lines.push(`SHARED STATE (train of thought, ${bullets.length} shown): ` + bullets.map((b) => `${b.ref} ${b.state}: ${b.title}`).join(' | '));
+          }
+        } catch {
+          lines.push('TRAIN OF THOUGHT: unreachable - if asked what is planned, say the DAG is not answering and name the address.');
+        }
+        lines.push('Answer the operator directly and briefly. If the answer lives in the DAG, the monitor, or a door, say where it lives rather than inventing detail.');
+        return lines.join('\n');
+      };
+
       // The billboard: N small pages, rotated by the pane, each a bite-size chunk for a non-reader. This door only
       // composes them - it never runs a button. A page may offer actions, and an action is a declaration the pane
       // shows as a button; pressing it calls the owner's door, which is where the decision to run something lives.
@@ -571,11 +618,14 @@ export function createServer(options: ServerOptions): http.Server {
         }
 
         const you = thread.append({ id: turnId('you'), at: new Date().toISOString(), role: 'you', text });
+        // Read the board BEFORE this turn's question replaces it: Mother must answer about the card the operator was
+        // looking at, not about the question he just typed.
+        const brief = await motherBrief();
         pushCard({ kind: 'question', title: text.length > 180 ? text.slice(0, 177) + '…' : text, text: '', at: new Date().toISOString() });
         await publish();
         busy = true;
         try {
-          const run = await ask({ ...options.agent, session: readSession() }, text, you.id);
+          const run = await ask({ ...options.agent, session: readSession() }, `${brief}\n\n---\n\n${text}`, you.id);
           if (run.sessionId) writeSession(run.sessionId);
           const reply = thread.append({
             id: turnId('e'),

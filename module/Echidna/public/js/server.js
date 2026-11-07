@@ -203,6 +203,43 @@ function createServer(options) {
           return;
         }
       }
+      const motherBrief = async () => {
+        const lines = [
+          "You are Echidna, Mother of Hydra: a plugin on this operator's home LAN, not a dependency of it.",
+          "You narrate and judge. You do not execute: doors, the Process Manager and the Scheduler do the work, and",
+          "every action you suggest becomes a visible entry with a receipt. One Echidna per LAN. Zero security inside",
+          "the LAN is a choice, not an oversight - never pretend otherwise."
+        ];
+        try {
+          const monitorPath = path.join(options.dataDir, "monitor.json");
+          const monitor2 = JSON.parse(fs.readFileSync(monitorPath, "utf8"));
+          const stack = Array.isArray(monitor2.stack) ? monitor2.stack : Array.isArray(monitor2.cards) ? monitor2.cards : [];
+          const card = monitor2.card ?? monitor2.lastCard ?? stack[stack.length - 1];
+          if (card) {
+            lines.push(`ON THE MONITOR RIGHT NOW: [${card.kind ?? "note"}] ${card.title ?? ""}${card.text ? ` - ${card.text}` : ""}`);
+          } else {
+            lines.push("ON THE MONITOR RIGHT NOW: nothing - the board is empty, which is a fact, not a blank.");
+          }
+        } catch {
+          lines.push("ON THE MONITOR: unreadable (monitor.json missing) - say so rather than guessing what is on it.");
+        }
+        try {
+          const tot = (process.env.ECHIDNA_TOT ?? "http://127.0.0.1:8135").replace(/\/$/, "");
+          const controller = new AbortController();
+          const timer = setTimeout(() => controller.abort(), 1500);
+          const res2 = await fetch(`${tot}/api/brief?limit=12`, { signal: controller.signal });
+          clearTimeout(timer);
+          if (res2.ok) {
+            const brief = await res2.json();
+            const bullets = brief.bullets ?? [];
+            lines.push(`SHARED STATE (train of thought, ${bullets.length} shown): ` + bullets.map((b) => `${b.ref} ${b.state}: ${b.title}`).join(" | "));
+          }
+        } catch {
+          lines.push("TRAIN OF THOUGHT: unreachable - if asked what is planned, say the DAG is not answering and name the address.");
+        }
+        lines.push("Answer the operator directly and briefly. If the answer lives in the DAG, the monitor, or a door, say where it lives rather than inventing detail.");
+        return lines.join("\n");
+      };
       if (p === "/api/billboard" && method === "GET") {
         const tot = (process.env.ECHIDNA_TOT ?? "http://127.0.0.1:8135").replace(/\/$/, "");
         const phoenix = (process.env.ECHIDNA_PHOENIX ?? "http://127.0.0.1:8146").replace(/\/$/, "");
@@ -444,11 +481,16 @@ function createServer(options) {
           return;
         }
         const you = thread.append({ id: turnId("you"), at: (/* @__PURE__ */ new Date()).toISOString(), role: "you", text });
+        const brief = await motherBrief();
         pushCard({ kind: "question", title: text.length > 180 ? text.slice(0, 177) + "\u2026" : text, text: "", at: (/* @__PURE__ */ new Date()).toISOString() });
         await publish();
         busy = true;
         try {
-          const run = await ask({ ...options.agent, session: readSession() }, text, you.id);
+          const run = await ask({ ...options.agent, session: readSession() }, `${brief}
+
+---
+
+${text}`, you.id);
           if (run.sessionId) writeSession(run.sessionId);
           const reply = thread.append({
             id: turnId("e"),
