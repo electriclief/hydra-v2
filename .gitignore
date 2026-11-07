@@ -43,3 +43,6 @@ module/Core/data/*.log
 module/Echidna/data/thread.jsonl
 module/Echidna/data/agent.json
 module/Echidna/data/prompts/
+
+# Tell Mom receipts are this node's runtime history, not the repo's
+module/TellMom/data/told.jsonl

@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tell Mom</title>
+<style>
+ body{margin:0;background:#0f1115;color:#e6e8ef;font:16px/1.6 "Segoe UI",system-ui,sans-serif}
+ main{max-width:46em;margin:0 auto;padding:48px 24px 96px}
+ h1{font-size:32px;margin:0 0 6px} h2{font-size:14px;letter-spacing:.1em;text-transform:uppercase;color:#8b93a7;margin:36px 0 10px}
+ .lead{font-size:19px} code{background:#191c23;border:1px solid #2a2f3a;border-radius:5px;padding:1px 5px;font-size:14px}
+ table{width:100%;border-collapse:collapse} th,td{text-align:left;padding:8px 10px;border-bottom:1px solid #2a2f3a}
+ th{color:#8b93a7;font-size:12px;letter-spacing:.08em;text-transform:uppercase;font-weight:500}
+ .banner{border-left:3px solid #e7c84b;padding:10px 14px;background:#15181e;margin:22px 0}
+</style></head><body><main>
+<h1>Tell Mom</h1>
+<p class="lead">One verb for telling the operator something, wherever they are — with a policy so it cannot become a
+shout, and a receipt so a message that reached nobody is a fact you can see.</p>
+<div class="banner"><strong>No Telegram.</strong> The operator does not want it, and there is no adapter for it here.
+Discord is the phone channel because this rig already has a token — used <em>outbound only</em>: one HTTPS POST per
+message, no gateway process, nothing that stays connected between messages.</div>
+<h2>What it is</h2>
+<table>
+<tr><th>Piece</th><th>What</th></tr>
+<tr><td><code>POST /api/tell</code></td><td><code>{severity, subject, body, wants, dedupeKey, channels}</code> → delivers, records, returns the receipt.</td></tr>
+<tr><td>policy</td><td><code>data/policy.json</code>: dedupe window (900s), hourly ceiling (6), quiet hours that <code>alert</code> may cross.</td></tr>
+<tr><td>channels</td><td><code>pane</code> always (a note turn in Echidna's thread) and <code>discord</code> when a token exists.</td></tr>
+<tr><td>receipts</td><td><code>data/told.jsonl</code>, and <code>node.&lt;ref&gt;.told</code> in State.</td></tr>
+</table>
+<h2>The rule</h2>
+<p>A loop that fails every ten minutes must not ring the phone every ten minutes. So: the same <code>dedupeKey</code>
+inside the window is muted and says so; the hourly ceiling is measured on what was actually sent; quiet hours mute
+everything except <code>alert</code>.</p>
+<h2>Receipts, not silence</h2>
+<p>Every tell is written whether or not a transport took it — including the muted ones, with the reason
+(<code>same dedupeKey …</code>, <code>hourly ceiling reached</code>, <code>quiet hours</code>). A channel that is not
+configured fails with the exact variable it wants; it never pretends to have delivered.</p>
+<h2>Broker, later</h2>
+<p>Discord is also the operator's free answer to ISP double NAT between nodes. That inbound side — reading messages,
+node-to-node brokering — belongs to a broker module that owns the one connection; Tell Mom stays a sender.</p>
+</main></body></html>
