@@ -203,6 +203,71 @@ function createServer(options) {
           return;
         }
       }
+      if (p === "/api/billboard" && method === "GET") {
+        const tot = (process.env.ECHIDNA_TOT ?? "http://127.0.0.1:8135").replace(/\/$/, "");
+        const phoenix = (process.env.ECHIDNA_PHOENIX ?? "http://127.0.0.1:8146").replace(/\/$/, "");
+        const j = async (url2) => {
+          const controller = new AbortController();
+          const timer = setTimeout(() => controller.abort(), 2e3);
+          try {
+            const r = await fetch(url2, { signal: controller.signal });
+            clearTimeout(timer);
+            return r.ok ? await r.json() : { ok: false, status: r.status };
+          } catch (error) {
+            clearTimeout(timer);
+            return { ok: false, error: error.message };
+          }
+        };
+        const [brief, health, entries] = await Promise.all([
+          j(`${tot}/api/brief`),
+          j(`${phoenix}/health`),
+          j(`${phoenix}/api/entries`)
+        ]);
+        const pages = [];
+        const bullets = Array.isArray(brief?.bullets) ? brief.bullets : [];
+        const blocked = bullets.filter((b) => b.state === "blocked");
+        const active = bullets.filter((b) => b.state === "active");
+        const open = bullets.filter((b) => b.state === "open");
+        pages.push({
+          kind: "status",
+          title: brief?.ok ? "where the work stands" : "the train of thought is not answering",
+          lines: [
+            brief?.ok ? `${bullets.length} open intentions \xB7 ${active.length} active \xB7 ${blocked.length} blocked` : `checked ${tot} \xB7 ${brief?.error ?? "no answer"}`,
+            health?.ok ? `upkeep: ${health.entries} registered \xB7 next cycle in ${Math.round((health.nextBeatInMs ?? 0) / 6e4)} min` : `phoenix is not answering at ${phoenix}`,
+            ...(entries?.rows ?? []).slice(0, 2).map((r) => `${r.id} \u2014 last ${r.last?.outcome ?? "never run"}`)
+          ],
+          buttons: []
+        });
+        if (active.length) {
+          pages.push({
+            kind: "next",
+            title: "the next thing",
+            lines: active.slice(0, 3).map((b) => `${b.ref} \xB7 ${b.title}`),
+            buttons: [{ label: "open the train of thought", action: { method: "GET", url: `${tot}/` } }]
+          });
+        }
+        if (blocked.length || open.length) {
+          pages.push({
+            kind: "waiting",
+            title: "waiting on you",
+            lines: [...blocked, ...open].slice(0, 3).map((b) => `${b.state} \xB7 ${b.title}`),
+            buttons: blocked.slice(0, 1).map((b) => ({
+              label: `look at ${b.ref}`,
+              action: { method: "GET", url: `${tot}/api/handoff/${b.ref}` }
+            }))
+          });
+        }
+        if (pages.length === 1) {
+          pages.push({ kind: "idle", title: "nothing is waiting", lines: ["say what you want to do and it becomes a bullet here"], buttons: [] });
+        }
+        sendJson(res, 200, {
+          ok: true,
+          everyMs: Number(process.env.ECHIDNA_BILLBOARD_MS ?? 15e3),
+          count: pages.length,
+          pages
+        });
+        return;
+      }
       if (p === "/api/brief" && method === "GET") {
         const tot = (process.env.ECHIDNA_TOT ?? "http://127.0.0.1:8135").replace(/\/$/, "");
         try {

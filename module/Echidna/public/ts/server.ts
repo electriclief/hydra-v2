@@ -306,6 +306,80 @@ export function createServer(options: ServerOptions): http.Server {
         }
       }
 
+      // The billboard: N small pages, rotated by the pane, each a bite-size chunk for a non-reader. This door only
+      // composes them - it never runs a button. A page may offer actions, and an action is a declaration the pane
+      // shows as a button; pressing it calls the owner's door, which is where the decision to run something lives.
+      if (p === '/api/billboard' && method === 'GET') {
+        const tot = (process.env.ECHIDNA_TOT ?? 'http://127.0.0.1:8135').replace(/\/$/, '');
+        const phoenix = (process.env.ECHIDNA_PHOENIX ?? 'http://127.0.0.1:8146').replace(/\/$/, '');
+        const j = async (url: string): Promise<any> => {
+          const controller = new AbortController();
+          const timer = setTimeout(() => controller.abort(), 2000);
+          try {
+            const r = await fetch(url, { signal: controller.signal });
+            clearTimeout(timer);
+            return r.ok ? await r.json() : { ok: false, status: r.status };
+          } catch (error) {
+            clearTimeout(timer);
+            return { ok: false, error: (error as Error).message };
+          }
+        };
+        const [brief, health, entries] = await Promise.all([
+          j(`${tot}/api/brief`),
+          j(`${phoenix}/health`),
+          j(`${phoenix}/api/entries`),
+        ]);
+        const pages: unknown[] = [];
+        const bullets: Array<{ ref: string; state: string; title: string }> = Array.isArray(brief?.bullets) ? brief.bullets : [];
+        const blocked = bullets.filter((b) => b.state === 'blocked');
+        const active = bullets.filter((b) => b.state === 'active');
+        const open = bullets.filter((b) => b.state === 'open');
+
+        pages.push({
+          kind: 'status',
+          title: brief?.ok ? 'where the work stands' : 'the train of thought is not answering',
+          lines: [
+            brief?.ok ? `${bullets.length} open intentions · ${active.length} active · ${blocked.length} blocked` : `checked ${tot} · ${brief?.error ?? 'no answer'}`,
+            health?.ok ? `upkeep: ${health.entries} registered · next cycle in ${Math.round((health.nextBeatInMs ?? 0) / 60000)} min` : `phoenix is not answering at ${phoenix}`,
+            ...(entries?.rows ?? []).slice(0, 2).map((r: any) => `${r.id} — last ${r.last?.outcome ?? 'never run'}`),
+          ],
+          buttons: [],
+        });
+
+        if (active.length) {
+          pages.push({
+            kind: 'next',
+            title: 'the next thing',
+            lines: active.slice(0, 3).map((b) => `${b.ref} · ${b.title}`),
+            buttons: [{ label: 'open the train of thought', action: { method: 'GET', url: `${tot}/` } }],
+          });
+        }
+
+        if (blocked.length || open.length) {
+          pages.push({
+            kind: 'waiting',
+            title: 'waiting on you',
+            lines: [...blocked, ...open].slice(0, 3).map((b) => `${b.state} · ${b.title}`),
+            buttons: blocked.slice(0, 1).map((b) => ({
+              label: `look at ${b.ref}`,
+              action: { method: 'GET', url: `${tot}/api/handoff/${b.ref}` },
+            })),
+          });
+        }
+
+        if (pages.length === 1) {
+          pages.push({ kind: 'idle', title: 'nothing is waiting', lines: ['say what you want to do and it becomes a bullet here'], buttons: [] });
+        }
+
+        sendJson(res, 200, {
+          ok: true,
+          everyMs: Number(process.env.ECHIDNA_BILLBOARD_MS ?? 15000),
+          count: pages.length,
+          pages,
+        });
+        return;
+      }
+
       // Where we left off: the Train of Thought as bullets, fetched at boot so the first thing Echidna says is the
       // state of the work rather than "hello". Bullets only - ref, state, title - about 2 KB for the whole DAG.
       // The store stays on the ToT door; this door never writes to it.
