@@ -1,0 +1,42 @@
+﻿{
+    "ref":  "123",
+    "host":  "DESKTOP-QUCA6R5",
+    "at":  "2026-11-06T21:25:00",
+    "os":  "Microsoft Windows 11 Pro 10.0.22000",
+    "model":  "To be filled by O.E.M. To be filled by O.E.M.",
+    "cpu":  "Intel(R) Xeon(R) CPU E5-2650 v2 @ 2.60GHz",
+    "cores":  8,
+    "threads":  16,
+    "ramGB":  32,
+    "gpus":  [
+                 "AMD Radeon RX 6800"
+             ],
+    "gpuCompute":  true,
+    "disks":  [
+                  {
+                      "index":  0,
+                      "model":  "KINGSTON SHFS37A240G",
+                      "sizeGB":  223.6,
+                      "bus":  "IDE",
+                      "partitions":  3,
+                      "status":  "OK"
+                  },
+                  {
+                      "index":  1,
+                      "model":  "WDC WD5000AAKS-00UU3A0",
+                      "sizeGB":  465.8,
+                      "bus":  "IDE",
+                      "partitions":  1,
+                      "status":  "OK"
+                  },
+                  {
+                      "index":  2,
+                      "model":  "ST380013 AS SCSI Disk Device",
+                      "sizeGB":  74.5,
+                      "bus":  "SCSI",
+                      "partitions":  2,
+                      "status":  "OK"
+                  }
+              ],
+    "uptimeH":  0.4
+}

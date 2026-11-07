@@ -1,0 +1,69 @@
+{
+  "_note": "What each node in this LAN is, as observed. Specs come from scripts/node-specs.ps1 on the live node; this file is the registry Hydra reads when a node is asleep. Admin passwords, tokens and node identity are never stored here.",
+  "nodes": {
+    "123": {
+      "host": "DESKTOP-QUCA6R5",
+      "role": "gpu + hydra canonical",
+      "model": "desktop",
+      "cpu": "unknown",
+      "ramGB": null,
+      "gpus": [
+        "AMD Radeon RX 6800"
+      ],
+      "note": "canonical repo + GitHub credentials; runs the doors"
+    },
+    "122": {
+      "host": "DESKTOP-FS33L02",
+      "role": "nas + 24/7 cpu services",
+      "model": "Dell PowerEdge T710",
+      "cpu": "2 x Intel Xeon X5660 @ 2.80 GHz",
+      "cores": 12,
+      "threads": 24,
+      "ramGB": 280,
+      "gpus": [],
+      "gpuCompute": false,
+      "disks": [
+        {
+          "model": "WDC WD2500AAKX-08ERMA0",
+          "sizeGB": 232.9
+        },
+        {
+          "model": "WDC WD5002ABYS-02B1B0",
+          "sizeGB": 465.8
+        }
+      ],
+      "services": [
+        "searxng",
+        "truenas"
+      ],
+      "note": "no GPU: storage and containers only. Proxmox planned."
+    },
+    "1660": {
+      "host": "DESKTOP-5NN77TL",
+      "role": "gpu",
+      "gpus": [
+        "NVIDIA GeForce GTX 1660 SUPER"
+      ],
+      "threads": 8,
+      "ramGB": 20
+    },
+    "980ti": {
+      "host": "DESKTOP-Q8U0BTH",
+      "role": "gpu",
+      "gpus": [
+        "NVIDIA GeForce GTX 980 Ti"
+      ],
+      "threads": 4,
+      "ramGB": 7.9,
+      "note": "weakest card - if a job runs here it runs anywhere"
+    },
+    "jims": {
+      "host": "jims laptop",
+      "role": "gpu",
+      "gpus": [
+        "NVIDIA GeForce GTX 1050 2GB"
+      ],
+      "note": "10 doors, no guard/shelf"
+    }
+  }
+}
