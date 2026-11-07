@@ -1,0 +1,9 @@
+{
+  "dedupeWindowSec": 900,
+  "maxPerHour": 6,
+  "quiet": null,
+  "channels": [
+    "discord",
+    "pane"
+  ]
+}

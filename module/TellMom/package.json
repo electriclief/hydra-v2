@@ -1,0 +1,21 @@
+{
+  "name": "tellmom",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Tell Mom - one verb for telling the operator something, with a policy and a receipt. Discord is an outbound-only channel (one HTTPS POST, no gateway), the Echidna pane is always a channel, and every tell is recorded whether or not a transport took it.",
+  "type": "module",
+  "main": "public/js/main.js",
+  "engines": {
+    "node": ">=22.5"
+  },
+  "scripts": {
+    "build": "esbuild public/ts/*.ts --outdir=public/js --format=esm --platform=node --target=node22 --sourcemap",
+    "typecheck": "tsc --noEmit",
+    "start": "node public/js/main.js"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "esbuild": "^0.25.0",
+    "typescript": "^5.7.0"
+  }
+}

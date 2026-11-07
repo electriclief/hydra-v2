@@ -73,6 +73,8 @@ const DOOR_TABLE = [
   // Echidna is the agent's FACE, not the Menu's child: it is its own door so the Menu (or any node) can display
   // it, and so the talk thread keeps existing when the Menu is closed.
   { key: 'echidna', dir: 'Echidna', port: 8138 },
+  // Tell Mom is its own door: a notification must be deliverable whether or not the app, the pane or a diary is up.
+  { key: 'tellmom', dir: 'TellMom', port: 8139 },
 ];
 
 // ── THE WATCHDOGS ARE PROCESSES TOO ────────────────────────────────────────────

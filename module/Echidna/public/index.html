@@ -50,6 +50,8 @@
   .turn.you .who { text-align: right; color: var(--gold); }
   .turn.you .body { background: var(--panel-2); border-radius: var(--radius); padding: 12px 14px; }
   .turn.echidna .who { color: var(--green); }
+  .turn.note .who { color: var(--gold); letter-spacing: .1em; }
+  .turn.note .body { border-left: 2px solid var(--gold); padding-left: 12px; color: #efe6c9; }
   .turn.system .who { color: var(--red); }
   .turn.system .body { border-left: 2px solid var(--red); padding-left: 12px; color: #f0c9cd; }
   .turn .meta { font-size: 11px; color: var(--muted); margin-top: 6px; }
@@ -172,8 +174,8 @@
       return;
     }
     var html = state.thread.map(function (t) {
-      var cls = t.role === 'you' ? 'you' : (t.role === 'echidna' ? 'echidna' : 'system');
-      var who = cls === 'you' ? 'you' : (cls === 'echidna' ? 'echidna' : 'echidna · could not answer');
+      var cls = t.role === 'you' ? 'you' : t.role === 'note' ? 'note' : (t.role === 'echidna' ? 'echidna' : 'system');
+      var who = cls === 'you' ? 'you' : cls === 'note' ? 'arrived' : (cls === 'echidna' ? 'echidna' : 'echidna · could not answer');
       var meta = [];
       if (cls === 'echidna' && t.ms) meta.push((t.ms / 1000).toFixed(1) + 's');
       if (t.sessionId) meta.push('session ' + esc(t.sessionId));

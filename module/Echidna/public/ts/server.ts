@@ -146,6 +146,31 @@ export function createServer(options: ServerOptions): http.Server {
         return;
       }
 
+      // POST /api/note — another door telling the operator something. It becomes a turn, not a toast: a toast is
+      // gone in four seconds and the whole point of the pane is that nothing is.
+      if (p === '/api/note' && method === 'POST') {
+        let body: Record<string, unknown>;
+        try {
+          body = JSON.parse((await readBody(req)) || '{}') as Record<string, unknown>;
+        } catch {
+          sendJson(res, 400, { ok: false, error: 'body must be JSON' });
+          return;
+        }
+        const from = String(body.from ?? 'a door').slice(0, 40);
+        const subject = String(body.subject ?? '').trim();
+        const text = String(body.text ?? '').trim();
+        const severity = String(body.severity ?? 'note');
+        if (!text && !subject) {
+          sendJson(res, 400, { ok: false, error: 'a note needs text' });
+          return;
+        }
+        const mark = severity === 'alert' ? 'ALERT ' : severity === 'warn' ? 'warn  ' : '';
+        const line = [mark + from, subject, text].filter(Boolean).join(' · ');
+        const turn = thread.append({ id: turnId('n'), at: new Date().toISOString(), role: 'note', text: line });
+        sendJson(res, 201, { ok: true, turn });
+        return;
+      }
+
       if (p === '/api/say' && method === 'POST') {
         if (busy) {
           sendJson(res, 409, { ok: false, error: 'still answering the last one' });

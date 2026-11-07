@@ -97,6 +97,28 @@ function createServer(options) {
         });
         return;
       }
+      if (p === "/api/note" && method === "POST") {
+        let body;
+        try {
+          body = JSON.parse(await readBody(req) || "{}");
+        } catch {
+          sendJson(res, 400, { ok: false, error: "body must be JSON" });
+          return;
+        }
+        const from = String(body.from ?? "a door").slice(0, 40);
+        const subject = String(body.subject ?? "").trim();
+        const text = String(body.text ?? "").trim();
+        const severity = String(body.severity ?? "note");
+        if (!text && !subject) {
+          sendJson(res, 400, { ok: false, error: "a note needs text" });
+          return;
+        }
+        const mark = severity === "alert" ? "ALERT " : severity === "warn" ? "warn  " : "";
+        const line = [mark + from, subject, text].filter(Boolean).join(" \xB7 ");
+        const turn = thread.append({ id: turnId("n"), at: (/* @__PURE__ */ new Date()).toISOString(), role: "note", text: line });
+        sendJson(res, 201, { ok: true, turn });
+        return;
+      }
       if (p === "/api/say" && method === "POST") {
         if (busy) {
           sendJson(res, 409, { ok: false, error: "still answering the last one" });

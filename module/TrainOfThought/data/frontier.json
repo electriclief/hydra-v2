@@ -1,9 +1,9 @@
 {
-  "generatedAt": "2026-11-06T23:51:29.831Z",
+  "generatedAt": "2026-11-07T00:03:43.029Z",
   "store": "thoughts.json",
   "counts": {
-    "total": 23,
-    "active": 20,
+    "total": 25,
+    "active": 22,
     "blocked": 1,
     "parked": 0,
     "done": 1
@@ -269,6 +269,53 @@
         "ui",
         "easy-mode"
       ]
+    },
+    {
+      "ref": "c9c77ef1",
+      "title": "Tell Mom: one verb for telling the operator, with a policy and a receipt",
+      "intent": "'Tell Mom' is a verb any module can call - Phoenix Cycle first - that reaches the operator wherever they are. Channels are adapters: the Echidna pane always, Discord as the phone channel (outbound only, one HTTPS POST, no gateway). Nothing on Windows boot: everything lazily starts from the Hydra app, and a notification must survive that app being closed.",
+      "next": [
+        "module/TellMom on :8139 in DOOR_TABLE, POST /api/tell {severity,subject,body,wants,dedupeKey,channels} - built this bite",
+        "policy in data/policy.json: dedupe window 900s, ceiling 6/hour, quiet hours that 'alert' may cross - built this bite",
+        "a receipt for every tell in data/told.jsonl + node.<ref>.told in State: sent, to where, deduped or failed - built this bite",
+        "NO Telegram anywhere: the operator does not want it - enforced in code and in comments",
+        "Discord outbound only: a declared channel id or a DM opened to DISCORD_ALLOWED_USERS[0]; nothing stays connected between messages",
+        "Phoenix Cycle calls Tell Mom when a cycle has something to say (the 10-minute beat's first action)",
+        "a Tell Mom that reached nothing must be visible: the pane shows the receipt line, and the LAN row carries the last tell",
+        "senders are declared too: which modules may tell, and at what ceiling - a runaway loop cannot page the phone",
+        "the operator can mute a subject without muting the module (a key, not a switch)",
+        "no secrets in the repo: the token is read from the Hermes .env at runtime and never echoed"
+      ],
+      "depsDone": 0,
+      "depsTotal": 0,
+      "tags": [
+        "tellmom",
+        "module",
+        "notify",
+        "discord"
+      ]
+    },
+    {
+      "ref": "0d6a276c",
+      "title": "Broker: Discord as the free answer to double NAT, owned by one module",
+      "intent": "The ISP puts this LAN behind double NAT, so nodes cannot reach each other directly from outside. Discord is the one free transport that gets through - and the operator gave up on running gateways per service. So one module owns the ONE Discord connection: it relays node-to-node messages (brokering), and Tell Mom borrows it for outbound notifications. No second listener, no per-module bot.",
+      "next": [
+        "one module owns the Discord connection: outbound messages and (later) inbound reads, never one listener per module",
+        "Tell Mom is a CLIENT of the broker for the phone channel, not the owner of a token",
+        "node-to-node envelope over Discord: from, to, topic, body, id - so a remote node's answer is one message, not a protocol",
+        "pairing is declared: which Discord channel/DM belongs to which node ref, in the instance layer, not in code",
+        "inbound is opt-in per node: a box that only sends never opens a socket",
+        "what arrives is a fact in State (node.<ref>.broker.last) so the operator can see the wire is alive",
+        "a broker outage must not stop local work: everything local keeps running, and the backlog is reported not queued forever"
+      ],
+      "depsDone": 0,
+      "depsTotal": 0,
+      "tags": [
+        "broker",
+        "discord",
+        "nat",
+        "module"
+      ]
     }
   ],
   "alsoReady": [
@@ -284,7 +331,9 @@
     "49e30c7a",
     "8ff46a1b",
     "daa96bc0",
-    "cdb81fd3"
+    "cdb81fd3",
+    "c9c77ef1",
+    "0d6a276c"
   ],
   "stuck": [
     {
@@ -349,6 +398,6 @@
     "notActive": 2,
     "noAction": 0,
     "waitingOnDeps": 6,
-    "ready": 14
+    "ready": 16
   }
 }

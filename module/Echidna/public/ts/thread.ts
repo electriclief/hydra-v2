@@ -12,8 +12,11 @@ import path from 'node:path';
 export interface Turn {
   id: string;
   at: string;
-  /** 'you' | 'echidna' | 'system' — system carries refusals and failures, which are turns too. */
-  role: 'you' | 'echidna' | 'system';
+  /**
+   * 'you' | 'echidna' | 'system' | 'note' — system carries refusals and failures (something went wrong), 'note' is a
+   * message that arrived from another door (Tell Mom): nobody failed, something happened.
+   */
+  role: 'you' | 'echidna' | 'system' | 'note';
   text: string;
   /** How long the agent took, for echidna turns. */
   ms?: number;
