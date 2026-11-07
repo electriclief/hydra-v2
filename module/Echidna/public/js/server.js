@@ -478,7 +478,11 @@ ${run.text}`.trim(),
       }
       if (method === "GET") {
         const rel = p === "/" ? "index.html" : p.replace(/^\/+/, "");
-        const file = path.join(options.publicDir, rel);
+        let file = path.join(options.publicDir, rel);
+        if (!fs.existsSync(file) && !path.extname(rel)) {
+          const twin = `${file}.html`;
+          if (fs.existsSync(twin) && fs.statSync(twin).isFile()) file = twin;
+        }
         if (!file.startsWith(options.publicDir) || !fs.existsSync(file) || !fs.statSync(file).isFile()) {
           sendJson(res, 404, { ok: false, error: "no such file", path: p });
           return;

@@ -605,7 +605,13 @@ export function createServer(options: ServerOptions): http.Server {
 
       if (method === 'GET') {
         const rel = p === '/' ? 'index.html' : p.replace(/^\/+/, '');
-        const file = path.join(options.publicDir, rel);
+        let file = path.join(options.publicDir, rel);
+        // '/billboard' is a page, not a missing file: try the .html twin before saying 404, so a URL people can type
+        // is a URL that works.
+        if (!fs.existsSync(file) && !path.extname(rel)) {
+          const twin = `${file}.html`;
+          if (fs.existsSync(twin) && fs.statSync(twin).isFile()) file = twin;
+        }
         // never serve outside public/: a door that hands out ..\.. is not a door
         if (!file.startsWith(options.publicDir) || !fs.existsSync(file) || !fs.statSync(file).isFile()) {
           sendJson(res, 404, { ok: false, error: 'no such file', path: p });

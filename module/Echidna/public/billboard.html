@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Hydra — billboard</title>
+<style>
+  :root {
+    --paper: #faf9f7;
+    --ink: #14120f;
+    --ink-soft: #6b645c;
+    --line: #e3ded6;
+    --accent: #7c2340;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font: 400 16px/1.45 "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
+    display: grid;
+    grid-template-rows: 1fr auto;
+    padding: 6vh 7vw 4vh;
+    -webkit-font-smoothing: antialiased;
+    overflow: hidden;
+  }
+
+  /* One page, centred, nothing else on screen. The type does the hierarchy; the whitespace does the rest. */
+  main {
+    display: grid;
+    align-content: center;
+    gap: 2.2vh;
+    max-width: 62rem;
+    margin: 0 auto;
+    width: 100%;
+  }
+  .kicker {
+    font-size: clamp(11px, 0.9vw, 13px);
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--accent);
+    font-weight: 600;
+  }
+  h1 {
+    font-size: clamp(30px, 3.6vw, 54px);
+    line-height: 1.08;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    margin: 0 0 1vh;
+    text-wrap: balance;
+  }
+  ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 1.6vh; }
+  li {
+    font-size: clamp(17px, 1.5vw, 24px);
+    line-height: 1.35;
+    color: var(--ink);
+    padding-left: 1.1ch;
+    position: relative;
+    text-wrap: pretty;
+  }
+  li::before { content: ""; position: absolute; left: 0; top: 0.62em; width: 5px; height: 5px; border-radius: 50%; background: var(--line); }
+  li.dim { color: var(--ink-soft); }
+
+  .buttons { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 1.4vh; }
+  button {
+    font: inherit; font-size: clamp(14px, 1.05vw, 16px);
+    background: transparent; color: var(--ink);
+    border: 1px solid var(--ink);
+    padding: 0.62em 1.1em; border-radius: 2px;
+    cursor: pointer; transition: background 120ms ease, color 120ms ease;
+  }
+  button:hover { background: var(--ink); color: var(--paper); }
+
+  footer {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 24px; max-width: 62rem; margin: 0 auto; width: 100%;
+    border-top: 1px solid var(--line); padding-top: 1.6vh;
+  }
+  .dots { display: flex; gap: 8px; }
+  .dot {
+    width: 22px; height: 3px; background: var(--line); border: 0; padding: 0; cursor: pointer; border-radius: 0;
+    transition: background 160ms ease, width 160ms ease;
+  }
+  .dot[aria-current="true"] { background: var(--accent); width: 38px; }
+  .meta { font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-soft); display: flex; gap: 18px; align-items: center; }
+  .meta b { font-weight: 600; color: var(--ink); }
+  .paused { color: var(--accent); }
+
+  .fade { animation: fade 320ms ease both; }
+  @keyframes fade { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+  @media (prefers-reduced-motion: reduce) { .fade { animation: none; } }
+</style>
+</head>
+<body>
+<main id="stage" aria-live="polite"></main>
+<footer>
+  <div class="dots" id="dots" role="tablist" aria-label="billboard pages"></div>
+  <div class="meta">
+    <span id="source">connecting…</span>
+    <span id="state"></span>
+    <span><b>space</b> pause · <b>←</b> <b>→</b> move</span>
+  </div>
+</footer>
+
+<script>
+(() => {
+  const stage = document.getElementById('stage');
+  const dots = document.getElementById('dots');
+  const source = document.getElementById('source');
+  const state = document.getElementById('state');
+
+  let pages = [];
+  let index = 0;
+  let everyMs = 15000;
+  let paused = false;
+  let timer = null;
+  let fetchedAt = 0;
+
+  const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+  function paint() {
+    if (!pages.length) return;
+    const page = pages[Math.min(index, pages.length - 1)];
+    stage.innerHTML = `
+      <div class="kicker fade">${esc(page.kind || 'status')}</div>
+      <h1 class="fade">${esc(page.title || '')}</h1>
+      <ul class="fade">${(page.lines || []).map((l) => `<li>${esc(l)}</li>`).join('')}</ul>
+      ${page.buttons && page.buttons.length ? `<div class="buttons fade">${page.buttons.map((b, i) => `<button data-i="${i}">${esc(b.label)}</button>`).join('')}</div>` : ''}
+    `;
+    [...stage.querySelectorAll('button[data-i]')].forEach((el) => {
+      el.addEventListener('click', () => {
+        const action = page.buttons[Number(el.dataset.i)]?.action;
+        if (!action || !action.url) return;
+        // A button is a declaration: open the owner's door. The billboard itself never runs anything.
+        window.open(action.url, '_blank', 'noopener');
+      });
+    });
+    dots.querySelectorAll('.dot').forEach((d, i) => d.setAttribute('aria-current', String(i === index)));
+    state.textContent = paused ? 'paused' : '';
+    state.className = paused ? 'meta paused' : 'meta';
+  }
+
+  function buildDots() {
+    dots.innerHTML = pages.map((p, i) => `<button class="dot" role="tab" aria-label="${esc(p.title || 'page ' + (i + 1))}" data-i="${i}"></button>`).join('');
+    dots.querySelectorAll('.dot').forEach((d) => {
+      d.addEventListener('click', () => { index = Number(d.dataset.i); paint(); restart(); });
+    });
+  }
+
+  function advance() {
+    if (pages.length < 2) return;
+    index = (index + 1) % pages.length;
+    paint();
+  }
+
+  function restart() {
+    clearInterval(timer);
+    if (pages.length > 1) timer = setInterval(() => { if (!paused) advance(); }, everyMs);
+  }
+
+  async function load() {
+    try {
+      const res = await fetch('/api/billboard', { cache: 'no-store' });
+      const data = await res.json();
+      if (!data.ok) throw new Error(data.error || 'billboard refused');
+      const fresh = data.pages || [];
+      const signature = JSON.stringify(fresh);
+      const changed = signature !== JSON.stringify(pages);
+      pages = fresh;
+      everyMs = data.everyMs || 15000;
+      index = Math.min(index, Math.max(0, pages.length - 1));
+      source.textContent = `${pages.length} page${pages.length === 1 ? '' : 's'} · ${Math.round(everyMs / 1000)}s`;
+      if (changed) buildDots();
+      paint();
+      restart();
+      fetchedAt = Date.now();
+    } catch (error) {
+      stage.innerHTML = `<div class="kicker">the board is dark</div><h1>${esc(error.message)}</h1><ul><li class="dim">Echidna door unreachable — this page keeps trying.</li></ul>`;
+      source.textContent = 'offline';
+    }
+  }
+
+  document.addEventListener('keydown', (e) => {
+    if (e.code === 'Space') { e.preventDefault(); paused = !paused; paint(); }
+    if (e.code === 'ArrowRight') { index = (index + 1) % Math.max(1, pages.length); paint(); restart(); }
+    if (e.code === 'ArrowLeft') { index = (index - 1 + Math.max(1, pages.length)) % Math.max(1, pages.length); paint(); restart(); }
+  });
+
+  load();
+  setInterval(load, 60000);            // the pages are cheap to recompose; the DAG may have moved
+  setInterval(() => { if (!paused && Date.now() - fetchedAt > everyMs * 4) load(); }, 5000);
+})();
+</script>
+</body>
+</html>

@@ -1294,6 +1294,31 @@
       ],
       "created": "2026-11-07T06:12:37",
       "touched": "2026-11-07T06:12:37"
+    },
+    {
+      "ref": "4fbafaae",
+      "title": "Every node runs Hermes and a llama.cpp model sized to its card, as a service",
+      "intent": "Hydra is Hermes-happy: for a node to be part of the fleet it offers two things - a Hermes agent (so the node can be given a job, not just a port) and a llama.cpp server with a model that actually fits its VRAM. That pair is what makes local housekeeping possible at all: the caretaker job never leaves the LAN and never touches a paid provider. Done means every live node advertises {hermes, llama} in its state caps, the model choice is derived from measured VRAM (not from the card's marketing name), the Process Manager supervises llama-server through WATCHDOG_TABLE so it is visible and stoppable, and the caretaker role can be filed on any node that advertises both.",
+      "state": "active",
+      "deps": [],
+      "next": [
+        "publish caps.hermes and caps.llama per node in State, with the model id and context size actually loaded",
+        "size the model by measured VRAM: 16GB -> 9B q4, 8GB -> 7B q4, 6GB -> 4B q4, 2GB -> 1.5B q4 (targets to verify by measurement, not promises)",
+        "declare llama-server in WATCHDOG_TABLE per node so it appears in the Hydra app and dies with one close button",
+        "caretaker role only files work on nodes that advertise both caps; otherwise defer or nag"
+      ],
+      "tags": [
+        "fleet",
+        "hermes",
+        "llama.cpp",
+        "caretaker",
+        "housekeeping"
+      ],
+      "trail": [
+        "2026-11-06: operator's rule - all nodes should have Hermes installed and a llama cpp model to fit that GPU, as a service. Hydra is Hermes happy."
+      ],
+      "created": "2026-11-07T12:10:31",
+      "touched": "2026-11-07T12:10:31"
     }
   ]
 }
