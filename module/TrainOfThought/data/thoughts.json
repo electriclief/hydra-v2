@@ -99,7 +99,7 @@
         {
           "at": 1793981192445,
           "kind": "state",
-          "text": "closed — All three items done: the 8135 door answers (/api/seats ok), the window owns the tab via DOOR_TABLE, and README.md now documents the tree, seats, API and gate.",
+          "text": "closed \u2014 All three items done: the 8135 door answers (/api/seats ok), the window owns the tab via DOOR_TABLE, and README.md now documents the tree, seats, API and gate.",
           "by": "agent"
         }
       ],
@@ -934,7 +934,7 @@
       "state": "active",
       "deps": [],
       "next": [
-        "LAN row still missing: Core.observePeer pulls only node.<peer>.cycle. It must also carry standby, Mirror must expose it, and the Menu must render \"Idle Service · mining\" per node - then Jim shows mining.",
+        "LAN row still missing: Core.observePeer pulls only node.<peer>.cycle. It must also carry standby, Mirror must expose it, and the Menu must render \"Idle Service \u00b7 mining\" per node - then Jim shows mining.",
         "The guard file data/standby/guard.state.json stays as a local fallback only (used when State cannot answer); it is never the LAN truth.",
         "Any new module (file transfer) declares its own branch namespace and must not write .scheduler or .standby."
       ],
@@ -988,7 +988,7 @@
     },
     {
       "ref": "e093f426",
-      "title": "Hydra V2 design — what is built, what is open",
+      "title": "Hydra V2 design \u2014 what is built, what is open",
       "intent": "",
       "state": "active",
       "deps": [],
@@ -1244,6 +1244,30 @@
       "created": 1794010330405,
       "touched": 1794010330405,
       "dir": "thoughts/adb20a28"
+    },
+    {
+      "ref": "0adbce25",
+      "title": "Watch for a Qwen 4 small model that fits the RX 6800 16 GB",
+      "intent": "Every generation of Qwen must be checked for a DENSE model in the 7-14B class that runs on a 16 GB card, because the flagship no longer serves this rig: Qwen3.8 shipped 27B, Flash-Next (512 experts, 10 active, 262k ctx) and a 2.4T MoE - the smallest Flash-Next GGUF is Q2_K_XL at 79 GB, which is not a 16 GB model at all. Done means: a Qwen 4 or later release with a dense 7-14B cut has a GGUF (Q4_K_M or better) that fits ~16 GB with usable context, measured on the 6800 against Qwen3.6-9B on the same prompts, and it wins the speed/quality trade - or the generation is declared a skip and the note says why.",
+      "state": "open",
+      "deps": [],
+      "next": [
+        "watch Qwen/Qwen4-* and Qwen3.9/3.10 author listings for a dense small cut (9B-class), not the MoE flagship",
+        "when a candidate lands, check unsloth + mradermacher for Q4_K_M and read the real file sizes, not the model card claim",
+        "benchmark against Qwen3.6-9B on identical prompts: t/s, VRAM at 32k ctx, and a quality spot check before swapping"
+      ],
+      "tags": [
+        "fleet",
+        "models",
+        "watch",
+        "rx6800",
+        "qwen"
+      ],
+      "trail": [
+        "2026-11-06: Qwen 4 confirmed NOT released. Only stealth-model/Qwen3.8-Flash-Next__Qwen4-news (news + preview GGUFs, 2026-10-31). Qwen3.8 line = 27B, Flash-Next, 2.4T-A95B - no 9B. Quant latency measured: Qwen3.8-27B base 2026-08-05 -> unsloth GGUF 2026-08-13 (8 days); Flash-Next 08-24 -> 08-26 (2 days). Cadence Feb/Apr/Aug implies Qwen 4 in the Dec 2026 - Feb 2027 window, quants inside two weeks."
+      ],
+      "created": "2026-11-07T05:57:04",
+      "touched": "2026-11-07T05:57:04"
     }
   ]
 }
