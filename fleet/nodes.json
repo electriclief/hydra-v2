@@ -84,6 +84,23 @@
         "NVIDIA GeForce GTX 1050 2GB"
       ],
       "note": "10 doors, no guard/shelf"
+    },
+    "robert": {
+      "ref": "robert",
+      "role": "linux node",
+      "os": "Linux Mint (being installed)",
+      "state": "offline - sshd down at last check",
+      "note": "first Linux node in the LAN: doors will need a POSIX start path, not a .ps1 one. This is the node that proves Hydra is not Windows-only."
+    },
+    "rex": {
+      "ref": "rex",
+      "role": "gpu",
+      "gpus": [
+        "AMD Radeon RX 570 8GB (being installed)"
+      ],
+      "state": "offline - installing",
+      "gpuCompute": true,
+      "note": "Polaris, 8 GB VRAM: enough for small llama/sd models and for OpenCL mining. Replaces the Pitcairn card that could not mine at all. 8 GB also makes it the largest-VRAM node behind 123's 6800."
     }
   }
 }
