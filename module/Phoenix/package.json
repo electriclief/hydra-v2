@@ -1,0 +1,15 @@
+{
+  "name": "phoenix",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "server/main.js",
+  "description": "Phoenix Cycle - the maintenance registry. Entries are registered by their owners, each with a port and a declared trigger; the cycle re-checks the list every 10 minutes.",
+  "engines": {
+    "node": ">=22.5"
+  },
+  "scripts": {
+    "start": "node server/main.js",
+    "selftest": "node server/selftest.js"
+  }
+}

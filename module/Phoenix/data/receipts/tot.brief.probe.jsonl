@@ -1,0 +1,1 @@
+{"id":"tot.brief.probe","owner":"Phoenix","kind":"code","started":"2026-11-07T11:15:50.719Z","ended":"2026-11-07T11:15:50.776Z","ms":55,"outcome":"ok","detail":{"url":"http://127.0.0.1:8135/api/brief","status":200,"ms":53,"bytes":6028}}

@@ -1,0 +1,7 @@
+{
+  "module": "Phoenix",
+  "door": 8146,
+  "title": "Phoenix Cycle",
+  "kind": "maintenance-registry",
+  "note": "Runs registered upkeep every 10 minutes by default. Not the Scheduler: the Scheduler decides what a node does with its GPU; Phoenix decides what upkeep is due."
+}

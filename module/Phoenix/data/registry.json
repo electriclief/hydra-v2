@@ -1,0 +1,20 @@
+{
+  "_note": "Entries raised by their owners. Empty is normal: a fresh install has no maintenance registered and Phoenix is still correct. Every entry needs both a tick (its trigger) and a port (this door answers for it).",
+  "version": 1,
+  "entries": [
+    {
+      "id": "tot.brief.probe",
+      "owner": "Phoenix",
+      "title": "The train of thought door still answers",
+      "kind": "code",
+      "trigger": {
+        "every": "6h"
+      },
+      "action": {
+        "http": "http://127.0.0.1:8135/api/brief"
+      },
+      "lease_s": 20,
+      "enabled": true
+    }
+  ]
+}
