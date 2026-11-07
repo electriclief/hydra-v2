@@ -5,12 +5,32 @@
       "host": "DESKTOP-QUCA6R5",
       "role": "gpu + hydra canonical",
       "model": "desktop",
-      "cpu": "unknown",
-      "ramGB": null,
+      "cpu": "Intel Xeon E5-2650 v2 @ 2.60 GHz",
+      "ramGB": 32,
       "gpus": [
         "AMD Radeon RX 6800"
       ],
-      "note": "canonical repo + GitHub credentials; runs the doors"
+      "note": "canonical repo + GitHub credentials; runs the doors",
+      "cores": 8,
+      "threads": 16,
+      "disks": [
+        {
+          "model": "KINGSTON SHFS37A240G",
+          "sizeGB": 223.6,
+          "role": "system"
+        },
+        {
+          "model": "WDC WD5000AAKS",
+          "sizeGB": 465.8,
+          "role": "salvage destination E:"
+        },
+        {
+          "model": "ST380013AS (USB bridge)",
+          "sizeGB": 74.5,
+          "role": "ventoy D:"
+        }
+      ],
+      "gpuCompute": true
     },
     "122": {
       "host": "DESKTOP-FS33L02",
