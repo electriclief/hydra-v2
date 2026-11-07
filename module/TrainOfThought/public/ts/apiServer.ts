@@ -447,6 +447,26 @@ export function createServer(options: ApiOptions): http.Server {
           return;
         }
 
+        // The DAG as bullets — the human-readable state, one line per node. Deliberately tiny: this is what
+        // Echidna loads at boot, not the store. Bullets only (ref, state, title), so the cost stays ~2 KB for
+        // a whole fleet's intentions and a person can read it in ten seconds.
+        if (pathName === '/api/brief' && method === 'GET') {
+          const wanted = (url.searchParams.get('states') ?? 'blocked,active,open')
+            .split(',')
+            .map((s) => s.trim())
+            .filter(Boolean);
+          const order = ['blocked', 'active', 'open', 'done'];
+          const limit = Math.max(1, Math.min(200, Number(url.searchParams.get('limit') ?? 60) || 60));
+          const rows = store.nodes
+            .filter((node) => wanted.includes(node.state))
+            .sort((a, b) => order.indexOf(a.state) - order.indexOf(b.state) || b.touched - a.touched)
+            .slice(0, limit);
+          const bullets = rows.map((node) => ({ ref: node.ref, state: node.state, title: node.title }));
+          const text = bullets.map((b) => `${b.ref}  ${b.state.padEnd(7)}  ${b.title}`).join('\n');
+          send(res, 200, { ok: true, count: bullets.length, chars: text.length, bullets, text });
+          return;
+        }
+
         if (pathName === '/api/next' && method === 'GET') {
           const ready = store.ready();
           if (ready.length === 0) {

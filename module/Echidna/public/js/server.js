@@ -203,6 +203,27 @@ function createServer(options) {
           return;
         }
       }
+      if (p === "/api/brief" && method === "GET") {
+        const tot = (process.env.ECHIDNA_TOT ?? "http://127.0.0.1:8135").replace(/\/$/, "");
+        try {
+          const controller = new AbortController();
+          const timer = setTimeout(() => controller.abort(), 2500);
+          const upstream = await fetch(`${tot}/api/brief`, { signal: controller.signal });
+          clearTimeout(timer);
+          const data = await upstream.json();
+          sendJson(res, upstream.ok ? 200 : 502, {
+            ok: upstream.ok,
+            source: tot,
+            count: data.count ?? 0,
+            chars: data.chars ?? 0,
+            text: data.text ?? "",
+            bullets: data.bullets ?? []
+          });
+        } catch (error) {
+          sendJson(res, 503, { ok: false, source: tot, error: `the train of thought is not answering at ${tot}`, detail: error.message });
+        }
+        return;
+      }
       if (p === "/api/tts" && method === "GET") {
         const cfg = readTts();
         let reachable = false;

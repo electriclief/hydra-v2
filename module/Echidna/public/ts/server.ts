@@ -306,6 +306,31 @@ export function createServer(options: ServerOptions): http.Server {
         }
       }
 
+      // Where we left off: the Train of Thought as bullets, fetched at boot so the first thing Echidna says is the
+      // state of the work rather than "hello". Bullets only - ref, state, title - about 2 KB for the whole DAG.
+      // The store stays on the ToT door; this door never writes to it.
+      if (p === '/api/brief' && method === 'GET') {
+        const tot = (process.env.ECHIDNA_TOT ?? 'http://127.0.0.1:8135').replace(/\/$/, '');
+        try {
+          const controller = new AbortController();
+          const timer = setTimeout(() => controller.abort(), 2500);
+          const upstream = await fetch(`${tot}/api/brief`, { signal: controller.signal });
+          clearTimeout(timer);
+          const data = (await upstream.json()) as { count?: number; chars?: number; text?: string; bullets?: unknown };
+          sendJson(res, upstream.ok ? 200 : 502, {
+            ok: upstream.ok,
+            source: tot,
+            count: data.count ?? 0,
+            chars: data.chars ?? 0,
+            text: data.text ?? '',
+            bullets: data.bullets ?? [],
+          });
+        } catch (error) {
+          sendJson(res, 503, { ok: false, source: tot, error: `the train of thought is not answering at ${tot}`, detail: (error as Error).message });
+        }
+        return;
+      }
+
       // The voice: a switch and a proxy. This door never synthesises speech itself - the LAN does, so a laptop with
       // no GPU still talks, and the box doing the talking is visible as a service in the Menu.
       if (p === '/api/tts' && method === 'GET') {
