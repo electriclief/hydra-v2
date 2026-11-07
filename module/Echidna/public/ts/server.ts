@@ -20,6 +20,7 @@ import path from 'node:path';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 
 import { ask, type AgentConfig } from './agent.js';
+import { loadRig } from './rig.js';
 import { ThreadStore, turnId, type Turn } from './thread.js';
 
 export interface ServerOptions {
@@ -36,14 +37,21 @@ export interface ServerOptions {
   mirrorUrl: string;
   /** A viewer: it serves the host's conversation and never publishes a branch of its own. */
   readOnly?: boolean;
+  /** The approved rig directory (media/characters). The faces come from there, never from a second copy. */
+  rigDir: string;
 }
 
 /** One card on the monitor. It is replaced, never appended: the board is never a feed. */
 export interface MonitorCard {
-  kind: 'question' | 'output' | 'goal' | 'note';
+  kind: 'question' | 'output' | 'goal' | 'note' | 'speaker';
   title: string;
   text: string;
   at: string;
+  /** speaker only: which character record to draw, and what audio it says the line over. */
+  character?: string;
+  audio?: string;
+  /** buttons someone can tap to answer, when the card is asking something */
+  options?: string[];
 }
 
 export interface MonitorState {
@@ -210,7 +218,13 @@ export function createServer(options: ServerOptions): http.Server {
 
       if (p === '/api/state' && method === 'GET') {
         const { easy, error } = readEasy(easyFile);
+        // the faces come from the APPROVED rig, not from a second set of numbers invented here
+        const rig = loadRig(options.rigDir);
+        const characters = Object.keys(rig.characters).length
+          ? { source: options.rigDir, error: rig.error, characters: rig.characters }
+          : null;
         sendJson(res, 200, {
+          characters,
           monitor: { card: monitorCard(), index: monitor.index, total: monitor.stack.length },
           thread: thread.read(),
           easy,
@@ -290,8 +304,16 @@ export function createServer(options: ServerOptions): http.Server {
           sendJson(res, 400, { ok: false, error: 'a card needs a title or a text' });
           return;
         }
-        const kind = (['question', 'output', 'goal', 'note'].includes(String(body.kind)) ? String(body.kind) : 'note') as MonitorCard['kind'];
-        pushCard({ kind, title, text, at: new Date().toISOString() });
+        const kind = (['question', 'output', 'goal', 'note', 'speaker'].includes(String(body.kind)) ? String(body.kind) : 'note') as MonitorCard['kind'];
+        pushCard({
+          kind,
+          title,
+          text,
+          at: new Date().toISOString(),
+          ...(body.character ? { character: String(body.character) } : {}),
+          ...(body.audio ? { audio: String(body.audio) } : {}),
+          ...(Array.isArray(body.options) ? { options: body.options.map(String) } : {}),
+        });
         await publish();
         sendJson(res, 201, { ok: true, monitor: { card: monitorCard(), index: monitor.index, total: monitor.stack.length } });
         return;

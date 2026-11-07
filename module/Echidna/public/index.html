@@ -39,6 +39,17 @@
   .monitor-title { font-size: clamp(17px, 6.2vh, 42px); line-height: 1.12; font-weight: 600; margin: 0 0 10px; }
   .monitor-text { font-size: clamp(12px, 1.9vh, 18px); color: #cfd4e0; max-width: 34em; margin: 0; }
   .monitor-empty { color: var(--muted); font-size: 16px; max-width: 30em; }
+  /* a speaker card: the figure on the left, the line being said on the right, and the frame meter in the corner */
+  .speaker { display: flex; align-items: center; gap: clamp(14px, 2.4vw, 34px); height: 100%; }
+  .speaker figure { margin: 0; flex: 0 0 auto; height: 100%; display: flex; align-items: flex-end; }
+  .speaker svg { height: 100%; width: auto; max-height: 100%; display: block; }
+  .speaker .line { flex: 1 1 auto; min-width: 0; }
+  .speaker .name { font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--gold); margin-bottom: 6px; }
+  .speaker .said { font-size: clamp(15px, 2.2vh, 26px); line-height: 1.25; color: #e6e8ef; margin: 0 0 10px; }
+  .speaker .words { display: flex; gap: 8px; flex-wrap: wrap; }
+  .speaker .words button { background: var(--bg); color: var(--text); border: 1px solid var(--line); border-radius: 9px; padding: 9px 14px; font: inherit; font-size: 14px; cursor: pointer; }
+  .speaker .words button:hover { border-color: var(--gold); }
+  .meter { position: absolute; right: 12px; bottom: 8px; font: 11px/1 ui-monospace, monospace; color: #5d6474; letter-spacing: .04em; }
   /* the drag bar: same idiom as the Menu's golden-layout gutters, and it is a real handle, not a decoration */
   .splitter { flex: 0 0 7px; cursor: row-resize; background: #14171d; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); position: relative; }
   .splitter::after { content: ''; position: absolute; left: 50%; top: 50%; width: 44px; height: 3px; margin: -1.5px 0 0 -22px; border-radius: 2px; background: #3a4150; }
@@ -161,7 +172,7 @@
       <textarea id="say" placeholder="Say what you want. Enter sends, Shift+Enter adds a line." rows="2"></textarea>
       <div class="composer-row">
         <button type="button" class="mic" id="mic" hidden title="push to talk">🎤 hold to talk</button>
-        <span class="hint" id="hint">one ask at a time · the answer is the real agent, not a summary</span>
+        <span class="hint" id="hint">one ask at a time · Win+H dictates into this box · the answer is the real agent, not a summary</span>
         <button type="button" class="send" id="send">Send</button>
       </div>
     </div>
@@ -229,10 +240,196 @@
     threadEl.scrollTop = threadEl.scrollHeight;
   }
 
+  // ── the speaker: a vector character that talks while the audio plays, then gets replaced by data ────────────
+  // Drawing rules for a weak box: SVG built ONCE per card, then per frame we touch a handful of transforms and one
+  // path. No filters, no blur, no shadows, no canvas re-layout - those are what make an i3 drop frames.
+  var CHARS = null;
+  var anim = null;
+
+  function characterSpec(name) {
+    var all = (CHARS && CHARS.characters) || {};
+    return all[name] || all.narrator || null;
+  }
+
+  function buildSpeakerSvg(ch) {
+    var sk = ch.palette.skin, hair = ch.palette.hair, cloth = ch.palette.cloth, accent = ch.palette.accent;
+    var r = ch.head.r, jaw = ch.head.jaw;
+    var ey = ch.eyes.y, edx = ch.eyes.dx, er = ch.eyes.r, lid = ch.eyes.lid;
+    var my = ch.mouth.y, mw = ch.mouth.w;
+    var hairStyle = ch.hair.style;
+    // the cap ends ABOVE the brow line: hair that covers the face reads as a mask, not a person
+    var cap = 'M -' + r + ' ' + (-r * 0.18) + ' q 0 -' + (r * 0.86) + ' ' + r + ' -' + (r * 0.86) +
+              ' q ' + r + ' 0 ' + r + ' ' + (r * 0.86) + ' q -' + (r * 0.3) + ' ' + (r * 0.3) + ' 0 ' + (r * 0.12) +
+              ' q ' + (r * 0.3) + ' -' + (r * 0.24) + ' 0 -' + (r * 0.12) + ' Z';
+    var hairPath = hairStyle === 'long'
+      ? cap + ' M -' + (r + 2) + ' ' + (-r * 0.1) + ' q -6 ' + (r * 0.5) + ' -2 ' + (r * 1.15) + ' l 10 0 q -6 -' + (r * 0.5) + ' 1 -' + (r * 1.1) + ' Z' +
+        ' M ' + (r + 2) + ' ' + (-r * 0.1) + ' q 6 ' + (r * 0.5) + ' 2 ' + (r * 1.15) + ' l -10 0 q 6 -' + (r * 0.5) + ' -1 -' + (r * 1.1) + ' Z'
+      : hairStyle === 'bob'
+        ? cap + ' M -' + (r + 1) + ' ' + (-r * 0.05) + ' q -5 ' + (r * 0.35) + ' -3 ' + (r * 0.55) + ' l 8 0 q -4 -' + (r * 0.25) + ' 0 -' + (r * 0.5) + ' Z' +
+          ' M ' + (r + 1) + ' ' + (-r * 0.05) + ' q 5 ' + (r * 0.35) + ' 3 ' + (r * 0.55) + ' l -8 0 q 4 -' + (r * 0.25) + ' 0 -' + (r * 0.5) + ' Z'
+        : cap;
+    return '' +
+      '<svg viewBox="-78 -112 156 238" preserveAspectRatio="xMidYMax meet" aria-hidden="true">' +
+        '<g id="sp-body">' +
+          '<path d="M -' + ch.shoulders.w + ' 120 q 0 -46 ' + ch.shoulders.w + ' -46 q ' + ch.shoulders.w + ' 0 ' + ch.shoulders.w + ' 46 Z" fill="' + cloth + '"/>' +
+          '<rect x="-9" y="' + (r - 14) + '" width="18" height="26" rx="7" fill="' + sk + '" opacity=".92"/>' +
+          '<path d="M -12 ' + (ch.shoulders.y - 6) + ' q 12 8 24 0" stroke="' + accent + '" stroke-width="2.5" fill="none" opacity=".8"/>' +
+        '</g>' +
+        '<g id="sp-head">' +
+          '<ellipse cx="0" cy="0" rx="' + r + '" ry="' + (r * jaw) + '" fill="' + sk + '"/>' +
+          '<path d="' + hairPath + '" fill="' + hair + '" opacity=".96"/>' +
+          '<g id="sp-eyes">' +
+            '<ellipse cx="-' + edx + '" cy="' + ey + '" rx="' + (er + 2.4) + '" ry="' + (er + 1.4) + '" fill="#f4f2ee"/>' +
+            '<ellipse cx="' + edx + '" cy="' + ey + '" rx="' + (er + 2.4) + '" ry="' + (er + 1.4) + '" fill="#f4f2ee"/>' +
+            '<circle cx="-' + edx + '" cy="' + ey + '" r="' + er + '" fill="' + hair + '"/><circle cx="' + edx + '" cy="' + ey + '" r="' + er + '" fill="' + hair + '"/>' +
+            '<circle cx="' + (edx - er * 0.4) + '" cy="' + (ey - er * 0.4) + '" r="1.1" fill="#fff" opacity=".9"/>' +
+            '<rect id="sp-lid-l" x="-' + (edx + er + 3) + '" y="' + (ey - er - 2) + '" width="' + (2 * er + 6) + '" height="' + (2 * (er + 1.5)) + '" fill="' + sk + '" transform-origin="-' + edx + ' ' + (ey - er - 2) + '" transform="scale(1,' + (1 - lid) + ')"/>' +
+            '<rect id="sp-lid-r" x="' + (edx - er - 3) + '" y="' + (ey - er - 2) + '" width="' + (2 * er + 6) + '" height="' + (2 * (er + 1.5)) + '" fill="' + sk + '" transform-origin="' + edx + ' ' + (ey - er - 2) + '" transform="scale(1,' + (1 - lid) + ')"/>' +
+          '</g>' +
+          '<path id="sp-brow-l" d="M -' + (edx + ch.brow.w / 2) + ' ' + ch.brow.y + ' q ' + ch.brow.w / 2 + ' -4 ' + ch.brow.w + ' 0" stroke="' + hair + '" stroke-width="' + ch.brow.thick + '" fill="none" stroke-linecap="round"/>' +
+          '<path id="sp-brow-r" d="M ' + (edx - ch.brow.w / 2) + ' ' + ch.brow.y + ' q ' + ch.brow.w / 2 + ' -4 ' + ch.brow.w + ' 0" stroke="' + hair + '" stroke-width="' + ch.brow.thick + '" fill="none" stroke-linecap="round"/>' +
+          '<ellipse id="sp-mouth" cx="0" cy="' + my + '" rx="' + mw + '" ry="2" fill="#5b2b30"/>' +
+          '<ellipse id="sp-mouth-in" cx="0" cy="' + (my + 1) + '" rx="' + (mw - 4) + '" ry="1" fill="#2a1013"/>' +
+          '<path d="M -3 ' + (my - 9) + ' q 3 2 6 0" stroke="' + sk + '" stroke-width="2" fill="none" opacity=".5"/>' +
+        '</g>' +
+      '</svg>';
+  }
+
+  function stopAnim() {
+    if (anim) {
+      cancelAnimationFrame(anim.raf);
+      try { anim.audio.pause(); } catch (e) { /* already gone */ }
+      try { anim.ctx && anim.ctx.close(); } catch (e) { /* already closed */ }
+      anim = null;
+    }
+  }
+
+  // One rAF loop, adaptive: it measures its own frame cost and steps quality down rather than stuttering. The meter
+  // is there so the operator can see the cost on THEIR box, because this box is not the weak one.
+  function startSpeaker(card, host) {
+    stopAnim();
+    var ch = characterSpec(card.character || 'narrator');
+    var figure = host.querySelector('.speaker figure');
+    var saidEl = host.querySelector('.said');
+    var meter = host.querySelector('.meter');
+    if (!ch || !figure) return;
+    figure.innerHTML = buildSpeakerSvg(ch);
+    var head = figure.querySelector('#sp-head');
+    var mouth = figure.querySelector('#sp-mouth');
+    var mouthIn = figure.querySelector('#sp-mouth-in');
+    var lids = [figure.querySelector('#sp-lid-l'), figure.querySelector('#sp-lid-r')];
+    var mw = ch.mouth.w, my = ch.mouth.y;
+
+    var audio = new Audio(card.audio);
+    audio.preload = 'auto';
+    var ctx = null, srcNode = null, analyser = null, buf = null;
+    try {
+      ctx = new (window.AudioContext || window.webkitAudioContext)();
+      srcNode = ctx.createMediaElementSource(audio);
+      analyser = ctx.createAnalyser();
+      analyser.fftSize = 256;               // small on purpose: 128 samples is plenty for a mouth
+      analyser.smoothingTimeConstant = 0.6;
+      srcNode.connect(analyser);
+      analyser.connect(ctx.destination);
+      buf = new Uint8Array(analyser.fftSize);
+    } catch (e) {
+      // no WebAudio (rare): the mouth falls back to a slow idle pulse so the figure is still alive
+      ctx = null;
+    }
+
+    var fpsTarget = 24, level = 0;         // 0 full, 1 no sway, 2 mouth only at 12, 3 static
+    var frameMs = 0, lastFrame = 0, lastTick = performance.now(), frames = 0, blinkAt = performance.now() + 2400;
+    var open = 0, sway = 0, t = 0;
+
+    function tick(now) {
+      if (!anim) return;
+      anim.raf = requestAnimationFrame(tick);
+      var dt = now - lastTick;
+      if (dt < 1000 / fpsTarget - 1) return;          // render at the target, not as fast as the box will go
+      frames += 1;
+      lastTick = now;
+      t += dt / 1000;
+      var workStart = performance.now();
+
+      // amplitude -> mouth: the only per-frame work that matters
+      var amp = 0;
+      if (analyser) {
+        analyser.getByteTimeDomainData(buf);
+        var sum = 0;
+        for (var i = 0; i < buf.length; i += 1) { var v = (buf[i] - 128) / 128; sum += v * v; }
+        amp = Math.sqrt(sum / buf.length);
+      } else {
+        amp = 0.12 + 0.1 * Math.sin(t * 9);
+      }
+      open = open * 0.55 + Math.min(1, amp * 4.2) * 0.45;
+      var ry = 1.6 + open * 9.5;
+      mouth.setAttribute('ry', ry.toFixed(1));
+      mouthIn.setAttribute('ry', Math.max(0.8, ry - 2.4).toFixed(1));
+      mouthIn.setAttribute('cy', (my + 1 + (ry - 1.6) * 0.25).toFixed(1));
+
+      if (level < 2) {
+        sway = Math.sin(t * 0.9) * 0.9;
+        head.setAttribute('transform', 'translate(' + sway.toFixed(2) + ',' + (Math.sin(t * 1.3) * 0.6).toFixed(2) + ')');
+      }
+      if (level === 0 && now > blinkAt) {
+        var ph = (now - blinkAt) / 130;
+        var closed = ph < 1 ? (ph < 0.5 ? ph * 2 : (1 - ph) * 2) : 0;
+        lids[0].setAttribute('transform', 'scale(1,' + (1 - Math.max(0.06, closed)).toFixed(2) + ')');
+        lids[1].setAttribute('transform', 'scale(1,' + (1 - Math.max(0.06, closed)).toFixed(2) + ')');
+        if (ph >= 1) blinkAt = now + 2200 + Math.random() * 2600;
+      }
+
+      // how long the DRAWING took, which is the number that decides whether an i3 can do this
+      var cost = performance.now() - workStart;
+      frameMs = frameMs ? frameMs * 0.8 + cost * 0.2 : cost;
+
+      // the meter, once a second, and the downgrade that keeps a weak box usable
+      if (!anim.lastMeter || now - anim.lastMeter > 1000) {
+        anim.lastMeter = now;
+        if (meter) {
+          meter.textContent = fpsTarget + ' fps · ' + frameMs.toFixed(2) + ' ms/draw' +
+            ' · amp ' + amp.toFixed(2) + (level ? ' · lite ' + level : '');
+        }
+        // measured, not assumed: a draw costing more than 8 ms cannot hold 24 fps inside a busy page
+        if (frameMs > 8 && level < 3) { level += 1; fpsTarget = level >= 2 ? 12 : 18; }
+        else if (frameMs < 2 && level > 0) { level -= 1; fpsTarget = level >= 2 ? 12 : 24; }
+      }
+      if (saidEl && card.text) saidEl.textContent = card.text;
+    }
+
+    anim = { raf: 0, audio: audio, ctx: ctx, lastMeter: 0 };
+    anim.raf = requestAnimationFrame(tick);
+    var play = function () { audio.play().catch(function () { /* autoplay may need a click */ }); };
+    play();
+    host.addEventListener('click', function () { if (audio.paused) play(); }, { once: true });
+    audio.addEventListener('ended', function () {
+      if (meter) meter.textContent = '';
+      // the narrator hands back to the data: the line stays, the acting stops
+      if (head) head.setAttribute('transform', 'translate(0,0)');
+      mouth.setAttribute('ry', '1.8');
+    });
+  }
+
   // The monitor: one card, always replaced, never scrolled. A news caster's screen behind him - the thing worth
   // looking at RIGHT NOW. Back walks the few cards that were replaced; it is a stack of one-line memories, not a feed.
   function renderMonitor() {
     var m = state.monitor;
+    if (!m || !m.card || m.card.kind !== 'speaker') stopAnim();
+    if (m && m.card && m.card.kind === 'speaker') {
+      var c0 = m.card;
+      var ch0 = characterSpec(c0.character || 'narrator');
+      var opts = (c0.options || []).map(function (o) {
+        return '<button type="button" data-answer="' + esc(o) + '">' + esc(o) + '</button>';
+      }).join('');
+      monBody.innerHTML = '<div class="speaker"><figure></figure><div class="line">' +
+        '<div class="name">' + esc((ch0 && ch0.name) || 'narrator') + '</div>' +
+        '<p class="said">' + esc(c0.text || '') + '</p>' +
+        (opts ? '<div class="words">' + opts + '</div>' : '') +
+        '</div><div class="meter" id="sp-meter"></div></div>';
+      startSpeaker(c0, monBody);
+      monBack.disabled = !(m.index > 0);
+      return;
+    }
     if (!m || !m.card) {
       monBody.innerHTML = '<p class="monitor-empty">Nothing on the board. Ask below, and whatever is worth looking at lands here — a question, an output, a thing we made.</p>';
       monBack.disabled = true;
@@ -294,7 +491,9 @@
     out += '<h2>speech</h2><div class="speech">';
     out += sp.tts ? 'out loud: ' + esc(sp.tts.label || sp.tts.url) : 'no speech service declared on this LAN (text only)';
     out += '<br>';
-    out += sp.stt ? 'listening: ' + esc(sp.stt.label || sp.stt.url) : 'no listening service declared on this LAN';
+    out += sp.stt
+      ? 'listening: ' + esc(sp.stt.label || sp.stt.url) + (sp.stt.kind === 'os' ? ' — press Win+H and talk into this box' : '')
+      : 'no listening service declared on this LAN';
     out += '</div>';
 
     easyEl.innerHTML = out;
@@ -326,6 +525,7 @@
       state.monitor = conv.monitor || local.monitor || null;
       state.agent = conv.agent || local.agent || {};
       state.easy = local.easy || {};
+      if (local.characters) CHARS = local.characters;
       state.easyError = local.easyError || null;
       state.viewer = !!conv.viewer;
       state.host = conv.host || null;

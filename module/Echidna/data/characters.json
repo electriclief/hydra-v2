@@ -1,0 +1,122 @@
+{
+  "note": "Characters are data. The renderer is one; a new face is a record here, not a fork of the code.",
+  "characters": {
+    "narrator": {
+      "name": "Narrator",
+      "voice": "sophion",
+      "palette": {
+        "skin": "#c99b7a",
+        "hair": "#2f2a26",
+        "cloth": "#2b3340",
+        "accent": "#e7c84b"
+      },
+      "head": {
+        "r": 46,
+        "jaw": 0.92,
+        "chin": 0.12
+      },
+      "eyes": {
+        "y": -8,
+        "dx": 17,
+        "r": 4.2,
+        "lid": 0.85
+      },
+      "brow": {
+        "y": -20,
+        "w": 20,
+        "thick": 3
+      },
+      "hair": {
+        "style": "short",
+        "fringe": 0.35
+      },
+      "mouth": {
+        "y": 16,
+        "w": 17,
+        "open": 2
+      },
+      "shoulders": {
+        "w": 104,
+        "y": 74
+      }
+    },
+    "destiny": {
+      "name": "Destiny",
+      "voice": "destiny",
+      "palette": {
+        "skin": "#e8c3a4",
+        "hair": "#5a3a2a",
+        "cloth": "#3a2f45",
+        "accent": "#8fd3c7"
+      },
+      "head": {
+        "r": 44,
+        "jaw": 0.86,
+        "chin": 0.2
+      },
+      "eyes": {
+        "y": -9,
+        "dx": 16,
+        "r": 4.8,
+        "lid": 0.92
+      },
+      "brow": {
+        "y": -21,
+        "w": 19,
+        "thick": 2.6
+      },
+      "hair": {
+        "style": "long",
+        "fringe": 0.2
+      },
+      "mouth": {
+        "y": 15,
+        "w": 16,
+        "open": 2
+      },
+      "shoulders": {
+        "w": 96,
+        "y": 72
+      }
+    },
+    "kate": {
+      "name": "Kate",
+      "voice": "kate",
+      "palette": {
+        "skin": "#f0d2b8",
+        "hair": "#241c18",
+        "cloth": "#1f2b2a",
+        "accent": "#d8a05a"
+      },
+      "head": {
+        "r": 43,
+        "jaw": 0.9,
+        "chin": 0.16
+      },
+      "eyes": {
+        "y": -8,
+        "dx": 16,
+        "r": 4.4,
+        "lid": 0.78
+      },
+      "brow": {
+        "y": -20,
+        "w": 18,
+        "thick": 2.4
+      },
+      "hair": {
+        "style": "bob",
+        "fringe": 0.5
+      },
+      "mouth": {
+        "y": 15,
+        "w": 15,
+        "open": 2
+      },
+      "shoulders": {
+        "w": 92,
+        "y": 71
+      }
+    }
+  }
+}

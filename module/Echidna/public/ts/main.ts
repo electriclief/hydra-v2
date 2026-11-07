@@ -35,6 +35,8 @@ export interface MainOptions {
   mirrorUrl: string;
   /** Serve another node's conversation; never publish a branch of our own. */
   readOnly: boolean;
+  /** The approved rig directory whose character records drive the faces. */
+  rigDir: string;
 }
 
 /** The node's own ref, read from the instance layer (never from the repo). */
@@ -69,6 +71,7 @@ export function parseArgs(argv: string[], moduleDir = MODULE_DIR): MainOptions {
     nodeRef: process.env.ECHIDNA_REF ?? nodeRefFromDisk(),
     mirrorUrl: process.env.ECHIDNA_MIRROR ?? 'http://127.0.0.1:8137',
     readOnly: process.env.ECHIDNA_READONLY === '1',
+    rigDir: process.env.ECHIDNA_RIG ?? 'C:/AI/hydra-local/media/characters',
   };
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i];
@@ -129,6 +132,7 @@ const server = createServer({
   nodeRef: options.nodeRef,
   mirrorUrl: options.mirrorUrl,
   readOnly: options.readOnly,
+  rigDir: options.rigDir,
 });
 
 server.listen(options.port, options.host, () => {
@@ -136,4 +140,5 @@ server.listen(options.port, options.host, () => {
   process.stdout.write(`[echidna] agent: ${options.agentBin}${fs.existsSync(options.agentBin) ? '' : ' (NOT FOUND)'}\n`);
   process.stdout.write(`[echidna] thread: ${path.join(options.dataDir, 'thread.jsonl')}\n`);
   process.stdout.write(`[echidna] published as node.${options.nodeRef}.echidna to ${options.stateUrl}\n`);
+  process.stdout.write(`[echidna] faces: ${options.rigDir}\n`);
 });

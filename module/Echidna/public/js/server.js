@@ -2,6 +2,7 @@ import fs from "node:fs";
 import http from "node:http";
 import path from "node:path";
 import { ask } from "./agent.js";
+import { loadRig } from "./rig.js";
 import { ThreadStore, turnId } from "./thread.js";
 const MIME = {
   ".html": "text/html; charset=utf-8",
@@ -130,7 +131,10 @@ function createServer(options) {
       }
       if (p === "/api/state" && method === "GET") {
         const { easy, error } = readEasy(easyFile);
+        const rig = loadRig(options.rigDir);
+        const characters = Object.keys(rig.characters).length ? { source: options.rigDir, error: rig.error, characters: rig.characters } : null;
         sendJson(res, 200, {
+          characters,
           monitor: { card: monitorCard(), index: monitor.index, total: monitor.stack.length },
           thread: thread.read(),
           easy,
@@ -202,8 +206,16 @@ function createServer(options) {
           sendJson(res, 400, { ok: false, error: "a card needs a title or a text" });
           return;
         }
-        const kind = ["question", "output", "goal", "note"].includes(String(body.kind)) ? String(body.kind) : "note";
-        pushCard({ kind, title, text, at: (/* @__PURE__ */ new Date()).toISOString() });
+        const kind = ["question", "output", "goal", "note", "speaker"].includes(String(body.kind)) ? String(body.kind) : "note";
+        pushCard({
+          kind,
+          title,
+          text,
+          at: (/* @__PURE__ */ new Date()).toISOString(),
+          ...body.character ? { character: String(body.character) } : {},
+          ...body.audio ? { audio: String(body.audio) } : {},
+          ...Array.isArray(body.options) ? { options: body.options.map(String) } : {}
+        });
         await publish();
         sendJson(res, 201, { ok: true, monitor: { card: monitorCard(), index: monitor.index, total: monitor.stack.length } });
         return;

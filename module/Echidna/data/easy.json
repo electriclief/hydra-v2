@@ -38,7 +38,12 @@
   ],
   "media": [],
   "speech": {
-    "stt": null,
+    "stt": {
+      "kind": "os",
+      "label": "Win+H dictation",
+      "url": null,
+      "note": "Windows types into whatever box has focus. No LAN service, no model, no microphone permission dance."
+    },
     "tts": null
   }
 }
