@@ -1319,6 +1319,31 @@
       ],
       "created": "2026-11-07T12:10:31",
       "touched": "2026-11-07T12:10:31"
+    },
+    {
+      "ref": "389bc43f",
+      "title": "Agents reach Hydra through MCP, not through a prose brief",
+      "intent": "The mother brief is a crutch: it teaches Echidna by lecture. Any agent - including a 2B local model - should instead be handed tools and discover the fleet by calling them, so a tiny model needs no briefing and no long context. Hydra's MCP door already exists and answers at http://127.0.0.1:8126/mcp (protocol 2025-06-18, serverInfo event-handler, tools event_list/event_trigger/event_log/event_purge verified by a live initialize + tools/list). Two steps remain: (1) register that endpoint with Hermes so every spawned agent inherits it as an MCP server, including the Echidna chat instance and any 'hermes -z' caretaker; (2) add Easy-button tools to the Hydra MCP with zero required arguments - hydra_monitor (the top card), hydra_tot (bullets), hydra_phoenix (upkeep), hydra_doors (what is up) - so a small model can orient in one call each. The prose brief then shrinks to identity only, and remains as the fallback when the MCP door is down.",
+      "state": "active",
+      "deps": [],
+      "next": [
+        "find where Hermes keeps custom MCP server definitions (agent.mcp is the summariser model, not the server list)",
+        "register http://127.0.0.1:8126/mcp for every agent; verify an MCP tool call works from a spawned hermes",
+        "add hydra_monitor / hydra_tot / hydra_phoenix / hydra_doors with empty inputSchema",
+        "keep the identity-only brief as the fallback and delete the state mirror from the prompt once MCP is live"
+      ],
+      "tags": [
+        "hydra",
+        "mcp",
+        "echidna",
+        "agents",
+        "easy-button"
+      ],
+      "trail": [
+        "2026-11-06: verified MCP door live at :8126/mcp. Operator: it should be MCP based, pointing at Hydra MCP - the easy button for any agent, even a tiny local model."
+      ],
+      "created": "2026-11-07T13:13:56",
+      "touched": "2026-11-07T13:13:56"
     }
   ]
 }
