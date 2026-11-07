@@ -15,6 +15,22 @@
       },
       "lease_s": 20,
       "enabled": true
+    },
+    {
+      "id": "state.billboard",
+      "owner": "Phoenix",
+      "title": "Publish the billboard into State only when it changed",
+      "kind": "code",
+      "trigger": {
+        "every": "1m"
+      },
+      "action": {
+        "http": "http://127.0.0.1:8138/api/billboard",
+        "ifChanged": true,
+        "_publish": "POST the composed pages into State as lan.billboard - left null until the State door exposes a publish route, because a publish target that 404s every minute is worse than no entry"
+      },
+      "lease_s": 20,
+      "enabled": false
     }
   ]
 }

@@ -24,12 +24,14 @@ import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { createHash } from 'node:crypto';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const MODULE = path.resolve(HERE, '..');
 const DATA = path.join(MODULE, 'data');
 const REGISTRY = path.join(DATA, 'registry.json');
 const CLOCK = path.join(DATA, 'clock.json');
+const HASHES = path.join(DATA, 'hashes.json');
 const RECEIPTS = path.join(DATA, 'receipts');
 
 const args = process.argv.slice(2);
@@ -53,6 +55,10 @@ const DECLARED_ONLY = new Set(['cron', 'after']);   // v0: understood, refused a
 
 function readJson(file, fallback) {
   try { return JSON.parse(fs.readFileSync(file, 'utf8')); } catch { return fallback; }
+}
+
+function writeJson(file, value) {
+  fs.writeFileSync(file, JSON.stringify(value, null, 2));
 }
 
 function loadRegistry() {
@@ -125,11 +131,38 @@ async function runCode(entry, signal) {
     const started = Date.now();
     const res = await fetch(action.http, { signal, method: action.method || 'GET' });
     const body = await res.text();
-    return {
-      outcome: res.ok ? 'ok' : 'failed',
-      detail: { url: action.http, status: res.status, ms: Date.now() - started, bytes: body.length },
-      error: res.ok ? undefined : `HTTP ${res.status}`,
-    };
+    const detail = { url: action.http, status: res.status, ms: Date.now() - started, bytes: body.length };
+    if (!res.ok) return { outcome: 'failed', detail, error: `HTTP ${res.status}` };
+
+    // 'Does the billboard need updating' is the normal case: the cycle looks, compares, and only moves bytes when
+    // the answer changed. Hash in, hash out - no diffing HTML, no rewriting State every ten minutes for nothing.
+    if (action.ifChanged) {
+      const digest = createHash('sha256').update(body).digest('hex');
+      const hashes = readJson(HASHES, {});
+      const before = hashes[entry.id];
+      detail.changed = before !== digest;
+      detail.digest = digest.slice(0, 12);
+      if (!detail.changed) return { outcome: 'ok', detail: { ...detail, note: 'unchanged - nothing published' } };
+      hashes[entry.id] = digest;
+      if (action.publish) {
+        const target = await fetch(action.publish, {
+          method: 'POST',
+          signal,
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ id: entry.id, at: nowIso(), source: action.http, payload: JSON.parse(body) }),
+        });
+        detail.published = target.status;
+        if (!target.ok) {
+          delete hashes[entry.id];            // do not remember a publish that did not happen
+          writeJson(HASHES, hashes);
+          return { outcome: 'failed', detail, error: `publish HTTP ${target.status}` };
+        }
+      }
+      writeJson(HASHES, hashes);
+      return { outcome: 'ok', detail };
+    }
+
+    return { outcome: 'ok', detail };
   }
   // action.func is resolved by the owner's module in a later revision; refusing is better than pretending.
   return { outcome: 'skipped', detail: { reason: 'action.func is not loadable in this build - register action.http' } };
