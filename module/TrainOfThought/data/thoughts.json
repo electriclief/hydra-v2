@@ -1268,6 +1268,32 @@
       ],
       "created": "2026-11-07T05:57:04",
       "touched": "2026-11-07T05:57:04"
+    },
+    {
+      "ref": "cc61723f",
+      "title": "Phoenix Cycle: a registration registry like Event_Handler and the Process Manager",
+      "intent": "Phoenix is not a scheduler that knows what maintenance is - it is a registry that runs entries raised by their owners, exactly as Event_Handler and the Process Manager work. Every entry carries BOTH surfaces: an in-process tick thread the owner implements and an HTTP port the owner answers, because a thread-only entry is an invisible background process (forbidden) and a port-only entry needs a caller to remember it (the thing this module exists to remove). Triggers are declared - every / cron / on(event) / after(DAG refs) - never inferred. Every run leaves a receipt, every action runs under a lease so one slow entry cannot starve the rest, and the whole cycle plus its children stops on one close button. An empty registry is correct on a fresh install. Spec written at docs/spec/phoenix-registry.md. Done means: registry.json is honoured, six seed code entries plus two nag entries run and leave receipts, a nag surfaces one at a time in the monitor with TL;DR buttons, and stopping the cycle cancels outstanding leases honestly.",
+      "state": "active",
+      "deps": [],
+      "next": [
+        "module/Phoenix scaffolding: registry.json, thread tick, port with GET /api/entries and POST /api/tick",
+        "validation at registration: unknown trigger or missing owner is a refusal, not a no-op",
+        "receipts per entry with lease_s enforcement, cancelled-not-failed on stop",
+        "nag lane: ToT node tag=nag with due, surfaced one per tick in the monitor card",
+        "escalate to litegraph only past ~20 inter-dependent entries - after[] is already the edge, so no data migration"
+      ],
+      "tags": [
+        "hydra",
+        "phoenix",
+        "registry",
+        "scheduler",
+        "spec"
+      ],
+      "trail": [
+        "2026-11-06: operator's model recorded - register entries like Event_Handler/PM, both thread and api port; empty for simple users, graph UI only if it ever gets complicated."
+      ],
+      "created": "2026-11-07T06:12:37",
+      "touched": "2026-11-07T06:12:37"
     }
   ]
 }
