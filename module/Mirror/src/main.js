@@ -107,7 +107,8 @@ async function members() {
 }
 
 /** The entries a reader needs by name. Discovery is skipped: a reader that knows the grammar is cheaper. */
-const READER_NAMES = ['id', 'doors', 'cycle', 'services', 'scheduler', 'standby'];
+// 'echidna' is the shared conversation: without it here, a node can host the talk and no other node can see it
+const READER_NAMES = ['id', 'doors', 'cycle', 'services', 'scheduler', 'standby', 'echidna'];
 
 async function pullNode(url, ref) {
   const names = READER_NAMES.map((suffix) => `node.${ref}.${suffix}`);

@@ -9,6 +9,8 @@
  *   GET  /health                 → liveness, which agent binary, whether a session is being continued
  *   GET  /api/state              → {thread, easy, agent, speech}
  *   POST /api/say {text}         → ask the agent once; returns the two turns it wrote
+ *   POST /api/monitor {kind,title,text} → put a card on the board (the card replaces the last one)
+ *   POST /api/monitor/back      → walk back through the replaced cards
  *   POST /api/clear              → empty the thread (the file stays, empty)
  */
 
@@ -26,6 +28,27 @@ export interface ServerOptions {
   publicDir: string;
   dataDir: string;
   agent: AgentConfig;
+  /** Where this node publishes the conversation, so every node's pane shows the same one. */
+  stateUrl: string;
+  /** The ref this node publishes under, e.g. "123". */
+  nodeRef: string;
+  /** This node's Mirror, used to read the conversation when another node is the host. */
+  mirrorUrl: string;
+  /** A viewer: it serves the host's conversation and never publishes a branch of its own. */
+  readOnly?: boolean;
+}
+
+/** One card on the monitor. It is replaced, never appended: the board is never a feed. */
+export interface MonitorCard {
+  kind: 'question' | 'output' | 'goal' | 'note';
+  title: string;
+  text: string;
+  at: string;
+}
+
+export interface MonitorState {
+  stack: MonitorCard[];
+  index: number;
 }
 
 export interface EasyDeclaration {
@@ -111,6 +134,63 @@ export function createServer(options: ServerOptions): http.Server {
     }
   };
 
+  // ── the monitor: a stack of cards, only ever one on screen ────────────────────────────────────────────────
+  const monitorFile = path.join(options.dataDir, 'monitor.json');
+  let monitor: MonitorState = { stack: [], index: -1 };
+  try {
+    const raw = JSON.parse(fs.readFileSync(monitorFile, 'utf8')) as MonitorState;
+    if (Array.isArray(raw.stack) && raw.stack.length) {
+      monitor = { stack: raw.stack, index: Math.min(Math.max(0, raw.index ?? raw.stack.length - 1), raw.stack.length - 1) };
+    }
+  } catch {
+    /* no board yet */
+  }
+  const saveMonitor = (): void => {
+    try {
+      fs.writeFileSync(monitorFile, JSON.stringify(monitor, null, 2));
+    } catch {
+      /* a board that cannot be written still exists in memory */
+    }
+  };
+  const monitorCard = (): MonitorCard | null => (monitor.index >= 0 && monitor.stack[monitor.index]) || monitor.stack[monitor.stack.length - 1] || null;
+  const pushCard = (card: MonitorCard): void => {
+    // replacing forward: a new card is the present, so what was "ahead" is no longer reachable
+    monitor.stack = monitor.stack.slice(0, monitor.index + 1);
+    monitor.stack.push(card);
+    if (monitor.stack.length > 40) monitor.stack.shift();
+    monitor.index = monitor.stack.length - 1;
+    saveMonitor();
+  };
+
+  /** Publish the conversation where every node can read it. One writer, one branch, no merging. */
+  const publish = async (): Promise<void> => {
+    // a viewer must not publish an empty thread over someone else's talk
+    if (options.readOnly) return;
+    try {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 2500);
+      await fetch(`${options.stateUrl.replace(/\/$/, '')}/api/state/register`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          name: `node.${options.nodeRef}.echidna`,
+          content: {
+            at: new Date().toISOString(),
+            host: options.nodeRef,
+            owner: 'echidna',
+            monitor: { card: monitorCard(), index: monitor.index, total: monitor.stack.length },
+            thread: thread.read(60),
+          },
+        }),
+        signal: controller.signal,
+      });
+      clearTimeout(timer);
+    } catch {
+      /* State down: the local thread still works, and the next publish catches up */
+    }
+  };
+  void publish();
+
   return http.createServer((req, res) => {
     void (async () => {
       const url = new URL(req.url ?? '/', `http://${req.headers.host ?? '127.0.0.1'}`);
@@ -131,6 +211,7 @@ export function createServer(options: ServerOptions): http.Server {
       if (p === '/api/state' && method === 'GET') {
         const { easy, error } = readEasy(easyFile);
         sendJson(res, 200, {
+          monitor: { card: monitorCard(), index: monitor.index, total: monitor.stack.length },
           thread: thread.read(),
           easy,
           easyError: error,
@@ -143,6 +224,84 @@ export function createServer(options: ServerOptions): http.Server {
             timeoutMs: options.agent.timeoutMs,
           },
         });
+        return;
+      }
+
+      // GET /api/conversation?host=<ref> — the SAME talk, read from whoever hosts the agent. One writer, one branch:
+      // this is why two nodes cannot disagree about what was said.
+      if (p === '/api/conversation' && method === 'GET') {
+        const host = (url.searchParams.get('host') || options.nodeRef).toLowerCase();
+        if (host === String(options.nodeRef).toLowerCase()) {
+          sendJson(res, 200, {
+            ok: true,
+            host,
+            viewer: false,
+            monitor: { card: monitorCard(), index: monitor.index, total: monitor.stack.length },
+            thread: thread.read(120),
+            agent: { present: fs.existsSync(options.agent.bin), busy },
+          });
+          return;
+        }
+        try {
+          const controller = new AbortController();
+          const timer = setTimeout(() => controller.abort(), 4000);
+          const remote = await fetch(`${options.mirrorUrl.replace(/\/$/, '')}/api/node/${encodeURIComponent(host)}`, {
+            signal: controller.signal,
+          });
+          clearTimeout(timer);
+          // Mirror answers {ok, role, node:{...}}; an older reader answered the node directly
+          const body = (await remote.json().catch(() => ({}))) as {
+            conversation?: Record<string, unknown>;
+            node?: { conversation?: Record<string, unknown> };
+          };
+          const conv = body.node?.conversation ?? body.conversation;
+          if (!conv) {
+            sendJson(res, 404, { ok: false, error: `node ${host} is not publishing a conversation`, host });
+            return;
+          }
+          const mon = (conv.monitor ?? {}) as Record<string, unknown>;
+          sendJson(res, 200, {
+            ok: true,
+            host,
+            viewer: true,
+            monitor: mon,
+            thread: Array.isArray(conv.thread) ? conv.thread : [],
+            agent: { present: false, busy: false },
+            publishedAt: conv.at ?? null,
+          });
+          return;
+        } catch (error) {
+          sendJson(res, 502, { ok: false, error: `could not read ${host}'s conversation: ${(error as Error).message}`, host });
+          return;
+        }
+      }
+
+      if (p === '/api/monitor' && method === 'POST') {
+        let body: Record<string, unknown>;
+        try {
+          body = JSON.parse((await readBody(req)) || '{}') as Record<string, unknown>;
+        } catch {
+          sendJson(res, 400, { ok: false, error: 'body must be JSON' });
+          return;
+        }
+        const title = String(body.title ?? '').trim();
+        const text = String(body.text ?? '').trim();
+        if (!title && !text) {
+          sendJson(res, 400, { ok: false, error: 'a card needs a title or a text' });
+          return;
+        }
+        const kind = (['question', 'output', 'goal', 'note'].includes(String(body.kind)) ? String(body.kind) : 'note') as MonitorCard['kind'];
+        pushCard({ kind, title, text, at: new Date().toISOString() });
+        await publish();
+        sendJson(res, 201, { ok: true, monitor: { card: monitorCard(), index: monitor.index, total: monitor.stack.length } });
+        return;
+      }
+
+      if (p === '/api/monitor/back' && method === 'POST') {
+        if (monitor.index > 0) monitor.index -= 1;
+        saveMonitor();
+        await publish();
+        sendJson(res, 200, { ok: true, monitor: { card: monitorCard(), index: monitor.index, total: monitor.stack.length } });
         return;
       }
 
@@ -190,6 +349,8 @@ export function createServer(options: ServerOptions): http.Server {
         }
 
         const you = thread.append({ id: turnId('you'), at: new Date().toISOString(), role: 'you', text });
+        pushCard({ kind: 'question', title: text.length > 180 ? text.slice(0, 177) + '…' : text, text: '', at: new Date().toISOString() });
+        await publish();
         busy = true;
         try {
           const run = await ask({ ...options.agent, session: readSession() }, text, you.id);
@@ -203,6 +364,10 @@ export function createServer(options: ServerOptions): http.Server {
             sessionId: run.sessionId,
             failed: !run.ok,
           });
+          if (run.ok) {
+            pushCard({ kind: 'output', title: 'Echidna', text: run.text.slice(0, 900), at: new Date().toISOString() });
+          }
+          await publish();
           sendJson(res, run.ok ? 200 : 502, { ok: run.ok, turns: [you, reply] });
         } finally {
           busy = false;

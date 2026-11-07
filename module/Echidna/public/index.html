@@ -26,10 +26,27 @@
     font: 15px/1.55 "Segoe UI", system-ui, -apple-system, sans-serif;
     overflow: hidden;
   }
-  #app { display: grid; grid-template-columns: minmax(0, 1fr) minmax(320px, 400px); height: 100vh; }
+  #app { display: flex; flex-direction: column; height: 100vh; }
+  /* the monitor owns the top: it is replaced, never scrolled, so it gets a fixed share and overflow hidden */
+  .monitor { flex: 0 0 38%; min-height: 120px; display: flex; flex-direction: column; background: #0b0d11; border-bottom: 1px solid var(--line); }
+  .monitor-head { display: flex; align-items: center; gap: 10px; padding: 10px 18px; color: var(--muted); font-size: 11px; letter-spacing: .12em; text-transform: uppercase; }
+  .monitor-head .spacer { flex: 1; }
+  .monitor-head button { background: none; border: 1px solid var(--line); color: var(--muted); border-radius: 8px; padding: 4px 10px; cursor: pointer; font-size: 12px; letter-spacing: .04em; }
+  .monitor-head button:disabled { opacity: .3; cursor: default; }
+  .monitor-head button:hover:not(:disabled) { color: var(--text); border-color: #3a4150; }
+  .monitor-body { flex: 1; display: flex; flex-direction: column; justify-content: center; padding: 4px 44px 16px; overflow: hidden; }
+  .monitor-kind { font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--gold); margin-bottom: 10px; }
+  .monitor-title { font-size: clamp(17px, 6.2vh, 42px); line-height: 1.12; font-weight: 600; margin: 0 0 10px; }
+  .monitor-text { font-size: clamp(12px, 1.9vh, 18px); color: #cfd4e0; max-width: 34em; margin: 0; }
+  .monitor-empty { color: var(--muted); font-size: 16px; max-width: 30em; }
+  /* the drag bar: same idiom as the Menu's golden-layout gutters, and it is a real handle, not a decoration */
+  .splitter { flex: 0 0 7px; cursor: row-resize; background: #14171d; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); position: relative; }
+  .splitter::after { content: ''; position: absolute; left: 50%; top: 50%; width: 44px; height: 3px; margin: -1.5px 0 0 -22px; border-radius: 2px; background: #3a4150; }
+  .splitter:hover::after, .splitter.drag::after { background: var(--gold); }
+  .bottom { flex: 1 1 auto; display: flex; min-height: 0; }
 
   /* ---------- the conversation ---------- */
-  .talk { display: flex; flex-direction: column; min-width: 0; border-right: 1px solid var(--line); }
+  .talk { display: flex; flex-direction: column; min-width: 0; flex: 1 1 auto; border-right: 1px solid var(--line); }
   .talk-head {
     display: flex; align-items: center; gap: 10px;
     padding: 12px 18px; border-bottom: 1px solid var(--line); background: var(--panel);
@@ -76,7 +93,7 @@
   .mic.rec { border-color: var(--red); color: var(--red); }
 
   /* ---------- easy mode ---------- */
-  .easy { overflow-y: auto; padding: 18px; background: var(--panel); }
+  .easy { overflow-y: auto; padding: 18px; background: var(--panel); flex: 0 0 340px; }
   .easy h2 { font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); margin: 22px 0 10px; }
   .easy h2:first-child { margin-top: 0; }
   .q { background: var(--panel-2); border: 1px solid var(--line); border-radius: var(--radius); padding: 18px; }
@@ -105,20 +122,33 @@
   /* The stage in the Menu is ~700px wide, so the side-by-side layout has to survive that: Easy Mode narrows,
      it does not disappear below the conversation. Below 720px it stacks, because two 340px columns is worse. */
   @media (max-width: 980px) {
-    #app { grid-template-columns: minmax(0, 1fr) 300px; }
-    .q .qtext { font-size: 22px; }
-    .act { font-size: 14px; padding: 11px 12px; }
+    .easy { flex-basis: 280px; }
+    .monitor-body { padding: 8px 24px 20px; }
   }
   @media (max-width: 720px) {
-    #app { grid-template-columns: 1fr; grid-template-rows: 1fr auto; }
+    .bottom { flex-direction: column; }
     .talk { border-right: 0; border-bottom: 1px solid var(--line); }
-    .easy { max-height: 46vh; }
+    .easy { flex: 0 0 auto; max-height: 38vh; }
   }
   @media (prefers-reduced-motion: reduce) { .thread { scroll-behavior: auto; } }
 </style>
 </head>
 <body>
 <div id="app">
+  <section class="monitor" id="monitor" aria-live="polite">
+    <header class="monitor-head">
+      <span>the monitor</span>
+      <span class="spacer"></span>
+      <button type="button" id="mon-back" disabled title="the previous card">‹ back</button>
+    </header>
+    <div class="monitor-body" id="monitor-body">
+      <p class="monitor-empty">Nothing on the board. Ask below, and whatever is worth looking at lands here — a question, an output, a thing we made.</p>
+    </div>
+  </section>
+
+  <div class="splitter" id="splitter" role="separator" aria-orientation="horizontal" tabindex="0" title="drag to resize"></div>
+
+  <div class="bottom">
   <section class="talk">
     <header class="talk-head">
       <h1>Talk to Echidna</h1>
@@ -140,6 +170,7 @@
   <aside class="easy" id="easy">
     <p class="empty">reading easy mode…</p>
   </aside>
+  </div>
 </div>
 
 <script>
@@ -153,8 +184,14 @@
   var hintEl = document.getElementById('hint');
   var chipEl = document.getElementById('agent-chip');
   var clearEl = document.getElementById('clear');
+  var monBody = document.getElementById('monitor-body');
+  var monBack = document.getElementById('mon-back');
+  var monitorEl = document.getElementById('monitor');
+  var splitterEl = document.getElementById('splitter');
 
-  var state = { thread: [], easy: {}, agent: {}, busy: false, easyError: null };
+  var state = { thread: [], easy: {}, agent: {}, busy: false, easyError: null, monitor: null, viewer: false, host: null };
+  // ?host=<ref> opens ANOTHER node's conversation. Same talk, read from the one node that hosts the agent.
+  var HOST = new URLSearchParams(location.search).get('host');
   var thinkingSince = 0;
 
   function esc(s) {
@@ -190,6 +227,24 @@
     }
     threadEl.innerHTML = html;
     threadEl.scrollTop = threadEl.scrollHeight;
+  }
+
+  // The monitor: one card, always replaced, never scrolled. A news caster's screen behind him - the thing worth
+  // looking at RIGHT NOW. Back walks the few cards that were replaced; it is a stack of one-line memories, not a feed.
+  function renderMonitor() {
+    var m = state.monitor;
+    if (!m || !m.card) {
+      monBody.innerHTML = '<p class="monitor-empty">Nothing on the board. Ask below, and whatever is worth looking at lands here — a question, an output, a thing we made.</p>';
+      monBack.disabled = true;
+      return;
+    }
+    var c = m.card;
+    var kind = c.kind === 'question' ? 'the question' : c.kind === 'output' ? 'the output' : (c.kind || 'the board');
+    var html = '<div class="monitor-kind">' + esc(kind) + (m.index > 0 ? ' · ' + (m.index + 1) + ' of ' + m.total : '') + '</div>';
+    if (c.title) html += '<h2 class="monitor-title">' + esc(c.title) + '</h2>';
+    if (c.text) html += '<p class="monitor-text">' + esc(c.text) + '</p>';
+    monBody.innerHTML = html;
+    monBack.disabled = !(m.index > 0);
   }
 
   function renderEasy() {
@@ -250,23 +305,48 @@
 
   function renderChip() {
     var a = state.agent || {};
+    if (state.viewer) { chipEl.className = 'chip'; chipEl.textContent = 'hosted on ' + state.host; return; }
     if (state.busy) { chipEl.className = 'chip'; chipEl.textContent = 'answering…'; return; }
     if (a.present === false) { chipEl.className = 'chip bad'; chipEl.textContent = 'no agent binary'; return; }
     chipEl.className = 'chip ok';
     chipEl.textContent = a.session ? 'agent ready · continuing a session' : 'agent ready';
   }
 
-  function render() { renderThread(); renderEasy(); renderChip(); }
+  function render() { renderMonitor(); renderThread(); renderEasy(); renderChip(); }
 
   function load() {
-    return fetch('api/state', { cache: 'no-store' })
-      .then(function (r) { return r.json(); })
-      .then(function (s) { state = s; render(); })
-      .catch(function (e) {
+    var convUrl = 'api/conversation' + (HOST ? '?host=' + encodeURIComponent(HOST) : '');
+    return Promise.all([
+      fetch(convUrl, { cache: 'no-store' }).then(function (r) { return r.json(); }),
+      fetch('api/state', { cache: 'no-store' }).then(function (r) { return r.json(); }).catch(function () { return {}; })
+    ]).then(function (both) {
+      var conv = both[0] || {};
+      var local = both[1] || {};
+      state.thread = conv.thread || local.thread || [];
+      state.monitor = conv.monitor || local.monitor || null;
+      state.agent = conv.agent || local.agent || {};
+      state.easy = local.easy || {};
+      state.easyError = local.easyError || null;
+      state.viewer = !!conv.viewer;
+      state.host = conv.host || null;
+      state.busy = !!local.busy && !state.viewer;
+      if (conv.ok === false) {
+        state.thread = [];
+        state.monitor = null;
         chipEl.className = 'chip bad';
-        chipEl.textContent = 'door unreachable';
-        hintEl.textContent = String(e.message || e);
-      });
+        chipEl.textContent = conv.error || 'no conversation';
+      }
+      render();
+      if (state.viewer) {
+        sayEl.disabled = true;
+        sayEl.placeholder = 'This conversation is hosted on node ' + state.host + '. Talk to it there.';
+        sendEl.disabled = true;
+      }
+    }).catch(function (e) {
+      chipEl.className = 'chip bad';
+      chipEl.textContent = 'door unreachable';
+      hintEl.textContent = String(e.message || e);
+    });
   }
 
   function send() {
@@ -305,6 +385,45 @@
     if (!confirm('Empty the thread? The turns are gone; the file stays empty.')) return;
     fetch('api/clear', { method: 'POST' }).then(load);
   });
+
+  monBack.addEventListener('click', function () {
+    fetch('api/monitor/back', { method: 'POST' }).then(load);
+  });
+
+  // the drag bar: the monitor's share of the window, remembered. Pointer capture so the drag survives the cursor
+  // leaving the 7px handle - a handle you have to chase is not a handle.
+  (function () {
+    var saved = parseFloat(localStorage.getItem('echidna-monitor-share') || '');
+    if (saved > 8 && saved < 85) monitorEl.style.flexBasis = saved + '%';
+    var dragging = false;
+    function shareFromEvent(e) {
+      var total = window.innerHeight;
+      var y = e.clientY;
+      return Math.max(8, Math.min(85, (y / total) * 100));
+    }
+    splitterEl.addEventListener('pointerdown', function (e) {
+      dragging = true;
+      splitterEl.classList.add('drag');
+      splitterEl.setPointerCapture(e.pointerId);
+    });
+    splitterEl.addEventListener('pointermove', function (e) {
+      if (!dragging) return;
+      monitorEl.style.flexBasis = shareFromEvent(e).toFixed(2) + '%';
+    });
+    splitterEl.addEventListener('pointerup', function (e) {
+      if (!dragging) return;
+      dragging = false;
+      splitterEl.classList.remove('drag');
+      try { splitterEl.releasePointerCapture(e.pointerId); } catch (err) { /* already released */ }
+      localStorage.setItem('echidna-monitor-share', parseFloat(monitorEl.style.flexBasis).toFixed(2));
+    });
+    // keyboard: the separator is focusable, so arrows move it like a real gutter
+    splitterEl.addEventListener('keydown', function (e) {
+      var cur = parseFloat(monitorEl.style.flexBasis) || 38;
+      if (e.key === 'ArrowUp') { monitorEl.style.flexBasis = Math.max(8, cur - 4) + '%'; e.preventDefault(); }
+      if (e.key === 'ArrowDown') { monitorEl.style.flexBasis = Math.min(85, cur + 4) + '%'; e.preventDefault(); }
+    });
+  })();
 
   load();
   setInterval(function () { if (!state.busy) load(); else renderThread(); }, 5000);

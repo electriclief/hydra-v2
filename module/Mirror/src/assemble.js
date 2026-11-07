@@ -28,6 +28,8 @@ export function emptyNode(ref) {
     health: {},
     observed: {},
     standby: null,
+    // the shared conversation (thread + monitor): carried, never computed, exactly like standby
+    conversation: null,
     unknown: {},
   };
 }
@@ -62,6 +64,8 @@ export function assemble(entries = [], refHint = null) {
     else if (rest[0] === 'observed' && rest[1]) node.observed[rest[1]] = content;
     // the Idle Service owns this branch; Mirror only carries it, it never computes it
     else if (rest[0] === 'standby') node.standby = content;
+    // the Echidna host publishes the one conversation; every other node reads THIS branch to show the same talk
+    else if (rest[0] === 'echidna') node.conversation = content;
     else node.unknown[path] = content;
   }
 

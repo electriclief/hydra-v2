@@ -65,6 +65,54 @@ function createServer(options) {
     } catch {
     }
   };
+  const monitorFile = path.join(options.dataDir, "monitor.json");
+  let monitor = { stack: [], index: -1 };
+  try {
+    const raw = JSON.parse(fs.readFileSync(monitorFile, "utf8"));
+    if (Array.isArray(raw.stack) && raw.stack.length) {
+      monitor = { stack: raw.stack, index: Math.min(Math.max(0, raw.index ?? raw.stack.length - 1), raw.stack.length - 1) };
+    }
+  } catch {
+  }
+  const saveMonitor = () => {
+    try {
+      fs.writeFileSync(monitorFile, JSON.stringify(monitor, null, 2));
+    } catch {
+    }
+  };
+  const monitorCard = () => monitor.index >= 0 && monitor.stack[monitor.index] || monitor.stack[monitor.stack.length - 1] || null;
+  const pushCard = (card) => {
+    monitor.stack = monitor.stack.slice(0, monitor.index + 1);
+    monitor.stack.push(card);
+    if (monitor.stack.length > 40) monitor.stack.shift();
+    monitor.index = monitor.stack.length - 1;
+    saveMonitor();
+  };
+  const publish = async () => {
+    if (options.readOnly) return;
+    try {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 2500);
+      await fetch(`${options.stateUrl.replace(/\/$/, "")}/api/state/register`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          name: `node.${options.nodeRef}.echidna`,
+          content: {
+            at: (/* @__PURE__ */ new Date()).toISOString(),
+            host: options.nodeRef,
+            owner: "echidna",
+            monitor: { card: monitorCard(), index: monitor.index, total: monitor.stack.length },
+            thread: thread.read(60)
+          }
+        }),
+        signal: controller.signal
+      });
+      clearTimeout(timer);
+    } catch {
+    }
+  };
+  void publish();
   return http.createServer((req, res) => {
     void (async () => {
       const url = new URL(req.url ?? "/", `http://${req.headers.host ?? "127.0.0.1"}`);
@@ -83,6 +131,7 @@ function createServer(options) {
       if (p === "/api/state" && method === "GET") {
         const { easy, error } = readEasy(easyFile);
         sendJson(res, 200, {
+          monitor: { card: monitorCard(), index: monitor.index, total: monitor.stack.length },
           thread: thread.read(),
           easy,
           easyError: error,
@@ -95,6 +144,75 @@ function createServer(options) {
             timeoutMs: options.agent.timeoutMs
           }
         });
+        return;
+      }
+      if (p === "/api/conversation" && method === "GET") {
+        const host = (url.searchParams.get("host") || options.nodeRef).toLowerCase();
+        if (host === String(options.nodeRef).toLowerCase()) {
+          sendJson(res, 200, {
+            ok: true,
+            host,
+            viewer: false,
+            monitor: { card: monitorCard(), index: monitor.index, total: monitor.stack.length },
+            thread: thread.read(120),
+            agent: { present: fs.existsSync(options.agent.bin), busy }
+          });
+          return;
+        }
+        try {
+          const controller = new AbortController();
+          const timer = setTimeout(() => controller.abort(), 4e3);
+          const remote = await fetch(`${options.mirrorUrl.replace(/\/$/, "")}/api/node/${encodeURIComponent(host)}`, {
+            signal: controller.signal
+          });
+          clearTimeout(timer);
+          const body = await remote.json().catch(() => ({}));
+          const conv = body.node?.conversation ?? body.conversation;
+          if (!conv) {
+            sendJson(res, 404, { ok: false, error: `node ${host} is not publishing a conversation`, host });
+            return;
+          }
+          const mon = conv.monitor ?? {};
+          sendJson(res, 200, {
+            ok: true,
+            host,
+            viewer: true,
+            monitor: mon,
+            thread: Array.isArray(conv.thread) ? conv.thread : [],
+            agent: { present: false, busy: false },
+            publishedAt: conv.at ?? null
+          });
+          return;
+        } catch (error) {
+          sendJson(res, 502, { ok: false, error: `could not read ${host}'s conversation: ${error.message}`, host });
+          return;
+        }
+      }
+      if (p === "/api/monitor" && method === "POST") {
+        let body;
+        try {
+          body = JSON.parse(await readBody(req) || "{}");
+        } catch {
+          sendJson(res, 400, { ok: false, error: "body must be JSON" });
+          return;
+        }
+        const title = String(body.title ?? "").trim();
+        const text = String(body.text ?? "").trim();
+        if (!title && !text) {
+          sendJson(res, 400, { ok: false, error: "a card needs a title or a text" });
+          return;
+        }
+        const kind = ["question", "output", "goal", "note"].includes(String(body.kind)) ? String(body.kind) : "note";
+        pushCard({ kind, title, text, at: (/* @__PURE__ */ new Date()).toISOString() });
+        await publish();
+        sendJson(res, 201, { ok: true, monitor: { card: monitorCard(), index: monitor.index, total: monitor.stack.length } });
+        return;
+      }
+      if (p === "/api/monitor/back" && method === "POST") {
+        if (monitor.index > 0) monitor.index -= 1;
+        saveMonitor();
+        await publish();
+        sendJson(res, 200, { ok: true, monitor: { card: monitorCard(), index: monitor.index, total: monitor.stack.length } });
         return;
       }
       if (p === "/api/note" && method === "POST") {
@@ -137,6 +255,8 @@ function createServer(options) {
           return;
         }
         const you = thread.append({ id: turnId("you"), at: (/* @__PURE__ */ new Date()).toISOString(), role: "you", text });
+        pushCard({ kind: "question", title: text.length > 180 ? text.slice(0, 177) + "\u2026" : text, text: "", at: (/* @__PURE__ */ new Date()).toISOString() });
+        await publish();
         busy = true;
         try {
           const run = await ask({ ...options.agent, session: readSession() }, text, you.id);
@@ -152,6 +272,10 @@ ${run.text}`.trim(),
             sessionId: run.sessionId,
             failed: !run.ok
           });
+          if (run.ok) {
+            pushCard({ kind: "output", title: "Echidna", text: run.text.slice(0, 900), at: (/* @__PURE__ */ new Date()).toISOString() });
+          }
+          await publish();
           sendJson(res, run.ok ? 200 : 502, { ok: run.ok, turns: [you, reply] });
         } finally {
           busy = false;

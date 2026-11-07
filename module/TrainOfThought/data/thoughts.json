@@ -1210,6 +1210,40 @@
       "created": 1794009823025,
       "touched": 1794009823025,
       "dir": "thoughts/0d6a276c"
+    },
+    {
+      "ref": "adb20a28",
+      "title": "The board and the shared talk: Monitor above, conversation below, identical on every node",
+      "intent": "Echidna is two halves: a board that is replaced (never scrolled, one card, back walks the stack) and the talk that stays below. The conversation is published to State as node.<ref>.echidna so every node shows the same one - single writer, no merging.",
+      "state": "active",
+      "deps": [],
+      "next": [
+        "PAGE: the board remembers its share of the window (drag bar, keyboard arrows, localStorage) - built",
+        "PAGE: cards are typed (question, output, goal, note) and only the present one is rendered - built",
+        "the board should accept outputs from ANY module, not just the agent: a service finishing a render, a cycle result",
+        "a goal card should show its progress (one number) rather than a sentence, when a goal is measurable",
+        "the conversation branch must be the ONLY writer of the talk: an agent on two nodes would fork it, so one host per LAN",
+        "viewer mode must be honest about staleness: show 'published 12s ago' so a dead host is visible",
+        "the board is the place a question waits for an answer: when a question is open, the composer is the answer",
+        "pin a card: a goal or an alert stays until dismissed, instead of being replaced by the next answer"
+      ],
+      "tags": [
+        "echidna",
+        "monitor",
+        "state",
+        "ui"
+      ],
+      "trail": [
+        {
+          "at": 1794010330405,
+          "kind": "state",
+          "text": "created",
+          "by": "agent"
+        }
+      ],
+      "created": 1794010330405,
+      "touched": 1794010330405,
+      "dir": "thoughts/adb20a28"
     }
   ]
 }

@@ -42,6 +42,17 @@
     (image, audio, video) from what we made; and the honest state of speech.</td></tr>
   </table>
 
+  <h2>The board (top half)</h2>
+  <p>A news caster's screen behind him: one card, replaced in place, never scrolled. It shows the current question
+  while the agent works, then the answer; goals and outputs can be put there too. A <em>back</em> button walks the few
+  cards that were replaced — a stack of one-line memories, not a feed. The bar between the board and the talk is a real
+  drag handle (keyboard: focus it and use ↑/↓), and its position is remembered.</p>
+
+  <h2>The same conversation on every node</h2>
+  <p>The conversation is published to State as <code>node.&lt;ref&gt;.echidna</code> — thread and board in one branch,
+  written by the one node that hosts the agent. Every other node's pane reads that branch through its Mirror
+  (<code>GET /api/conversation?host=&lt;ref&gt;</code>), so two nodes cannot disagree about what was said. A viewer says
+  <em>hosted on 123</em> and its composer is disabled instead of pretending to be local.</p>
   <h2>How it answers</h2>
   <p>It shells out to the real agent — <code>hermes chat --query-file … --oneshot -Q</code> — with a timeout it cannot
   hang past, and keeps the session id so the next ask continues the same conversation. The binary it will run is

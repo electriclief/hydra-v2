@@ -27,6 +27,27 @@ export interface MainOptions {
   dataDir: string;
   agentBin: string;
   timeoutMs: number;
+  /** The State door this node publishes the conversation to. */
+  stateUrl: string;
+  /** The ref the conversation is published under. */
+  nodeRef: string;
+  /** This node's Mirror, for reading a conversation hosted on another node. */
+  mirrorUrl: string;
+  /** Serve another node's conversation; never publish a branch of our own. */
+  readOnly: boolean;
+}
+
+/** The node's own ref, read from the instance layer (never from the repo). */
+function nodeRefFromDisk(): string {
+  for (const p of ['C:/AI/hydra-local/module/Menu/data/node.json', 'C:/AI/hydra-local/module/Core/data/node.json']) {
+    try {
+      const j = JSON.parse(fs.readFileSync(p, 'utf8')) as { ref?: string };
+      if (j.ref) return String(j.ref);
+    } catch {
+      /* try the next */
+    }
+  }
+  return 'local';
 }
 
 function defaultAgentBin(): string {
@@ -44,6 +65,10 @@ export function parseArgs(argv: string[], moduleDir = MODULE_DIR): MainOptions {
     dataDir: path.join(moduleDir, 'data'),
     agentBin: defaultAgentBin(),
     timeoutMs: 300_000,
+    stateUrl: process.env.ECHIDNA_STATE ?? 'http://127.0.0.1:8127',
+    nodeRef: process.env.ECHIDNA_REF ?? nodeRefFromDisk(),
+    mirrorUrl: process.env.ECHIDNA_MIRROR ?? 'http://127.0.0.1:8137',
+    readOnly: process.env.ECHIDNA_READONLY === '1',
   };
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i];
@@ -59,6 +84,15 @@ export function parseArgs(argv: string[], moduleDir = MODULE_DIR): MainOptions {
       i += 1;
     } else if (arg === '--agent') {
       options.agentBin = next() || options.agentBin;
+      i += 1;
+    } else if (arg === '--state') {
+      options.stateUrl = next() || options.stateUrl;
+      i += 1;
+    } else if (arg === '--node-ref') {
+      options.nodeRef = next() || options.nodeRef;
+      i += 1;
+    } else if (arg === '--view') {
+      options.readOnly = true;
       i += 1;
     } else if (arg === '--timeout') {
       options.timeoutMs = (Number.parseInt(next(), 10) || 300) * 1000;
@@ -91,10 +125,15 @@ const server = createServer({
   publicDir: options.publicDir,
   dataDir: options.dataDir,
   agent: { bin: options.agentBin, promptDir: path.join(options.dataDir, 'prompts'), timeoutMs: options.timeoutMs },
+  stateUrl: options.stateUrl,
+  nodeRef: options.nodeRef,
+  mirrorUrl: options.mirrorUrl,
+  readOnly: options.readOnly,
 });
 
 server.listen(options.port, options.host, () => {
   process.stdout.write(`[echidna] http://${options.host}:${options.port}\n`);
   process.stdout.write(`[echidna] agent: ${options.agentBin}${fs.existsSync(options.agentBin) ? '' : ' (NOT FOUND)'}\n`);
   process.stdout.write(`[echidna] thread: ${path.join(options.dataDir, 'thread.jsonl')}\n`);
+  process.stdout.write(`[echidna] published as node.${options.nodeRef}.echidna to ${options.stateUrl}\n`);
 });

@@ -1,6 +1,6 @@
 # Train of Thought — frontier
 
-generated 2026-11-07T00:03:43.029Z from thoughts.json · 25 nodes (22 active, 1 blocked, 0 parked, 1 done)
+generated 2026-11-07T00:12:10.410Z from thoughts.json · 26 nodes (23 active, 1 blocked, 0 parked, 1 done)
 
 This file is generated. Do not edit it by hand; edit the store and it rewrites itself.
 
@@ -197,7 +197,21 @@ next:
   - what arrives is a fact in State (node.<ref>.broker.last) so the operator can see the wire is alive
   - a broker outage must not stop local work: everything local keeps running, and the backlog is reported not queued forever
 
-also ready: 954deebc, f2e2deb0, 64a4cbb3, 2629893c, cd60ec6e, 291eac93, 8793886c, e093f426, 44ff5033, 49e30c7a, 8ff46a1b, daa96bc0, cdb81fd3, c9c77ef1, 0d6a276c
+### adb20a28 — The board and the shared talk: Monitor above, conversation below, identical on every node
+
+intent: Echidna is two halves: a board that is replaced (never scrolled, one card, back walks the stack) and the talk that stays below. The conversation is published to State as node.<ref>.echidna so every node shows the same one - single writer, no merging.
+deps: 0/0 · tags: echidna, monitor, state, ui
+next:
+  - PAGE: the board remembers its share of the window (drag bar, keyboard arrows, localStorage) - built
+  - PAGE: cards are typed (question, output, goal, note) and only the present one is rendered - built
+  - the board should accept outputs from ANY module, not just the agent: a service finishing a render, a cycle result
+  - a goal card should show its progress (one number) rather than a sentence, when a goal is measurable
+  - the conversation branch must be the ONLY writer of the talk: an agent on two nodes would fork it, so one host per LAN
+  - viewer mode must be honest about staleness: show 'published 12s ago' so a dead host is visible
+  - the board is the place a question waits for an answer: when a question is open, the composer is the answer
+  - pin a card: a goal or an alert stays until dismissed, instead of being replaced by the next answer
+
+also ready: 954deebc, f2e2deb0, 64a4cbb3, 2629893c, cd60ec6e, 291eac93, 8793886c, e093f426, 44ff5033, 49e30c7a, 8ff46a1b, daa96bc0, cdb81fd3, c9c77ef1, 0d6a276c, adb20a28
 
 ## Stuck, and why
 
