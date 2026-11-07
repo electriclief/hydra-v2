@@ -1,0 +1,29 @@
+{
+  "_note": "Which voice each character speaks with. Kokoro ids come from media/voice/cast.json (the cast); the sapi name is the Windows fallback so a GPU-less box still talks.",
+  "characters": {
+    "destiny": {
+      "kokoro": "af_sky",
+      "speed": 1.04,
+      "sapi": "Microsoft Zira Desktop",
+      "cast": "preset/kokoro af_sky (interim young)"
+    },
+    "kate": {
+      "kokoro": "af_bella",
+      "speed": 1.0,
+      "sapi": "Microsoft Hazel Desktop",
+      "cast": "designed voice pending; af_bella is the nearest preset"
+    },
+    "sophion": {
+      "kokoro": "am_onyx",
+      "speed": 0.9,
+      "sapi": "Microsoft David Desktop",
+      "cast": "low, unhurried male - the Chronicler's register"
+    },
+    "narrator": {
+      "kokoro": "am_onyx",
+      "speed": 0.92,
+      "sapi": "Microsoft David Desktop",
+      "cast": "default narration"
+    }
+  }
+}

@@ -150,6 +150,7 @@
     <header class="monitor-head">
       <span>the monitor</span>
       <span class="spacer"></span>
+      <button type="button" id="mon-voice" title="speak what the board shows">voice on</button>
       <button type="button" id="mon-back" disabled title="the previous card">‹ back</button>
     </header>
     <div class="monitor-body" id="monitor-body">
@@ -197,10 +198,11 @@
   var clearEl = document.getElementById('clear');
   var monBody = document.getElementById('monitor-body');
   var monBack = document.getElementById('mon-back');
+  var monVoice = document.getElementById('mon-voice');
   var monitorEl = document.getElementById('monitor');
   var splitterEl = document.getElementById('splitter');
 
-  var state = { thread: [], easy: {}, agent: {}, busy: false, easyError: null, monitor: null, viewer: false, host: null };
+  var state = { thread: [], easy: {}, agent: {}, busy: false, easyError: null, monitor: null, viewer: false, host: null, tts: null };
   // ?host=<ref> opens ANOTHER node's conversation. Same talk, read from the one node that hosts the agent.
   var HOST = new URLSearchParams(location.search).get('host');
   var thinkingSince = 0;
@@ -320,7 +322,8 @@
     var lids = [figure.querySelector('#sp-lid-l'), figure.querySelector('#sp-lid-r')];
     var mw = ch.mouth.w, my = ch.mouth.y;
 
-    var audio = new Audio(card.audio);
+    var audio = card.audio ? new Audio(card.audio) : new Audio();
+    var needsLanVoice = !card.audio;
     audio.preload = 'auto';
     var ctx = null, srcNode = null, analyser = null, buf = null;
     try {
@@ -339,7 +342,7 @@
 
     var fpsTarget = 24, level = 0;         // 0 full, 1 no sway, 2 mouth only at 12, 3 static
     var frameMs = 0, lastFrame = 0, lastTick = performance.now(), frames = 0, blinkAt = performance.now() + 2400;
-    var open = 0, sway = 0, t = 0;
+    var open = 0, sway = 0, t = 0, voiceLabel = '';
 
     function tick(now) {
       if (!anim) return;
@@ -387,7 +390,7 @@
       if (!anim.lastMeter || now - anim.lastMeter > 1000) {
         anim.lastMeter = now;
         if (meter) {
-          meter.textContent = fpsTarget + ' fps · ' + frameMs.toFixed(2) + ' ms/draw' +
+          meter.textContent = (voiceLabel ? voiceLabel + ' · ' : '') + fpsTarget + ' fps · ' + frameMs.toFixed(2) + ' ms/draw' +
             ' · amp ' + amp.toFixed(2) + (level ? ' · lite ' + level : '');
         }
         // measured, not assumed: a draw costing more than 8 ms cannot hold 24 fps inside a busy page
@@ -399,7 +402,22 @@
 
     anim = { raf: 0, audio: audio, ctx: ctx, lastMeter: 0 };
     anim.raf = requestAnimationFrame(tick);
-    var play = function () { audio.play().catch(function () { /* autoplay may need a click */ }); };
+    var play = function () {
+      if (!needsLanVoice) { audio.play().catch(function () { /* autoplay may need a click */ }); return; }
+      // no file on the card: the LAN speaks it. One request, one wav, nothing synthesised in this pane.
+      fetch('api/speak', {
+        method: 'POST', headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ text: card.text || '', character: card.character || 'narrator' })
+      }).then(function (r) {
+        if (!r.ok) return r.json().then(function (j) { throw new Error(j.error || 'the voice is off'); });
+        var provider = r.headers.get('x-tts-provider') || 'lan';
+        voiceLabel = 'voice ' + provider;
+        return r.blob();
+      }).then(function (blob) {
+        audio.src = URL.createObjectURL(blob);
+        audio.play().catch(function () { voiceLabel = 'voice ready — click to hear'; });
+      }).catch(function (e) { voiceLabel = 'voice: ' + e.message; });
+    };
     play();
     host.addEventListener('click', function () { if (audio.paused) play(); }, { once: true });
     audio.addEventListener('ended', function () {
@@ -502,6 +520,14 @@
     micEl.hidden = !hasStt;
   }
 
+  // the voice switch: on means the board may speak; off means silence even for a speaker card
+  function renderVoice() {
+    if (!monVoice) return;
+    var on = !!(state.tts && state.tts.enabled);
+    monVoice.textContent = on ? 'voice on' : 'voice off';
+    monVoice.style.color = on ? 'var(--green)' : 'var(--muted)';
+  }
+
   function renderChip() {
     var a = state.agent || {};
     if (state.viewer) { chipEl.className = 'chip'; chipEl.textContent = 'hosted on ' + state.host; return; }
@@ -511,7 +537,7 @@
     chipEl.textContent = a.session ? 'agent ready · continuing a session' : 'agent ready';
   }
 
-  function render() { renderMonitor(); renderThread(); renderEasy(); renderChip(); }
+  function render() { renderMonitor(); renderThread(); renderEasy(); renderChip(); renderVoice(); }
 
   function load() {
     var convUrl = 'api/conversation' + (HOST ? '?host=' + encodeURIComponent(HOST) : '');
@@ -526,6 +552,7 @@
       state.agent = conv.agent || local.agent || {};
       state.easy = local.easy || {};
       if (local.characters) CHARS = local.characters;
+      state.tts = local.tts || null;
       state.easyError = local.easyError || null;
       state.viewer = !!conv.viewer;
       state.host = conv.host || null;
@@ -584,6 +611,12 @@
   clearEl.addEventListener('click', function () {
     if (!confirm('Empty the thread? The turns are gone; the file stays empty.')) return;
     fetch('api/clear', { method: 'POST' }).then(load);
+  });
+
+  monVoice.addEventListener('click', function () {
+    var on = !!(state.tts && state.tts.enabled);
+    fetch('api/tts', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ enabled: !on }) })
+      .then(function () { if (on) stopAnim(); return load(); });
   });
 
   monBack.addEventListener('click', function () {

@@ -75,6 +75,8 @@ const DOOR_TABLE = [
   { key: 'echidna', dir: 'Echidna', port: 8138 },
   // Tell Mom is its own door: a notification must be deliverable whether or not the app, the pane or a diary is up.
   { key: 'tellmom', dir: 'TellMom', port: 8139 },
+  // speech is a service any node can host: Kokoro with the cast's voices, Windows SAPI when no GPU is free
+  { key: 'tts', dir: 'TTS', port: 8144, script: 'server/main.js' },
 ];
 
 // ── THE WATCHDOGS ARE PROCESSES TOO ────────────────────────────────────────────

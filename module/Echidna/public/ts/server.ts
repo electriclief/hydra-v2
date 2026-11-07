@@ -11,6 +11,8 @@
  *   POST /api/say {text}         → ask the agent once; returns the two turns it wrote
  *   POST /api/monitor {kind,title,text} → put a card on the board (the card replaces the last one)
  *   POST /api/monitor/back      → walk back through the replaced cards
+ *   GET|POST /api/tts           → is the voice on, and which door is speaking
+ *   POST /api/speak {text,character} → audio/wav from the LAN's speech door (never synthesised here)
  *   POST /api/clear              → empty the thread (the file stays, empty)
  */
 
@@ -39,6 +41,8 @@ export interface ServerOptions {
   readOnly?: boolean;
   /** The approved rig directory (media/characters). The faces come from there, never from a second copy. */
   rigDir: string;
+  /** The LAN speech door this node asks by default. */
+  ttsUrl: string;
 }
 
 /** One card on the monitor. It is replaced, never appended: the board is never a feed. */
@@ -143,6 +147,17 @@ export function createServer(options: ServerOptions): http.Server {
   };
 
   // ── the monitor: a stack of cards, only ever one on screen ────────────────────────────────────────────────
+  const ttsFile = path.join(options.dataDir, 'tts.json');
+  const readTts = (): { enabled: boolean; url: string } => {
+    try {
+      const raw = JSON.parse(fs.readFileSync(ttsFile, 'utf8')) as { enabled?: boolean; url?: string };
+      return { enabled: raw.enabled !== false, url: raw.url || options.ttsUrl };
+    } catch {
+      fs.writeFileSync(ttsFile, JSON.stringify({ enabled: true, url: options.ttsUrl }, null, 2));
+      return { enabled: true, url: options.ttsUrl };
+    }
+  };
+
   const monitorFile = path.join(options.dataDir, 'monitor.json');
   let monitor: MonitorState = { stack: [], index: -1 };
   try {
@@ -224,6 +239,7 @@ export function createServer(options: ServerOptions): http.Server {
           ? { source: options.rigDir, error: rig.error, characters: rig.characters }
           : null;
         sendJson(res, 200, {
+          tts: readTts(),
           characters,
           monitor: { card: monitorCard(), index: monitor.index, total: monitor.stack.length },
           thread: thread.read(),
@@ -286,6 +302,91 @@ export function createServer(options: ServerOptions): http.Server {
           return;
         } catch (error) {
           sendJson(res, 502, { ok: false, error: `could not read ${host}'s conversation: ${(error as Error).message}`, host });
+          return;
+        }
+      }
+
+      // The voice: a switch and a proxy. This door never synthesises speech itself - the LAN does, so a laptop with
+      // no GPU still talks, and the box doing the talking is visible as a service in the Menu.
+      if (p === '/api/tts' && method === 'GET') {
+        const cfg = readTts();
+        let reachable = false;
+        let providers: unknown = null;
+        try {
+          const controller = new AbortController();
+          const timer = setTimeout(() => controller.abort(), 1500);
+          const res = await fetch(`${cfg.url.replace(/\/$/, '')}/health`, { signal: controller.signal });
+          clearTimeout(timer);
+          const body = (await res.json()) as { providers?: unknown };
+          reachable = res.ok;
+          providers = body.providers ?? null;
+        } catch {
+          reachable = false;
+        }
+        sendJson(res, 200, { tts: { ...cfg, reachable, providers } });
+        return;
+      }
+
+      if (p === '/api/tts' && method === 'POST') {
+        let body: Record<string, unknown>;
+        try {
+          body = JSON.parse((await readBody(req)) || '{}') as Record<string, unknown>;
+        } catch {
+          sendJson(res, 400, { ok: false, error: 'body must be JSON' });
+          return;
+        }
+        const cfg = readTts();
+        if (typeof body.enabled === 'boolean') cfg.enabled = body.enabled;
+        if (typeof body.url === 'string' && body.url.trim()) cfg.url = body.url.trim();
+        fs.writeFileSync(ttsFile, JSON.stringify(cfg, null, 2));
+        sendJson(res, 200, { ok: true, tts: cfg });
+        return;
+      }
+
+      if (p === '/api/speak' && method === 'POST') {
+        const cfg = readTts();
+        if (!cfg.enabled) {
+          sendJson(res, 409, { ok: false, error: 'the voice is switched off' });
+          return;
+        }
+        let body: Record<string, unknown>;
+        try {
+          body = JSON.parse((await readBody(req)) || '{}') as Record<string, unknown>;
+        } catch {
+          sendJson(res, 400, { ok: false, error: 'body must be JSON' });
+          return;
+        }
+        const text = String(body.text ?? '').trim();
+        if (!text) {
+          sendJson(res, 400, { ok: false, error: 'nothing to say' });
+          return;
+        }
+        try {
+          const controller = new AbortController();
+          const timer = setTimeout(() => controller.abort(), 60_000);
+          const upstream = await fetch(`${cfg.url.replace(/\/$/, '')}/say`, {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({ text, character: body.character ? String(body.character) : undefined, voice: body.voice }),
+            signal: controller.signal,
+          });
+          clearTimeout(timer);
+          if (!upstream.ok) {
+            const why = (await upstream.json().catch(() => ({ error: `speech door answered ${upstream.status}` }))) as { error?: string };
+            sendJson(res, 502, { ok: false, error: why.error ?? `speech door answered ${upstream.status}` });
+            return;
+          }
+          const wav = Buffer.from(await upstream.arrayBuffer());
+          res.writeHead(200, {
+            'content-type': 'audio/wav',
+            'x-tts-provider': upstream.headers.get('x-tts-provider') ?? 'unknown',
+            'x-tts-voice': upstream.headers.get('x-tts-voice') ?? '',
+            'cache-control': 'no-store',
+          });
+          res.end(wav);
+          return;
+        } catch (error) {
+          sendJson(res, 502, { ok: false, error: `no speech door reachable: ${(error as Error).message}` });
           return;
         }
       }

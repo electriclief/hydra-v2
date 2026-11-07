@@ -66,6 +66,16 @@ function createServer(options) {
     } catch {
     }
   };
+  const ttsFile = path.join(options.dataDir, "tts.json");
+  const readTts = () => {
+    try {
+      const raw = JSON.parse(fs.readFileSync(ttsFile, "utf8"));
+      return { enabled: raw.enabled !== false, url: raw.url || options.ttsUrl };
+    } catch {
+      fs.writeFileSync(ttsFile, JSON.stringify({ enabled: true, url: options.ttsUrl }, null, 2));
+      return { enabled: true, url: options.ttsUrl };
+    }
+  };
   const monitorFile = path.join(options.dataDir, "monitor.json");
   let monitor = { stack: [], index: -1 };
   try {
@@ -134,6 +144,7 @@ function createServer(options) {
         const rig = loadRig(options.rigDir);
         const characters = Object.keys(rig.characters).length ? { source: options.rigDir, error: rig.error, characters: rig.characters } : null;
         sendJson(res, 200, {
+          tts: readTts(),
           characters,
           monitor: { card: monitorCard(), index: monitor.index, total: monitor.stack.length },
           thread: thread.read(),
@@ -189,6 +200,86 @@ function createServer(options) {
           return;
         } catch (error) {
           sendJson(res, 502, { ok: false, error: `could not read ${host}'s conversation: ${error.message}`, host });
+          return;
+        }
+      }
+      if (p === "/api/tts" && method === "GET") {
+        const cfg = readTts();
+        let reachable = false;
+        let providers = null;
+        try {
+          const controller = new AbortController();
+          const timer = setTimeout(() => controller.abort(), 1500);
+          const res2 = await fetch(`${cfg.url.replace(/\/$/, "")}/health`, { signal: controller.signal });
+          clearTimeout(timer);
+          const body = await res2.json();
+          reachable = res2.ok;
+          providers = body.providers ?? null;
+        } catch {
+          reachable = false;
+        }
+        sendJson(res, 200, { tts: { ...cfg, reachable, providers } });
+        return;
+      }
+      if (p === "/api/tts" && method === "POST") {
+        let body;
+        try {
+          body = JSON.parse(await readBody(req) || "{}");
+        } catch {
+          sendJson(res, 400, { ok: false, error: "body must be JSON" });
+          return;
+        }
+        const cfg = readTts();
+        if (typeof body.enabled === "boolean") cfg.enabled = body.enabled;
+        if (typeof body.url === "string" && body.url.trim()) cfg.url = body.url.trim();
+        fs.writeFileSync(ttsFile, JSON.stringify(cfg, null, 2));
+        sendJson(res, 200, { ok: true, tts: cfg });
+        return;
+      }
+      if (p === "/api/speak" && method === "POST") {
+        const cfg = readTts();
+        if (!cfg.enabled) {
+          sendJson(res, 409, { ok: false, error: "the voice is switched off" });
+          return;
+        }
+        let body;
+        try {
+          body = JSON.parse(await readBody(req) || "{}");
+        } catch {
+          sendJson(res, 400, { ok: false, error: "body must be JSON" });
+          return;
+        }
+        const text = String(body.text ?? "").trim();
+        if (!text) {
+          sendJson(res, 400, { ok: false, error: "nothing to say" });
+          return;
+        }
+        try {
+          const controller = new AbortController();
+          const timer = setTimeout(() => controller.abort(), 6e4);
+          const upstream = await fetch(`${cfg.url.replace(/\/$/, "")}/say`, {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({ text, character: body.character ? String(body.character) : void 0, voice: body.voice }),
+            signal: controller.signal
+          });
+          clearTimeout(timer);
+          if (!upstream.ok) {
+            const why = await upstream.json().catch(() => ({ error: `speech door answered ${upstream.status}` }));
+            sendJson(res, 502, { ok: false, error: why.error ?? `speech door answered ${upstream.status}` });
+            return;
+          }
+          const wav = Buffer.from(await upstream.arrayBuffer());
+          res.writeHead(200, {
+            "content-type": "audio/wav",
+            "x-tts-provider": upstream.headers.get("x-tts-provider") ?? "unknown",
+            "x-tts-voice": upstream.headers.get("x-tts-voice") ?? "",
+            "cache-control": "no-store"
+          });
+          res.end(wav);
+          return;
+        } catch (error) {
+          sendJson(res, 502, { ok: false, error: `no speech door reachable: ${error.message}` });
           return;
         }
       }

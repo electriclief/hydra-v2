@@ -37,6 +37,8 @@ export interface MainOptions {
   readOnly: boolean;
   /** The approved rig directory whose character records drive the faces. */
   rigDir: string;
+  /** The LAN speech door this node asks by default. */
+  ttsUrl: string;
 }
 
 /** The node's own ref, read from the instance layer (never from the repo). */
@@ -72,6 +74,7 @@ export function parseArgs(argv: string[], moduleDir = MODULE_DIR): MainOptions {
     mirrorUrl: process.env.ECHIDNA_MIRROR ?? 'http://127.0.0.1:8137',
     readOnly: process.env.ECHIDNA_READONLY === '1',
     rigDir: process.env.ECHIDNA_RIG ?? 'C:/AI/hydra-local/media/characters',
+    ttsUrl: process.env.ECHIDNA_TTS ?? 'http://127.0.0.1:8144',
   };
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i];
@@ -133,6 +136,7 @@ const server = createServer({
   mirrorUrl: options.mirrorUrl,
   readOnly: options.readOnly,
   rigDir: options.rigDir,
+  ttsUrl: options.ttsUrl,
 });
 
 server.listen(options.port, options.host, () => {
@@ -141,4 +145,5 @@ server.listen(options.port, options.host, () => {
   process.stdout.write(`[echidna] thread: ${path.join(options.dataDir, 'thread.jsonl')}\n`);
   process.stdout.write(`[echidna] published as node.${options.nodeRef}.echidna to ${options.stateUrl}\n`);
   process.stdout.write(`[echidna] faces: ${options.rigDir}\n`);
+  process.stdout.write(`[echidna] voice: ${options.ttsUrl}\n`);
 });

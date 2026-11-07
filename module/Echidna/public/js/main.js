@@ -32,7 +32,8 @@ function parseArgs(argv, moduleDir = MODULE_DIR) {
     nodeRef: process.env.ECHIDNA_REF ?? nodeRefFromDisk(),
     mirrorUrl: process.env.ECHIDNA_MIRROR ?? "http://127.0.0.1:8137",
     readOnly: process.env.ECHIDNA_READONLY === "1",
-    rigDir: process.env.ECHIDNA_RIG ?? "C:/AI/hydra-local/media/characters"
+    rigDir: process.env.ECHIDNA_RIG ?? "C:/AI/hydra-local/media/characters",
+    ttsUrl: process.env.ECHIDNA_TTS ?? "http://127.0.0.1:8144"
   };
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i];
@@ -92,7 +93,8 @@ const server = createServer({
   nodeRef: options.nodeRef,
   mirrorUrl: options.mirrorUrl,
   readOnly: options.readOnly,
-  rigDir: options.rigDir
+  rigDir: options.rigDir,
+  ttsUrl: options.ttsUrl
 });
 server.listen(options.port, options.host, () => {
   process.stdout.write(`[echidna] http://${options.host}:${options.port}
@@ -104,6 +106,8 @@ server.listen(options.port, options.host, () => {
   process.stdout.write(`[echidna] published as node.${options.nodeRef}.echidna to ${options.stateUrl}
 `);
   process.stdout.write(`[echidna] faces: ${options.rigDir}
+`);
+  process.stdout.write(`[echidna] voice: ${options.ttsUrl}
 `);
 });
 export {
