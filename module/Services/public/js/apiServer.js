@@ -1,6 +1,7 @@
 import http from "node:http";
 import fs from "node:fs";
 import path from "node:path";
+import { spawn } from "node:child_process";
 import { buildManifest, lastSyncMark, resolveInRoot, syncFrom } from "./shelf.js";
 import { createServiceMcpRegistry } from "./mcpTools.js";
 import { createMcpServer } from "./mcpServer.js";
@@ -225,6 +226,76 @@ function createApiServer(options) {
         return;
       }
       sendJson(res, 200, { ok: true, name: entry.name, file: entry.file, warnings: entry.warnings, service: entry.definition });
+      return;
+    }
+    if (method === "POST" && pathName.startsWith("/api/services/") && pathName.endsWith("/apply")) {
+      const rawName = pathName.slice("/api/services/".length, -"/apply".length);
+      let applyName;
+      try {
+        applyName = decodeURIComponent(rawName);
+      } catch {
+        sendError(res, 400, "bad_name", "the name is not a valid URI component");
+        return;
+      }
+      const entry = catalog.get(applyName);
+      if (!entry) {
+        sendError(res, 404, "no_such_service", `no such service: ${applyName} \u2014 GET /api/services for the listing`);
+        return;
+      }
+      const decl = entry.definition?.apply;
+      if (!decl || !decl.script) {
+        sendError(res, 400, "no_apply", `${applyName} declares no apply script \u2014 it can be read but not switched from here`);
+        return;
+      }
+      let body = {};
+      try {
+        body = JSON.parse(await readBody(req) || "{}");
+      } catch {
+        sendError(res, 400, "bad_json", "body must be JSON");
+        return;
+      }
+      const root = entry.file ? path.resolve(path.dirname(entry.file), "..", "..", "..") : process.cwd();
+      const script = path.join(root, decl.script);
+      if (!fs.existsSync(script)) {
+        sendError(res, 500, "no_script", `the service names an apply script that is not on disk: ${script}`);
+        return;
+      }
+      const args = ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", script];
+      if (body.backend) args.push(decl.backendFlag ?? "-Backend", String(body.backend));
+      if (body.host) args.push(decl.hostFlag ?? "-Host", String(body.host));
+      if (body.model) args.push(decl.modelFlag ?? "-Model", String(body.model));
+      if (body.probe !== false && decl.probeFlag) args.push(decl.probeFlag);
+      const shell = process.env.SystemRoot ? path.join(process.env.SystemRoot, "System32", "WindowsPowerShell", "v1.0", "powershell.exe") : "powershell.exe";
+      const started = Date.now();
+      const child = spawn(shell, args, { cwd: root, windowsHide: true });
+      let output = "";
+      child.stdout?.on("data", (c) => {
+        output += c.toString("utf8");
+      });
+      child.stderr?.on("data", (c) => {
+        output += c.toString("utf8");
+      });
+      const killer = setTimeout(() => {
+        try {
+          child.kill();
+        } catch {
+        }
+      }, 6e5);
+      child.on("error", (err) => {
+        clearTimeout(killer);
+        sendError(res, 502, "apply_failed", err.message);
+      });
+      child.on("close", (code) => {
+        clearTimeout(killer);
+        void fireEvent("service.applied", { service: applyName, backend: body.backend ?? null, code });
+        sendJson(res, code === 0 ? 200 : 502, {
+          ok: code === 0,
+          service: applyName,
+          backend: body.backend ?? null,
+          ms: Date.now() - started,
+          output: output.trim()
+        });
+      });
       return;
     }
     if (method === "GET") {

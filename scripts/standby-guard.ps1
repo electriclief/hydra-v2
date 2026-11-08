@@ -1,12 +1,12 @@
 param(
   [string]$MinerTask = 'Hydra-Miner',
   [int]$PollSeconds = 15,
-  [int]$ResumeGraceSeconds = 45,
+  [int]$ResumeGraceSeconds = 1800,
   [string]$DataDir = 'C:\AI\hydra-local\data\standby',
   [string]$StateUrl = 'http://127.0.0.1:8127',
   [string]$EventUrl = 'http://127.0.0.1:8126',
   [string]$Ref = '',
-  [string[]]$AiProcs = @('audiocpp_cli','audiocpp_server','audiocpp_gguf','llama-server','llama-cli','sd-server','sd')
+  [string[]]$AiProcs = @('audiocpp_cli','audiocpp_server','audiocpp_gguf','llama-server','llama-cli','llama-bench','sd-server','sd','sd-cli','whisper-cli')
 )
 
 # ── THE INTERIM IDLE SERVICE, for one node ──────────────────────────────────────
@@ -19,6 +19,27 @@ param(
 # It must never be installed as a scheduled task or a Startup-folder script.
 
 $ErrorActionPreference = 'Continue'
+
+# ONE guard per node. ProcessWrapper can raise this script twice - the app's watchdog table plus a row someone
+# started by hand - and two guards fight over the miner: one stops it while the other starts it, forever. The claim
+# is a named mutex, taken for the life of the process; the second one exits quietly without touching anything.
+$script:GuardMutex = New-Object System.Threading.Mutex($false, 'Global\hydra-standby-guard')
+if (-not $script:GuardMutex.WaitOne(0)) {
+  exit 0
+}
+
+# The declared grace in this node's identity wins over the script default, so a node can say how long
+# "quiet" must last without anyone editing the guard. The operator's rule: 30 minutes of no activity
+# before mining resumes, because a guard that fires 45 s into a render steals the card mid-job.
+if (-not $PSBoundParameters.ContainsKey('ResumeGraceSeconds')) {
+  $nodeFile = Join-Path (Split-Path $PSScriptRoot -Parent) 'module\Menu\data\node.json'
+  if (Test-Path $nodeFile) {
+    try {
+      $nj = Get-Content $nodeFile -Raw | ConvertFrom-Json
+      if ($nj.standby -and $nj.standby.after) { $ResumeGraceSeconds = [int]$nj.standby.after }
+    } catch { }
+  }
+}
 New-Item -ItemType Directory -Force -Path $DataDir | Out-Null
 $LogPath   = Join-Path $DataDir 'guard.log'
 $StatePath = Join-Path $DataDir 'guard.state.json'
@@ -243,6 +264,94 @@ function Sync-StandbyToPw {
   return ($wrapped -gt 0)
 }
 
+# ── the second miner: the CPU, beside the card rather than instead of it ──────────────────────────────────────────
+# One idle service, two machines doing the work. The GPU miner is the one that earns; the CPU miner is what a sleeping
+# card leaves unused. They are started together and stopped together, and both are ProcessWrapper rows, because the
+# operator rule does not have an exception for "the small one".
+function Get-CpuPolicy {
+  if ($Policy -and $Policy.cpu -and $Policy.cpu.enabled) { return $Policy.cpu }
+  return $null
+}
+
+function Test-CpuRunning {
+  return (@(Get-Process -Name 'xmrig' -ErrorAction SilentlyContinue).Count -gt 0)
+}
+
+function Start-CpuMiner {
+  $c = Get-CpuPolicy
+  if (-not $c) { return $false }
+  if (Test-CpuRunning) { LogIt 'CPU     already hashing - left alone'; return $true }
+  if (-not $c.command) { LogIt 'CPU     declared but has no command - not started'; return $false }
+  $argList = @()
+  foreach ($a in @($c.args)) { if ($null -ne $a -and ([string]$a) -ne '') { $argList += [string]$a } }
+  if (Test-PwUp) {
+    # same tag as the GPU row on purpose: Stop-Miner kills everything tagged standby, so a yield takes both miners in
+    # one pass and there is no way to leave half the idle service running
+    $body = @{ name = 'standby-cpu'; tag = $StandbyTag; isolation = 'supervised'; command = [string]$c.command }
+    if ($argList.Count -gt 0) { $body['args'] = $argList }
+    if ($c.cwd) { $body['cwd'] = [string]$c.cwd }
+    $r = Invoke-Pw -Method POST -Path '/api/processes' -Body $body
+    if ($r -and $r.process) { LogIt ("CPU     launched through ProcessWrapper -> " + $r.process.id); return $true }
+    LogIt 'CPU     ProcessWrapper refused the row - starting it directly'
+  }
+  try {
+    $pa = @{ FilePath = [string]$c.command; WindowStyle = 'Hidden' }
+    if ($argList.Count -gt 0) { $pa['ArgumentList'] = $argList }
+    if ($c.cwd) { $pa['WorkingDirectory'] = [string]$c.cwd }
+    Start-Process @pa
+    LogIt 'CPU     launched directly (no wrapper)'
+    return $true
+  }
+  catch {
+    LogIt ('CPU     launch failed: ' + $_.Exception.Message)
+    return $false
+  }
+}
+
+# xmrig speaks its own JSON on --http-port. Read it, never infer: a CPU miner whose API does not answer has no rate to
+# report, and reporting a zero would look like a dead miner rather than an unreadable one.
+function Get-CpuDetail {
+  $c = Get-CpuPolicy
+  if (-not $c) { return $null }
+  $port = 0
+  if ($c.apiPort) { $port = [int]$c.apiPort }
+  if ($port -le 0) { return $null }
+  if (-not (Test-CpuRunning)) { return $null }
+  try {
+    $s = Invoke-RestMethod -Uri ("http://127.0.0.1:" + $port + "/2/summary") -TimeoutSec 3
+    # xmrig 6.x answers with hashrate.total = [10s, 60s, 15m] and results.{shares_good,shares_total}. The named
+    # 10s/60s keys are NOT there - reading them yields 0 and a miner that is hashing at 530 H/s reports "0 H/s",
+    # which is the worst kind of wrong: it looks like a broken miner rather than a misread field.
+    $rate = 0
+    if ($s.hashrate -and $s.hashrate.total) {
+      $slots = @($s.hashrate.total)
+      if ($slots.Count -ge 2 -and [double]$slots[1] -gt 0) { $rate = [double]$slots[1] }
+      elseif ($slots.Count -ge 1 -and [double]$slots[0] -gt 0) { $rate = [double]$slots[0] }
+    }
+    if ($rate -le 0 -and $s.hashrate.'60s') { $rate = [double]$s.hashrate.'60s' }
+    $good = 0
+    $all = 0
+    if ($s.results) { $good = [int]$s.results.shares_good; $all = [int]$s.results.shares_total }
+    elseif ($null -ne $s.results_shares_good) { $good = [int]$s.results_shares_good; $all = [int]$s.results_shares_total }
+    $threads = 0
+    if ($s.cpu -and $s.cpu.threads) { $threads = @($s.cpu.threads).Count }
+    $f = Format-Rate $rate
+    return @{
+      algo     = [string]$s.algo
+      label    = (Get-AlgoLabel ([string]$s.algo))
+      rate     = $f[0]
+      unit     = $f[1]
+      accepted = $good
+      rejected = [math]::Max(0, $all - $good)
+      pool     = $(if ($s.connection -and $s.connection.pool) { [string]$s.connection.pool } else { '' })
+      threads  = $(if ($c.threads) { [int]$c.threads } else { $threads })
+      uptime   = [int]$s.uptime
+      at       = (Get-Date).ToString('s')
+    }
+  }
+  catch { return $null }
+}
+
 function Stop-Miner {
   # stop through the table first: a process stopped behind the manager's back leaves a row that says 'running'
   if (Test-PwUp) {
@@ -295,6 +404,11 @@ function Test-StandbyUp {
 
 function Start-Miner {
   $script:lastVerify = 'pending'
+
+  # The CPU miner goes up first and independently: it is not the thing that earns, so a slow or blocked GPU launch must
+  # not hold it back - and if it fails, the card still comes up. Two miners, two failure modes, neither one gates the
+  # other.
+  [void](Start-CpuMiner)
 
   # WHERE the standby comes from: ProcessWrapper first, because a process the manager cannot see is the thing the
   # operator keeps objecting to. Wrap what is already hashing, else launch through the door so the row exists from
@@ -416,6 +530,20 @@ if ($Policy -and $Policy.label) { LogIt ("standby: " + $Policy.label + "  after 
 # If it is already hashing when the guard starts, wrap it now: the table must show it before it ever needs stopping.
 if ((Get-MinerRunning) -and (Test-PwUp)) { [void](Sync-StandbyToPw) }
 
+# At boot the operator's rule is "assume idle": nothing has asked for the card yet on this guard, so mining is the
+# intended state and should come up immediately - through ProcessWrapper, as a row with a close button. The grace
+# period still governs every resume AFTER work (30 min), where it is what stops a render being interrupted; it is
+# not a reason to sit idle for half an hour after a reboot.
+if (-not (Get-MinerRunning) -and (Test-PwUp)) {
+  $bootAi = @(Get-AiWork)
+  if ($bootAi.Count -eq 0) {
+    LogIt 'boot: no AI work on the card - assuming idle, starting the miner through ProcessWrapper'
+    [void](Start-Miner)
+  } else {
+    LogIt ('boot: work already on the card (' + (@(Describe-AiWork $bootAi) -join ',') + ') - miner stays down')
+  }
+}
+
 while ($true) {
   $tick++
   if ($tick % 20 -eq 0) {
@@ -456,12 +584,20 @@ while ($true) {
     # the deadline belongs to the book; this guard only waits for it. With no idle branch (Scheduler not running,
     # or a node that does not have one yet) the guard falls back to its own grace so it cannot stall forever.
     $after = $ResumeGraceSeconds
-    if ($null -ne $idle -and $null -ne $idle.after) { $after = [int]$idle.after }
+    # The declared grace is a FLOOR, not a suggestion: a scheduler that offers a shorter idle window (45 s) must not
+    # be able to pull the miner back onto the card sooner than the node's own rule allows.
+    if ($null -ne $idle -and $null -ne $idle.after) { $after = [Math]::Max([int]$idle.after, $ResumeGraceSeconds) }
     $deadline = $null
     if ($null -ne $idle -and $idle.resumeAt) {
       try { $deadline = [datetime]::Parse($idle.resumeAt, [System.Globalization.CultureInfo]::InvariantCulture) } catch { $deadline = $null }
     }
     if ($null -eq $deadline) { $deadline = $freeSince.AddSeconds($after) }
+    else {
+      # The book's resumeAt can be shorter than this node's declared grace (a scheduler default of a few minutes).
+      # The floor is the node's number: the miner does not come back onto the card before 30 minutes of quiet.
+      $floor = $freeSince.AddSeconds($ResumeGraceSeconds)
+      if ($deadline -lt $floor) { $deadline = $floor }
+    }
 
     if (-not $miner -and (Get-Date) -ge $deadline) {
       if ($pinned -and -not $idle.pinned) { LogIt "pinned locally - miner left alone" }
@@ -487,6 +623,36 @@ while ($true) {
   # the algorithm and rate belong to the same report as the mode: both come from the thing doing the work
   $minerDetail = $null
   if ($mode -eq 'mining') { $minerDetail = Get-MinerDetail }
+  # the CPU miner reports itself separately: it can be hashing while the card is yielded (xmrig is cheap to leave on),
+  # and it can be absent while the card mines. One field per machine, so neither can be read as the other.
+  $cpuDetail = Get-CpuDetail
+  if ($cpuDetail) {
+    if ($null -ne $script:LastCpuAccepted -and $cpuDetail.accepted -gt $script:LastCpuAccepted) {
+      LogIt ("CPU share accepted " + $cpuDetail.accepted + " (+" + ($cpuDetail.accepted - $script:LastCpuAccepted) + ")  " + $cpuDetail.label + " " + $cpuDetail.rate + " " + $cpuDetail.unit + "  " + $cpuDetail.threads + " threads")
+    }
+    if ($null -ne $script:LastCpuRejected -and $cpuDetail.rejected -gt $script:LastCpuRejected) {
+      LogIt ("CPU SHARE REJECTED " + $cpuDetail.rejected + " (+" + ($cpuDetail.rejected - $script:LastCpuRejected) + ")  " + $cpuDetail.label)
+    }
+    $script:LastCpuAccepted = $cpuDetail.accepted
+    $script:LastCpuRejected = $cpuDetail.rejected
+  }
+
+  # A share is the only proof the pool accepted any work. A rate can sit at 90 MH/s forever while the pool says no,
+  # so the delta is logged: the guard's log then carries the trail an operator can read after the fact, without
+  # opening the miner's own web page. Rate changes are ignored here; only acceptance and rejection are worth a line.
+  if ($minerDetail) {
+    if ($null -ne $script:LastAccepted) {
+      if ($minerDetail.accepted -gt $script:LastAccepted) {
+        $d = $minerDetail.accepted - $script:LastAccepted
+        LogIt ("share accepted " + $minerDetail.accepted + " (+" + $d + ")  " + $minerDetail.label + " " + $minerDetail.rate + " " + $minerDetail.unit + "  pool " + $minerDetail.pool)
+      }
+      if ($null -ne $script:LastRejected -and $minerDetail.rejected -gt $script:LastRejected) {
+        LogIt ("SHARE REJECTED " + $minerDetail.rejected + " (+" + ($minerDetail.rejected - $script:LastRejected) + ")  " + $minerDetail.label + "  pool " + $minerDetail.pool)
+      }
+    }
+    $script:LastAccepted = $minerDetail.accepted
+    $script:LastRejected = $minerDetail.rejected
+  }
 
   # a change of mode is the one thing worth a log line: it is what the operator watches for
   if ($mode -ne $lastMode) {
@@ -509,6 +675,8 @@ while ($true) {
     working    = $preempt.Count
     parked     = ($ai.Count - $preempt.Count)
     minerDetail = $minerDetail
+    cpuDetail  = $cpuDetail
+    cpu        = ($null -ne (Get-CpuPolicy))
     miner      = $miner
     pinned     = $pinned
     busySince  = $(if ($null -ne $busySince) { $busySince.ToString('s') } else { $null })

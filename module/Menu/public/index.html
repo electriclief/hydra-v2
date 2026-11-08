@@ -143,8 +143,25 @@
     align-items: baseline;
     justify-content: space-between;
     gap: 10px;
-    padding: 3px 0;
+    padding: 3px 10px;
   }
+  /* the row that is DOING something right now: a left accent, bright text, and the word, because a colour alone is
+     not a statement */
+  .lan-row.running {
+    background: linear-gradient(90deg, rgba(120, 200, 160, .14), transparent 60%);
+    box-shadow: inset 2px 0 0 #6fd39b;
+    border-radius: 3px;
+  }
+  .lan-row.running .lan-name { color: #d8f0e2; font-weight: 600; }
+  .lan-row.running .lan-meta { color: #9fd8b8; }
+  /* same statement in the local tree: the service that is running keeps an accent even while another row is selected */
+  .row.running { box-shadow: inset 2px 0 0 #6fd39b; background: linear-gradient(90deg, rgba(120, 200, 160, .10), transparent 55%); }
+  .row.running .node-name { color: #d8f0e2; }
+  /* a machine that is declared and not here: still in the tree, plainly greyed, and its title says why */
+  .node.parked .node-head b { color: var(--muted); font-weight: 500; }
+  .node.parked .chip { opacity: .75; }
+  .node.parked .lan-name { color: var(--muted); }
+  .node.parked .lan-meta { color: #6f7a86; }
 
   .lan-name { color: var(--text); }
 
@@ -529,6 +546,12 @@
   function mark(name) {
     rows.forEach(function (r) { r.link.classList.toggle('sel', r.name === name); });
   }
+
+  // the LAN panel knows what each node is doing; the local tree is one of those nodes. One call, no second opinion.
+  function markRunning(name) {
+    rows.forEach(function (r) { r.link.classList.toggle('running', !!name && r.name === name); });
+  }
+  window.__markRunning = markRunning;
 
   function gib(bytes) {
     if (!bytes) return '';
@@ -995,13 +1018,47 @@
     return s < 2 ? 'just now' : s + 's ago';
   }
 
+  // WHICH ENTRY IS LIT. The operator's rule: no node has a true idle, so every node with a live report has exactly
+  // one thing it is doing - the AI service while it works, the idle service while it mines. A node with no report, or
+  // a stale one, gets an honest 'unknown' instead of a guess borrowed from the last time it was awake.
+  function runningOf(n) {
+    var sb = n.standby;
+    if (!sb || sb.stale) return { who: null, label: null, why: sb ? 'report is stale' : 'no report' };
+    if (sb.mode === 'ai') {
+      var ai = String(sb.ai || '').trim();
+      // the AI field names the process, not always the catalog slug: match on the row that contains it
+      var match = null;
+      (n.services || []).forEach(function (s) {
+        var slug = String(s.name || '');
+        if (!match && ai && (ai === slug || ai.indexOf(slug) >= 0 || slug.indexOf(ai) >= 0)) match = slug;
+      });
+      return { who: match || null, label: ai || 'AI work', why: 'ai' };
+    }
+    if (sb.mode === 'mining') {
+      var idle = null;
+      (n.services || []).forEach(function (s) { if (!idle && /idle/i.test(String(s.name || ''))) idle = s.name; });
+      return { who: idle || 'idle-mining', label: (sb.minerDetail && (sb.minerDetail.label || sb.minerDetail.algo)) || 'mining', why: 'mining' };
+    }
+    return { who: null, label: 'idle', why: 'idle' };
+  }
+
   function render(lan) {
     // include THIS node: the operator wants to see every card on the LAN, including the one under his desk
     var peers = (lan.nodes || []).filter(function (n) { return n.role === 'self'; })
       .concat((lan.nodes || []).filter(function (n) { return n.role !== 'self'; }));
     if (!peers.length) { section.hidden = true; return; }
 
-    box.innerHTML = peers.map(function (n) {
+    var fleetLine = '';
+    if (lan.fleet) {
+      // declared vs present, side by side: a roster row that is nowhere on the wire is the line an operator
+      // actually needs, so it is said out loud instead of being dropped as "asleep"
+      fleetLine = lan.fleet.ok
+        ? '<p class="hint">Roster ' + esc(lan.fleet.source) + ': ' + lan.fleet.declared + ' declared · ' + lan.fleet.onLan + ' on the LAN · ' + lan.fleet.notHere + ' not here'
+          + (lan.fleet.notHere ? ' — ' + esc(lan.fleet.notHereNames.join(', ')) : '') + '</p>'
+        : '<p class="hint">Roster ' + esc(lan.fleet.source) + ' is unreadable (' + esc(lan.fleet.error) + ') — roles unknown, not absent</p>';
+    }
+
+    box.innerHTML = fleetLine + peers.map(function (n) {
       var chips = [n.verdict];
       chips.push(n.cycle == null ? 'no cycle' : 'cycle ' + n.cycle);
       if (n.standby && !n.standby.stale && n.standby.mode === 'mining') {
@@ -1014,9 +1071,16 @@
       if (n.degraded) chips.push('degraded');
       if (n.seenAt) chips.push(ago(n.seenAt));
 
+      var run = runningOf(n);
+      // the local tree is the same list of services, so the same answer lights it
+      if (n.role === 'self' && typeof window.__markRunning === 'function') window.__markRunning(run.who);
+
       var rows = (n.services || []).map(function (s) {
+        var isRun = run.who && String(s.name) === String(run.who);
         var meta = (s.ready ? 'ready' : 'not ready') + (s.karma == null ? '' : ' · karma ' + s.karma);
-        return '<li class="lan-row"><span class="lan-name">' + esc(s.name) + '</span><span class="lan-meta">' + esc(meta) + '</span></li>';
+        var runningChip = isRun ? '<span class="chip alive" title="running now">▶ running</span>' : '';
+        return '<li class="lan-row' + (isRun ? ' running' : '') + '"><span class="lan-name">' + esc(s.name) + runningChip + '</span>'
+          + '<span class="lan-meta">' + esc(meta) + '</span></li>';
       }).join('');
       if (!rows) rows = '<li class="lan-row"><span class="lan-meta">no services published</span></li>';
 
@@ -1049,15 +1113,76 @@
         standbyRow = '<li class="lan-row"><span class="lan-name">Idle Service</span><span class="lan-meta">idle - standing by</span></li>';
       }
 
+      // the CPU miner is a second row, never folded into the GPU's: they are different machines on different pools
+      if (sb && !sb.stale && sb.cpuDetail) {
+        var cd = sb.cpuDetail;
+        var cpuDoing = (cd.label || cd.algo || 'randomx')
+          + (typeof cd.rate === 'number' ? ' ' + cd.rate + ' ' + (cd.unit || '') : '')
+          + (cd.threads ? ' · ' + cd.threads + ' threads' : '')
+          + (typeof cd.accepted === 'number' ? ' · ' + cd.accepted + ' accepted' : '');
+        standbyRow += '<li class="lan-row"><span class="lan-name">CPU miner</span><span class="lan-meta">' + esc(cpuDoing) + '</span></li>';
+      }
+
       var title = n.role === 'self' ? 'This node' : 'Node — ' + n.name;
+
+      // WHAT IT IS FOR: declared intent from the roster, shown as a row - never inferred from its name, and
+      // "no declaration" is a fact worth reading, not a blank
+      var forRow;
+      if (n.intent) {
+        var caps = (n.intent.ready_for || []).join(', ');
+        forRow = '<li class="lan-row"><span class="lan-name">For</span><span class="lan-meta">'
+          + esc([n.intent.role || 'no role', caps, n.ip || ''].filter(Boolean).join(' · ')) + '</span></li>';
+      } else {
+        forRow = '<li class="lan-row"><span class="lan-name">For</span><span class="lan-meta">no declaration in the roster</span></li>';
+      }
+
       return '<div class="node">'
         + '<div class="node-head"><b>' + esc(title) + '</b><span class="chips">'
         + chips.map(function (c) { return '<span class="chip ' + esc(n.verdict) + '">' + esc(c) + '</span>'; }).join('')
         + '</span></div>'
-        + '<ul class="lan-list">' + standbyRow + rows + booked + '</ul>'
+        + '<ul class="lan-list">' + standbyRow + forRow + rows + booked + '</ul>'
         + '</div>';
-    }).join('');
+    }).join('') + absentSections(lan);
+
     section.hidden = false;
+  }
+
+  // A network is not only the machines that answered. Two kinds of absence, two headings:
+  //   unmanaged - declared and expected to be silent: no Hydra app, reached by ssh, so it can be DRIVEN but not ASKED
+  //   offline   - a Hydra node that is not on the wire right now, greyed with its declared role and the word offline
+  function absentSections(lan) {
+    var absent = lan.declaredAbsent || [];
+    var unmanaged = absent.filter(function (a) { return a.managed === false; });
+    var offline = absent.filter(function (a) { return a.managed !== false; });
+    var out = '';
+
+    if (unmanaged.length) {
+      out += '<h2 class="tree-heading" style="margin-top:16px">Reached by <b>ssh</b> · no Hydra app</h2>';
+      out += unmanaged.map(function (a) {
+        var caps = (a.ready_for || []).join(', ');
+        return '<div class="node parked" title="unmanaged: no Hydra app - Echidna reaches it over ssh, so it cannot report state">'
+          + '<div class="node-head"><b>' + esc(a.name) + '</b><span class="chips">'
+          + '<span class="chip">ssh only</span><span class="chip">' + esc(a.os || 'linux') + '</span></span></div>'
+          + '<ul class="lan-list">'
+          + '<li class="lan-row"><span class="lan-name">For</span><span class="lan-meta">' + esc([a.role || 'no role', caps, a.ip || ''].filter(Boolean).join(' · ')) + '</span></li>'
+          + '<li class="lan-row"><span class="lan-name">State</span><span class="lan-meta">cannot be asked - no door on this box</span></li>'
+          + '</ul></div>';
+      }).join('');
+    }
+
+    if (offline.length) {
+      out += '<h2 class="tree-heading" style="margin-top:16px">Declared · <b>offline</b></h2>';
+      out += offline.map(function (a) {
+        var caps = (a.ready_for || []).join(', ');
+        return '<div class="node parked" title="offline: declared in the roster, not answering on the LAN right now">'
+          + '<div class="node-head"><b>' + esc(a.name) + '</b><span class="chips">'
+          + '<span class="chip gone">offline</span></span></div>'
+          + '<ul class="lan-list">'
+          + '<li class="lan-row"><span class="lan-name">For</span><span class="lan-meta">' + esc([a.role || 'no role', caps, a.ip || ''].filter(Boolean).join(' · ')) + '</span></li>'
+          + '</ul></div>';
+      }).join('');
+    }
+    return out;
   }
 
   function tick() {

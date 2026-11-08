@@ -114,3 +114,138 @@ export async function ask(config: AgentConfig, prompt: string, askId: string): P
     });
   });
 }
+
+export interface AgentStreamEvent {
+  kind: 'delta' | 'meta';
+  text?: string;
+  model?: string | null;
+  tokens?: unknown;
+}
+
+export interface AgentStreamRun extends AgentRun {
+  tokens?: unknown;
+  model?: string | null;
+}
+
+/**
+ * The same ask, read while it is being written.
+ *
+ * `hermes chat --format stream-json` prints one JSON object per line: a `system` init, a run of `text` deltas, then a
+ * `result` carrying the authoritative answer, the session id and the token counts. This function forwards the deltas
+ * as they arrive and still resolves with a complete run, so a caller that only wants the answer can ignore the
+ * events and a caller that wants to draw can ignore the return - and the answer on disk is identical either way.
+ */
+export function askStream(
+  config: AgentConfig,
+  prompt: string,
+  askId: string,
+  onEvent?: (event: AgentStreamEvent) => void,
+): Promise<AgentStreamRun> {
+  const started = Date.now();
+  fs.mkdirSync(config.promptDir, { recursive: true });
+  const file = path.join(config.promptDir, `${askId}.txt`);
+  fs.writeFileSync(file, prompt, 'utf8');
+  const args = ['chat', '--query-file', file, '--oneshot', '-Q', '--format', 'stream-json'];
+  if (config.session) args.push('--resume', config.session);
+
+  return new Promise<AgentStreamRun>((resolve) => {
+    let buf = '';
+    let deltas = '';
+    let sessionId: string | null = null;
+    let finalText: string | null = null;
+    let tokens: unknown = null;
+    let model: string | null = null;
+    let settled = false;
+    const say = (event: AgentStreamEvent) => {
+      try {
+        onEvent?.(event);
+      } catch {
+        /* a listener that throws must not take the run down */
+      }
+    };
+    const finish = (run: AgentStreamRun) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      resolve(run);
+    };
+    let child: ReturnType<typeof spawn>;
+    try {
+      child = spawn(config.bin, args, { windowsHide: true, env: { ...process.env, HERMES_NO_UPDATE_CHECK: '1' } });
+    } catch (error) {
+      finish({ ok: false, text: '', ms: 0, sessionId: null, error: (error as Error).message });
+      return;
+    }
+    const timer = setTimeout(() => {
+      try {
+        if (child.pid) spawn('taskkill', ['/pid', String(child.pid), '/T', '/F'], { windowsHide: true });
+      } catch {
+        /* already gone */
+      }
+      finish({
+        ok: false,
+        text: deltas,
+        ms: Date.now() - started,
+        sessionId,
+        error: `the agent did not answer within ${Math.round(config.timeoutMs / 1e3)}s`,
+      });
+    }, config.timeoutMs);
+
+    const handle = (raw: string) => {
+      const line = raw.trim();
+      if (!line) return;
+      if (!line.startsWith('{')) {
+        const m = /^Session:\s*([A-Za-z0-9._-]+)/.exec(line);
+        if (m) sessionId = m[1];
+        return;
+      }
+      let evt: Record<string, unknown>;
+      try {
+        evt = JSON.parse(line) as Record<string, unknown>;
+      } catch {
+        return;
+      }
+      if (evt.type === 'system') {
+        if (typeof evt.session_id === 'string' && evt.session_id) sessionId = evt.session_id;
+        if (typeof evt.model === 'string' && evt.model) {
+          model = evt.model;
+          say({ kind: 'meta', model });
+        }
+      } else if (evt.type === 'text' && typeof evt.text === 'string') {
+        deltas += evt.text;
+        say({ kind: 'delta', text: evt.text });
+      } else if (evt.type === 'result') {
+        if (typeof evt.session_id === 'string' && evt.session_id) sessionId = evt.session_id;
+        if (typeof evt.text === 'string' && evt.text.trim()) finalText = evt.text;
+        if (evt.tokens) tokens = evt.tokens;
+        if (typeof evt.duration_ms === 'number') say({ kind: 'meta', tokens: evt.tokens ?? null });
+      }
+    };
+
+    child.stdout?.on('data', (chunk: Buffer) => {
+      buf += chunk.toString('utf8');
+      let idx = buf.indexOf('\n');
+      while (idx >= 0) {
+        handle(buf.slice(0, idx));
+        buf = buf.slice(idx + 1);
+        idx = buf.indexOf('\n');
+      }
+    });
+    child.on('error', (error: Error) =>
+      finish({ ok: false, text: deltas, ms: Date.now() - started, sessionId, error: error.message }),
+    );
+    child.on('close', (code: number | null) => {
+      if (buf.trim()) handle(buf);
+      const text = String(finalText ?? deltas).trim();
+      finish({
+        ok: code === 0 && Boolean(text),
+        text: text || (code === 0 ? '(the agent returned no text)' : ''),
+        ms: Date.now() - started,
+        sessionId,
+        tokens,
+        model,
+        error: code === 0 ? null : `hermes exited ${code}`,
+      });
+    });
+  });
+}

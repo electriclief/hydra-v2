@@ -21,7 +21,7 @@ import http from 'node:http';
 import path from 'node:path';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 
-import { ask, type AgentConfig } from './agent.js';
+import { ask, askStream, type AgentConfig } from './agent.js';
 import { loadRig } from './rig.js';
 import { ThreadStore, turnId, type Turn } from './thread.js';
 
@@ -599,6 +599,115 @@ export function createServer(options: ServerOptions): http.Server {
         return;
       }
 
+      // POST /api/say/stream - the talk pane's path. Same ask, answered as it is written, delivered as
+      // server-sent events so every frame has a name: 'turn' (the question on the record), 'delta' (words in
+      // flight), 'meta' (token counts), 'done' (the published turn, also in the thread file), 'fail'.
+      if (p === '/api/say/stream' && method === 'POST') {
+        let streamText = '';
+        try {
+          const body = JSON.parse((await readBody(req)) || '{}') as Record<string, unknown>;
+          streamText = String(body.text ?? '').trim();
+        } catch {
+          sendJson(res, 400, { ok: false, error: 'body must be JSON' });
+          return;
+        }
+        if (!streamText) {
+          sendJson(res, 400, { ok: false, error: 'nothing to ask' });
+          return;
+        }
+        if (busy) {
+          sendJson(res, 409, { ok: false, error: 'still answering the last one' });
+          return;
+        }
+        res.writeHead(200, {
+          'content-type': 'text/event-stream; charset=utf-8',
+          'cache-control': 'no-cache, no-transform',
+          connection: 'keep-alive',
+          'x-accel-buffering': 'no',
+        });
+        try {
+          res.flushHeaders?.();
+        } catch {
+          /* older node */
+        }
+        let alive = true;
+        req.on('close', () => {
+          alive = false;
+        });
+        const frame = (event: string, data: unknown): void => {
+          if (!alive) return;
+          try {
+            res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
+          } catch {
+            alive = false;
+          }
+        };
+        // a quiet agent is not a dead connection; a comment frame keeps proxies from closing it
+        const keepAlive = setInterval(() => {
+          if (!alive) return;
+          try {
+            res.write(': still thinking\n');
+          } catch {
+            alive = false;
+          }
+        }, 10_000);
+
+        const you = thread.append({ id: turnId('you'), at: new Date().toISOString(), role: 'you', text: streamText });
+        frame('turn', { turn: you });
+        const brief = await motherBrief();
+        pushCard({
+          kind: 'question',
+          title: streamText.length > 180 ? streamText.slice(0, 177) + '…' : streamText,
+          text: '',
+          at: new Date().toISOString(),
+        });
+        await publish();
+        busy = true;
+        try {
+          const run = await askStream(
+            { ...options.agent, session: readSession() },
+            `${brief}
+
+---
+
+${streamText}`,
+            you.id,
+            (evt) => {
+              if (evt.kind === 'delta') frame('delta', { text: evt.text });
+              else frame('meta', { model: evt.model ?? null, tokens: evt.tokens ?? null });
+            },
+          );
+          if (run.sessionId) writeSession(run.sessionId);
+          const reply = thread.append({
+            id: turnId('e'),
+            at: new Date().toISOString(),
+            role: run.ok ? 'echidna' : 'system',
+            text: run.ok ? run.text : `could not answer: ${run.error ?? 'unknown'}
+
+${run.text}`.trim(),
+            ms: run.ms,
+            sessionId: run.sessionId,
+            tokens: run.tokens ?? null,
+            failed: !run.ok,
+          });
+          if (run.ok) {
+            pushCard({ kind: 'output', title: 'Echidna', text: run.text.slice(0, 900), at: new Date().toISOString() });
+          }
+          await publish();
+          frame('done', { turn: reply, ms: run.ms, sessionId: run.sessionId, tokens: run.tokens ?? null, ok: run.ok });
+        } catch (error) {
+          frame('fail', { error: String((error as Error)?.message ?? error) });
+        } finally {
+          busy = false;
+          clearInterval(keepAlive);
+          try {
+            res.end();
+          } catch {
+            /* socket already gone */
+          }
+        }
+        return;
+      }
       if (p === '/api/say' && method === 'POST') {
         if (busy) {
           sendJson(res, 409, { ok: false, error: 'still answering the last one' });

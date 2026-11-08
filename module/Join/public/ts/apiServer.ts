@@ -18,6 +18,7 @@ import type { Shelf } from './shelf.js';
 import { createShelf } from './shelf.js';
 import { createJoinMcpRegistry } from './mcpTools.js';
 import type { RawMember } from './members.js';
+import { loadRoster, resolveDeclared } from './roster.js';
 
 // --- Interface Definitions ---
 
@@ -51,7 +52,7 @@ function sendNoRoute(res: http.ServerResponse, p: string): void {
     error: {
       code: 'no_route',
       message: `nothing at ${p} — Join's routes are /health, /api/shelf, /api/resolve/<name>, `
-        + '/api/kinds, /api/members (GET · POST · DELETE /:name), /api/plan and the agent door POST /mcp',
+        + '/api/kinds, /api/members (GET · POST · DELETE /:name), /api/roster (GET · /:name), /api/plan and the agent door POST /mcp',
     },
   });
 }
@@ -150,6 +151,46 @@ export async function startApi(options: ApiOptions): Promise<{ server: http.Serv
             : { error: { code: 'no_such_member', message: `nothing registered as ${name}` } });
         }
 
+        // --- the DECLARED population: machines the operator owns, attached or not ──
+        if (m === 'GET' && (p === '/api/roster' || p.startsWith('/api/roster/'))) {
+          const roster = loadRoster();
+          if (!roster.ok) {
+            // refuse loudly: an empty list would read as "no machines are declared", which is a different fact
+            return sendJson(res, 503, {
+              error: { code: 'roster_unreadable', message: `cannot read the roster at ${roster.file}`, detail: roster.error },
+            });
+          }
+          if (p === '/api/roster') {
+            const members = options.shelf.members.list();
+            const attached = new Set(members.map((mm) => mm.name.toLowerCase()));
+            return sendJson(res, 200, {
+              ok: true,
+              file: roster.file,
+              declared: roster.rows.length,
+              attached: roster.rows.filter((row) => attached.has(row.name.toLowerCase())).length,
+              rows: roster.rows.map((row) => ({ ...row, attached: attached.has(row.name.toLowerCase()) })),
+            });
+          }
+          const name = p.slice('/api/roster/'.length);
+          if (!name) return sendJson(res, 400, { error: { code: 'no_name', message: 'which machine? /api/roster/<name>' } });
+          const row = resolveDeclared(roster, name);
+          if (!row) {
+            return sendJson(res, 404, {
+              ok: false,
+              error: { code: 'not_declared', message: `${name} is not in the roster at ${roster.file} - that is a fact about the roster, not about the machine` },
+            });
+          }
+          const member = options.shelf.members.get(row.name);
+          return sendJson(res, 200, {
+            ok: true,
+            name: row.name,
+            declared: row,
+            attached: member !== null,
+            member,
+            reason: member ? 'declared and also joined to this shelf' : 'declared in the roster, not joined here (asleep or never joined)',
+          });
+        }
+
         // --- the ORDER, from declared deps: what to bring up first, and what is blocked ──
         if (m === 'GET' && p === '/api/plan') {
           return sendJson(res, 200, { ok: true, ...options.shelf.plan() });
@@ -159,7 +200,26 @@ export async function startApi(options: ApiOptions): Promise<{ server: http.Serv
           const name = p.slice('/api/resolve/'.length);
           if (!name) return sendJson(res, 400, { error: { code: 'no_name', message: 'ask for something: /api/resolve/State' } });
           const r = await options.shelf.resolveName(name);
-          return sendJson(res, r.found ? 200 : 404, { ok: r.found, ...r });
+          if (r.found) return sendJson(res, 200, { ok: true, ...r });
+          // Not on this shelf, but it may be a machine the operator DECLARED. Resolve the name to its
+          // declaration and say plainly that it is not attached: 404 for a box that is merely asleep would be
+          // a lie about the roster, not a fact about the machine.
+          const roster = loadRoster();
+          const row = roster.ok ? resolveDeclared(roster, name) : null;
+          if (row) {
+            return sendJson(res, 200, {
+              ok: true,
+              found: true,
+              name: row.name,
+              kind: 'node',
+              liveness: 'declared',
+              attached: false,
+              declared: { role: row.role, ready_for: row.ready_for, ip: row.ip, hostname: row.hostname, kind: row.kind, notes: row.notes },
+              reason: `declared in ${roster.file} - not attached to this shelf, so nothing here can probe it`,
+              alternatives: [],
+            });
+          }
+          return sendJson(res, 404, { ok: false, ...r });
         }
 
         // --- the agent door: plain JSON and SSE-framed replies both answer

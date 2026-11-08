@@ -14,6 +14,7 @@
 import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
+import { spawn } from 'node:child_process';
 import type { AddressInfo } from 'node:net';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import type { ServiceCatalog } from './serviceCatalog.js';
@@ -305,6 +306,90 @@ export function createApiServer(options: ApiServerOptions): ApiServer {
         return;
       }
       sendJson(res, 200, { ok: true, name: entry.name, file: entry.file, warnings: entry.warnings, service: entry.definition });
+      return;
+    }
+
+    // POST /api/services/:name/apply — THE ACTION RUNNER, for the one thing a service page must be able to DO rather
+    // than describe: enter a choice. A service that declares `apply: { script, flags… }` gets a button on its page that
+    // runs that script on this node and returns the script's own words. Everything else stays read-only, which is why
+    // this is not a general command endpoint: the script is named by the service file, never by the request, so a
+    // caller can pass arguments but cannot choose what runs.
+    if (method === 'POST' && pathName.startsWith('/api/services/') && pathName.endsWith('/apply')) {
+      const rawName = pathName.slice('/api/services/'.length, -'/apply'.length);
+      let applyName: string;
+      try {
+        applyName = decodeURIComponent(rawName);
+      } catch {
+        sendError(res, 400, 'bad_name', 'the name is not a valid URI component');
+        return;
+      }
+      const entry = catalog.get(applyName);
+      if (!entry) {
+        sendError(res, 404, 'no_such_service', `no such service: ${applyName} — GET /api/services for the listing`);
+        return;
+      }
+      const decl = (entry.definition as { apply?: Record<string, string> } | null)?.apply;
+      if (!decl || !decl.script) {
+        sendError(res, 400, 'no_apply', `${applyName} declares no apply script — it can be read but not switched from here`);
+        return;
+      }
+      let body: { backend?: string; host?: string; model?: string; probe?: boolean } = {};
+      try {
+        body = JSON.parse((await readBody(req)) || '{}') as typeof body;
+      } catch {
+        sendError(res, 400, 'bad_json', 'body must be JSON');
+        return;
+      }
+      // The repo root is derived from the service FILE, not from an env-relative guess: entry.file is
+      // <root>/module/Services/services/<name>.js on every node, so three levels up is the root wherever it lives.
+      const root = entry.file ? path.resolve(path.dirname(entry.file), '..', '..', '..') : process.cwd();
+      const script = path.join(root, decl.script);
+      if (!fs.existsSync(script)) {
+        sendError(res, 500, 'no_script', `the service names an apply script that is not on disk: ${script}`);
+        return;
+      }
+      const args = ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', script];
+      if (body.backend) args.push(decl.backendFlag ?? '-Backend', String(body.backend));
+      if (body.host) args.push(decl.hostFlag ?? '-Host', String(body.host));
+      if (body.model) args.push(decl.modelFlag ?? '-Model', String(body.model));
+      if (body.probe !== false && decl.probeFlag) args.push(decl.probeFlag);
+
+      const shell = process.env.SystemRoot
+        ? path.join(process.env.SystemRoot, 'System32', 'WindowsPowerShell', 'v1.0', 'powershell.exe')
+        : 'powershell.exe';
+      const started = Date.now();
+      const child = spawn(shell, args, { cwd: root, windowsHide: true });
+      let output = '';
+      child.stdout?.on('data', (c: Buffer) => {
+        output += c.toString('utf8');
+      });
+      child.stderr?.on('data', (c: Buffer) => {
+        output += c.toString('utf8');
+      });
+      // a switch can wait for a model load and a probe; ten minutes is the ceiling, and the kill is the reason the
+      // page never hangs forever behind a brain that will not answer
+      const killer = setTimeout(() => {
+        try {
+          child.kill();
+        } catch {
+          /* already gone */
+        }
+      }, 600_000);
+      child.on('error', (err: Error) => {
+        clearTimeout(killer);
+        sendError(res, 502, 'apply_failed', err.message);
+      });
+      child.on('close', (code: number | null) => {
+        clearTimeout(killer);
+        void fireEvent('service.applied', { service: applyName, backend: body.backend ?? null, code });
+        sendJson(res, code === 0 ? 200 : 502, {
+          ok: code === 0,
+          service: applyName,
+          backend: body.backend ?? null,
+          ms: Date.now() - started,
+          output: output.trim(),
+        });
+      });
       return;
     }
 

@@ -142,6 +142,9 @@
     .easy { flex: 0 0 auto; max-height: 38vh; }
   }
   @media (prefers-reduced-motion: reduce) { .thread { scroll-behavior: auto; } }
+  /* the answer as it is written: a real bubble with a caret, not a spinner that says nothing */
+  .turn.live .caret { display: inline-block; margin-left: 2px; animation: caret 1s steps(1) infinite; opacity: .8; }
+  @keyframes caret { 50% { opacity: 0; } }
 </style>
 </head>
 <body>
@@ -202,7 +205,7 @@
   var monitorEl = document.getElementById('monitor');
   var splitterEl = document.getElementById('splitter');
 
-  var state = { thread: [], easy: {}, agent: {}, busy: false, easyError: null, monitor: null, viewer: false, host: null, tts: null };
+  var state = { thread: [], easy: {}, agent: {}, busy: false, easyError: null, monitor: null, viewer: false, host: null, tts: null, draft: '' };
   // ?host=<ref> opens ANOTHER node's conversation. Same talk, read from the one node that hosts the agent.
   var HOST = new URLSearchParams(location.search).get('host');
   var thinkingSince = 0;
@@ -235,8 +238,15 @@
         '<div class="meta">' + meta.join(' · ') + '</div></article>';
     }).join('');
     if (state.busy) {
-      var s = Math.max(0, Math.round((Date.now() - thinkingSince) / 1000));
-      html += '<article class="turn echidna"><div class="who">echidna · thinking</div><div class="body">' + s + 's…</div></article>';
+      if (state.draft) {
+        // the answer, as it arrives: a real bubble that grows rather than a spinner that says nothing
+        html += '<article class="turn echidna live"><div class="who">echidna · writing</div>' +
+          '<div class="body">' + esc(state.draft) + '<span class="caret">▍</span></div>' +
+          '<div class="meta">' + Math.max(0, Math.round((Date.now() - thinkingSince) / 1000)) + 's</div></article>';
+      } else {
+        var s = Math.max(0, Math.round((Date.now() - thinkingSince) / 1000));
+        html += '<article class="turn echidna"><div class="who">echidna · thinking</div><div class="body">' + s + 's…</div></article>';
+      }
     }
     threadEl.innerHTML = html;
     threadEl.scrollTop = threadEl.scrollHeight;
@@ -580,22 +590,104 @@
     var text = sayEl.value.trim();
     if (!text || state.busy) return;
     state.busy = true;
+    state.draft = '';
     thinkingSince = Date.now();
     sayEl.value = '';
     render();
-    hintEl.textContent = 'asking the real agent — this can take a while';
-    fetch('api/say', {
+    hintEl.textContent = 'asking the real agent — the answer arrives as it is written';
+
+    // SSE by hand, because the ask is a POST and EventSource only does GET. Each frame has a name so a delta can never
+    // be mistaken for a finished turn: 'turn' is the question on the record, 'delta' is words in flight, 'done' is the
+    // published answer that is also in the thread file.
+    fetch('api/say/stream', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ text: text })
-    })
-      .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); })
-      .then(function (res) {
-        if (!res.ok) hintEl.textContent = res.j && res.j.error ? res.j.error : 'the ask failed';
-        else hintEl.textContent = 'done · one ask at a time';
-      })
-      .catch(function (e) { hintEl.textContent = 'send failed: ' + String(e.message || e); })
-      .then(function () { state.busy = false; return load(); });
+    }).then(function (r) {
+      if (!r.ok) {
+        return r.json().then(function (j) {
+          hintEl.textContent = (j && j.error) || 'the ask failed';
+          state.busy = false;
+          render();
+        }).catch(function () {
+          hintEl.textContent = 'the ask failed (' + r.status + ')';
+          state.busy = false;
+          render();
+        });
+      }
+      if (!r.body || !r.body.getReader) {
+        hintEl.textContent = 'this browser cannot read the stream';
+        state.busy = false;
+        return;
+      }
+      var reader = r.body.getReader();
+      var dec = new TextDecoder();
+      var buf = '';
+
+      function handleFrame(raw) {
+        if (!raw || raw.charAt(0) === ':') return;
+        var ev = 'message', data = '';
+        raw.split('\n').forEach(function (line) {
+          if (line.indexOf('event:') === 0) ev = line.slice(6).trim();
+          else if (line.indexOf('data:') === 0) data += line.slice(5).trim();
+        });
+        if (!data) return;
+        var j;
+        try { j = JSON.parse(data); } catch (e) { return; }
+        if (ev === 'turn') {
+          state.thread.push(j.turn);
+          state.draft = '';
+          render();
+          hintEl.textContent = 'echidna is answering…';
+        } else if (ev === 'delta') {
+          state.draft += (j.text || '');
+          renderThread();
+        } else if (ev === 'meta') {
+          if (j.tokens) hintEl.textContent = 'echidna is answering… (' + (j.tokens.output || 0) + ' tokens so far)';
+        } else if (ev === 'done') {
+          if (j.turn) state.thread.push(j.turn);
+          state.draft = '';
+          state.busy = false;
+          thinkingSince = Date.now();
+          hintEl.textContent = j.ok
+            ? 'done · ' + ((j.ms || 0) / 1000).toFixed(1) + 's' + (j.tokens ? ' · ' + (j.tokens.output || 0) + ' tokens out' : '')
+            : 'echidna could not answer — see the thread';
+          render();
+          load();
+        } else if (ev === 'fail') {
+          state.draft = '';
+          state.busy = false;
+          hintEl.textContent = 'stream failed: ' + (j.error || 'unknown');
+          render();
+        }
+      }
+
+      function pump() {
+        return reader.read().then(function (chunk) {
+          if (chunk.done) {
+            if (buf.trim()) handleFrame(buf);
+            state.busy = false;
+            state.draft = '';
+            render();
+            return;
+          }
+          buf += dec.decode(chunk.value, { stream: true });
+          var idx;
+          while ((idx = buf.indexOf('\n\n')) >= 0) {
+            var raw = buf.slice(0, idx);
+            buf = buf.slice(idx + 2);
+            handleFrame(raw);
+          }
+          return pump();
+        });
+      }
+      return pump();
+    }).catch(function (e) {
+      hintEl.textContent = 'send failed: ' + String((e && e.message) || e);
+      state.busy = false;
+      state.draft = '';
+      render();
+    });
   }
 
   sendEl.addEventListener('click', send);

@@ -1,0 +1,35 @@
+# The prebuilt CUDA 12.4 build refuses the 980 Ti (Maxwell sm_52), 2026-11-07 13:56Z
+
+Box: DESKTOP-Q8U0BTH (192.168.1.134) — GTX 980 Ti 6 GB, compute capability 5.2, driver 582.66, CUDA toolkit 12.4,
+MSVC 19.44 (VS 18 Community), 4 logical cores, 7.9 GB RAM.
+
+Asset: audio-v0.9.4-bin-windows-x64-cuda12.4.zip (446.1 MB, 42 s at 10.6 MB/s, exit 0)
+
+## The prebuilt binary DOES initialize the device
+  $ audiocpp_cli.exe --version
+  audio.cpp 0.9.4 / git f7ac446f 2026-11-04 / build: Release, msvc 19.44.35229.0, Windows AMD64
+  backends: cpu,cuda
+
+  $ audiocpp_cli.exe --list-devices
+  ggml_cuda_init: found 1 CUDA devices (Total VRAM: 6143 MiB):
+    Device 0: NVIDIA GeForce GTX 980 Ti, compute capability 5.2, VMM: yes, VRAM: 6143 MiB
+  CUDA:0 "NVIDIA GeForce GTX 980 Ti" [GPU]
+
+## ...and then refuses the first matmul
+  [TIMING] qwen3_tts.talker.weights.buffer_name CUDA0
+  [TIMING] qwen3_tts.speech_tokenizer_decoder.weights.buffer_name CUDA0
+  ggml_cuda_graph_set_enabled: disabling CUDA graphs due to GPU architecture
+  CUDA error: no kernel image is available for execution on the device
+  current device: 0, in function ggml_cuda_op_mul_mat at .../ggml-cuda.cu:2261
+  cudaGetLastError()
+
+## Why — measured, not guessed
+  $ cuobjdump --list-elf ggml-cuda.dll
+  ELF file 1..N: ggml-cuda.N.sm_70.cubin / sm_75 / sm_80 / sm_86 / sm_89 / sm_90  (repeating blocks)
+
+The fatbin ships sm_70, sm_75, sm_80, sm_86, sm_89, sm_90 only. There is no sm_52 cubin, so the driver has nothing
+to run on a Maxwell card. This is exactly the "arch too old" wall — and it is a packaging choice, not a hardware
+limit: CUDA 12.4 compiles sm_52 fine.
+
+## The way past it
+  audio.cpp source built with -DGGML_CUDA=ON -DCMAKE_CUDA_ARCHITECTURES=52 (Vulkan off), same box, same model.

@@ -5,6 +5,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { createShelf } from "./shelf.js";
 import { createJoinMcpRegistry } from "./mcpTools.js";
+import { loadRoster, resolveDeclared } from "./roster.js";
 const MIME = {
   ".html": "text/html; charset=utf-8",
   ".js": "text/javascript; charset=utf-8",
@@ -21,7 +22,7 @@ function sendNoRoute(res, p) {
   sendJson(res, 404, {
     error: {
       code: "no_route",
-      message: `nothing at ${p} \u2014 Join's routes are /health, /api/shelf, /api/resolve/<name>, /api/kinds, /api/members (GET \xB7 POST \xB7 DELETE /:name), /api/plan and the agent door POST /mcp`
+      message: `nothing at ${p} \u2014 Join's routes are /health, /api/shelf, /api/resolve/<name>, /api/kinds, /api/members (GET \xB7 POST \xB7 DELETE /:name), /api/roster (GET \xB7 /:name), /api/plan and the agent door POST /mcp`
     }
   });
 }
@@ -104,6 +105,43 @@ async function startApi(options) {
           const gone = options.shelf.members.remove(name);
           return sendJson(res, gone ? 200 : 404, gone ? { ok: true, removed: name } : { error: { code: "no_such_member", message: `nothing registered as ${name}` } });
         }
+        if (m === "GET" && (p === "/api/roster" || p.startsWith("/api/roster/"))) {
+          const roster = loadRoster();
+          if (!roster.ok) {
+            return sendJson(res, 503, {
+              error: { code: "roster_unreadable", message: `cannot read the roster at ${roster.file}`, detail: roster.error }
+            });
+          }
+          if (p === "/api/roster") {
+            const members = options.shelf.members.list();
+            const attached = new Set(members.map((mm) => mm.name.toLowerCase()));
+            return sendJson(res, 200, {
+              ok: true,
+              file: roster.file,
+              declared: roster.rows.length,
+              attached: roster.rows.filter((row2) => attached.has(row2.name.toLowerCase())).length,
+              rows: roster.rows.map((row2) => ({ ...row2, attached: attached.has(row2.name.toLowerCase()) }))
+            });
+          }
+          const name = p.slice("/api/roster/".length);
+          if (!name) return sendJson(res, 400, { error: { code: "no_name", message: "which machine? /api/roster/<name>" } });
+          const row = resolveDeclared(roster, name);
+          if (!row) {
+            return sendJson(res, 404, {
+              ok: false,
+              error: { code: "not_declared", message: `${name} is not in the roster at ${roster.file} - that is a fact about the roster, not about the machine` }
+            });
+          }
+          const member = options.shelf.members.get(row.name);
+          return sendJson(res, 200, {
+            ok: true,
+            name: row.name,
+            declared: row,
+            attached: member !== null,
+            member,
+            reason: member ? "declared and also joined to this shelf" : "declared in the roster, not joined here (asleep or never joined)"
+          });
+        }
         if (m === "GET" && p === "/api/plan") {
           return sendJson(res, 200, { ok: true, ...options.shelf.plan() });
         }
@@ -111,7 +149,23 @@ async function startApi(options) {
           const name = p.slice("/api/resolve/".length);
           if (!name) return sendJson(res, 400, { error: { code: "no_name", message: "ask for something: /api/resolve/State" } });
           const r = await options.shelf.resolveName(name);
-          return sendJson(res, r.found ? 200 : 404, { ok: r.found, ...r });
+          if (r.found) return sendJson(res, 200, { ok: true, ...r });
+          const roster = loadRoster();
+          const row = roster.ok ? resolveDeclared(roster, name) : null;
+          if (row) {
+            return sendJson(res, 200, {
+              ok: true,
+              found: true,
+              name: row.name,
+              kind: "node",
+              liveness: "declared",
+              attached: false,
+              declared: { role: row.role, ready_for: row.ready_for, ip: row.ip, hostname: row.hostname, kind: row.kind, notes: row.notes },
+              reason: `declared in ${roster.file} - not attached to this shelf, so nothing here can probe it`,
+              alternatives: []
+            });
+          }
+          return sendJson(res, 404, { ok: false, ...r });
         }
         if (p === "/mcp") {
           if (m !== "POST") {

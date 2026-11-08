@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import http from "node:http";
 import path from "node:path";
-import { ask } from "./agent.js";
+import { ask, askStream } from "./agent.js";
 import { loadRig } from "./rig.js";
 import { ThreadStore, turnId } from "./thread.js";
 const MIME = {
@@ -461,6 +461,111 @@ function createServer(options) {
         const line = [mark + from, subject, text].filter(Boolean).join(" \xB7 ");
         const turn = thread.append({ id: turnId("n"), at: (/* @__PURE__ */ new Date()).toISOString(), role: "note", text: line });
         sendJson(res, 201, { ok: true, turn });
+        return;
+      }
+      if (p === "/api/say/stream" && method === "POST") {
+        let streamText = "";
+        try {
+          const body = JSON.parse(await readBody(req) || "{}");
+          streamText = String(body.text ?? "").trim();
+        } catch {
+          sendJson(res, 400, { ok: false, error: "body must be JSON" });
+          return;
+        }
+        if (!streamText) {
+          sendJson(res, 400, { ok: false, error: "nothing to ask" });
+          return;
+        }
+        if (busy) {
+          sendJson(res, 409, { ok: false, error: "still answering the last one" });
+          return;
+        }
+        res.writeHead(200, {
+          "content-type": "text/event-stream; charset=utf-8",
+          "cache-control": "no-cache, no-transform",
+          connection: "keep-alive",
+          "x-accel-buffering": "no"
+        });
+        try {
+          res.flushHeaders?.();
+        } catch {
+        }
+        let alive = true;
+        req.on("close", () => {
+          alive = false;
+        });
+        const frame = (event, data) => {
+          if (!alive) return;
+          try {
+            res.write(`event: ${event}
+data: ${JSON.stringify(data)}
+
+`);
+          } catch {
+            alive = false;
+          }
+        };
+        const keepAlive = setInterval(() => {
+          if (!alive) return;
+          try {
+            res.write(": still thinking\n");
+          } catch {
+            alive = false;
+          }
+        }, 1e4);
+        const you = thread.append({ id: turnId("you"), at: (/* @__PURE__ */ new Date()).toISOString(), role: "you", text: streamText });
+        frame("turn", { turn: you });
+        const brief = await motherBrief();
+        pushCard({
+          kind: "question",
+          title: streamText.length > 180 ? streamText.slice(0, 177) + "\u2026" : streamText,
+          text: "",
+          at: (/* @__PURE__ */ new Date()).toISOString()
+        });
+        await publish();
+        busy = true;
+        try {
+          const run = await askStream(
+            { ...options.agent, session: readSession() },
+            `${brief}
+
+---
+
+${streamText}`,
+            you.id,
+            (evt) => {
+              if (evt.kind === "delta") frame("delta", { text: evt.text });
+              else frame("meta", { model: evt.model ?? null, tokens: evt.tokens ?? null });
+            }
+          );
+          if (run.sessionId) writeSession(run.sessionId);
+          const reply = thread.append({
+            id: turnId("e"),
+            at: (/* @__PURE__ */ new Date()).toISOString(),
+            role: run.ok ? "echidna" : "system",
+            text: run.ok ? run.text : `could not answer: ${run.error ?? "unknown"}
+
+${run.text}`.trim(),
+            ms: run.ms,
+            sessionId: run.sessionId,
+            tokens: run.tokens ?? null,
+            failed: !run.ok
+          });
+          if (run.ok) {
+            pushCard({ kind: "output", title: "Echidna", text: run.text.slice(0, 900), at: (/* @__PURE__ */ new Date()).toISOString() });
+          }
+          await publish();
+          frame("done", { turn: reply, ms: run.ms, sessionId: run.sessionId, tokens: run.tokens ?? null, ok: run.ok });
+        } catch (error) {
+          frame("fail", { error: String(error?.message ?? error) });
+        } finally {
+          busy = false;
+          clearInterval(keepAlive);
+          try {
+            res.end();
+          } catch {
+          }
+        }
         return;
       }
       if (p === "/api/say" && method === "POST") {

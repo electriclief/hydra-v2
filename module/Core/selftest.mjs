@@ -8,7 +8,7 @@
  */
 import { cycleEntry, doorsEntry, entryNames, idEntry, linkEntry, linkRefOf, refOf, serviceEntries, slugOf } from './src/self.js';
 import { leaks, minimal } from './src/broadcast.js';
-import { classify, observation } from './src/verdict.js';
+import { classify, observation, standbyOf } from './src/verdict.js';
 
 let pass = 0;
 let fail = 0;
@@ -84,6 +84,22 @@ ok('leaks catches a stray service field', leaks({ ...proj, services: { a: { name
   ok('a link is registered under node.<ref>', linkRefOf('node.jims') === 'jims');
   ok('a link is not a node path when deeper', linkRefOf('node.jims.cycle') === null);
   ok('a link is not a node path at the root', linkRefOf('node') === null);
+}
+
+// ── what a peer is doing: the standby snapshot inside our own observation ──
+{
+  const mining = standbyOf({ miner: true, at: new Date(1000).toISOString(), poll: 15 }, 31000);
+  ok('a mining report keeps its mode', mining.mode === 'mining');
+  ok('age is measured against the report, not guessed', mining.ageS === 30);
+  ok('a report inside three of its own polls is not stale', mining.stale === false);
+  ok('a report past three polls is stale', standbyOf({ miner: true, at: new Date(1000).toISOString(), poll: 15 }, 61000).stale === true);
+  const ai = standbyOf({ ai: 'llama-server(:8080)', at: new Date(31000).toISOString(), poll: 15 }, 31000);
+  ok('an ai report names the process', ai.mode === 'ai' && ai.ai.includes('llama-server'));
+  ok('a fresh report is not stale', ai.stale === false && ai.ageS === 0);
+  ok('nothing published is null, never "idle"', standbyOf(null) === null);
+  const obs = observation({ verdict: 'alive', cycle: 4, misses: 0, reason: 'advanced' }, 5000, mining);
+  ok('the observation carries what the peer was doing', obs.standby.mode === 'mining');
+  ok('an observation without a report still says null', observation({ verdict: 'alive', cycle: 4, misses: 0 }, 5000).standby === null);
 }
 
 console.log(`\nCore - the gate: ${pass} passed / ${fail} failed`);

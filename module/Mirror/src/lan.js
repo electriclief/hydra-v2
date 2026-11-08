@@ -10,13 +10,18 @@
  *   - nothing is estimated: counts come from the arrays actually present
  */
 import { bookedRows, displayName, serviceRows } from './assemble.js';
+import { fleetSummary, intentFor, matchRow } from './roster.js';
 
 export const SCHEMA_VERSION = 1;
 
-export function lanJson({ self, peers = [], at = Date.now(), cycleOf = () => null }) {
+export function lanJson({ self, peers = [], at = Date.now(), cycleOf = () => null, roster = null, selfIp = null }) {
   const nodes = [];
-  if (self) nodes.push(view(self, 'self', at, cycleOf(self.ref)));
-  for (const peer of peers) nodes.push(view(peer.node, peer.verdict, at, peer.cycle, { misses: peer.misses, reason: peer.reason, ref: peer.ref }));
+  if (self) nodes.push(view(self, 'self', at, cycleOf(self.ref), { roster, ip: selfIp }));
+  for (const peer of peers) {
+    nodes.push(
+      view(peer.node, peer.verdict, at, peer.cycle, { misses: peer.misses, reason: peer.reason, ref: peer.ref, roster, ip: peer.ip || null }),
+    );
+  }
 
   return {
     schemaVersion: SCHEMA_VERSION,
@@ -28,9 +33,49 @@ export function lanJson({ self, peers = [], at = Date.now(), cycleOf = () => nul
       services: nodes.reduce((n, node) => n + node.services.length, 0),
       ready: nodes.reduce((n, node) => n + node.services.filter((s) => s.ready).length, 0),
       booked: nodes.reduce((n, node) => n + node.booked.length, 0),
+      // declared intent vs the machines actually here: two numbers that are only useful beside each other
+      declared: roster?.rows?.length ?? 0,
+      withIntent: nodes.filter((n) => n.intent).length,
+      // declared, enabled, and NOT on the wire - unmanaged boxes and switched-off boxes alike. This is the number
+      // that stops a tree from pretending the network is only what answered.
+      absent: declaredAbsent(roster, nodes).length,
+      unmanaged: declaredAbsent(roster, nodes).filter((r) => !r.managed).length,
     },
+    // what the roster says the house is FOR, and the rows this view never found on the wire
+    fleet: fleetSummary(roster, nodes),
+    // EVERY declared machine that did not answer, with the reason it could not: no Hydra app (unmanaged), or no
+    // answer at all. A tree renders these at the bottom, greyed - never deleted, because a network is not only the
+    // machines that are awake.
+    declaredAbsent: declaredAbsent(roster, nodes),
     nodes,
   };
+}
+
+/** Roster rows that are declared and enabled but produced no node on the wire. */
+function declaredAbsent(roster, nodes) {
+  const rows = roster?.rows || [];
+  if (!rows.length) return [];
+  const seenRows = new Set();
+  for (const n of nodes) {
+    const row = matchRow(roster, { ref: n.ref, name: n.name, ip: n.ip });
+    if (row) seenRows.add(row.name || row.ip);
+  }
+  return rows
+    .filter((r) => r.enabled && !seenRows.has(r.name || r.ip))
+    .map((r) => ({
+      // a row with no name still exists, and an ip is enough to name it by
+      name: r.name || r.ip,
+      ip: r.ip,
+      role: r.role,
+      hostname: r.hostname,
+      ready_for: r.ready_for || [],
+      managed: r.managed !== false,
+      os: r.os || null,
+      door: r.door,
+      notes: r.notes || '',
+      // the one word the tree needs: unmanaged boxes are expected to be silent, switched-off ones are not
+      why: r.managed === false ? 'unmanaged' : 'offline',
+    }));
 }
 
 /** The Idle Service's own words, trimmed to what a display needs - plus how old the report is. */
@@ -49,6 +94,9 @@ function standbyOf(raw, at) {
     ai: ai || null,
     miner,
     minerDetail: raw.minerDetail && typeof raw.minerDetail === 'object' ? raw.minerDetail : null,
+    // the CPU miner is its own machine: it can be hashing while the card is yielded, and absent while the card mines
+    cpuDetail: raw.cpuDetail && typeof raw.cpuDetail === 'object' ? raw.cpuDetail : null,
+    cpu: raw.cpu === true,
     pinned: raw.pinned === true,
     at: typeof raw.at === 'string' ? raw.at : null,
     resumeAt: typeof raw.resumeAt === 'string' ? raw.resumeAt : null,
@@ -74,6 +122,16 @@ function view(node, verdict, at, cycle, extra = {}) {
     doors: node?.doors ? { count: node.doors.count ?? null, up: node.doors.up ?? null } : null,
     services,
     booked: bookedRows(node),
+    // DECLARED INTENT: what this machine is for, from the roster - null when the operator never declared it.
+    // Kept beside the verdict on purpose: a role is a claim, a verdict is a measurement.
+    ip: extra.ip || null,
+    intent: intentFor(extra.roster, { ref: node?.ref || extra.ref, name: node?.id?.name, ip: extra.ip }),
+    // does this machine run the Hydra app? An unmanaged box can still be ON the LAN, and then it is a node with a
+    // verdict - what it cannot do is publish services or state. The tree needs this to know what to expect of it.
+    managed: (() => {
+      const r = matchRow(extra.roster, { ref: node?.ref || extra.ref, name: node?.id?.name, ip: extra.ip });
+      return r ? r.managed !== false : true;
+    })(),
     // WHAT THE CARD IS DOING, as its owner reported it. `ageS` is the honesty: a report older than the owner's
     // own poll interval is stale, and a screen must be able to say so instead of showing old news as current.
     standby: standbyOf(node?.standby, at),
@@ -91,6 +149,23 @@ export function lanMarkdown(lan) {
   lines.push('# LAN');
   lines.push('');
   lines.push(`At ${lan.at} — ${lan.counts.nodes} nodes, ${lan.counts.services} services (${lan.counts.ready} ready), ${lan.counts.booked} booked.`);
+  if (lan.fleet) {
+    // declared vs present, said as two numbers: a roster that disagrees with the wire is the useful fact
+    lines.push(
+      lan.fleet.ok
+        ? `Roster \`${lan.fleet.source}\`: ${lan.fleet.declared} declared, ${lan.fleet.onLan} on the LAN, ${lan.fleet.notHere} not here${lan.fleet.notHere ? ` (${lan.fleet.notHereNames.join(', ')})` : ''}.`
+        : `Roster \`${lan.fleet.source}\` is unreadable (${lan.fleet.error}) — roles are unknown, not absent.`,
+    );
+  }
+  if (Array.isArray(lan.declaredAbsent) && lan.declaredAbsent.length) {
+    const un = lan.declaredAbsent.filter((r) => r.managed === false);
+    const off = lan.declaredAbsent.filter((r) => r.managed !== false);
+    lines.push('');
+    lines.push(
+      `Declared, not on the wire: ${off.length} offline${off.length ? ` (${off.map((r) => r.name).join(', ')})` : ''}` +
+        `${un.length ? `; ${un.length} unmanaged over ssh (${un.map((r) => r.name).join(', ')})` : ''}.`,
+    );
+  }
   lines.push('');
 
   for (const node of lan.nodes) {
@@ -103,6 +178,12 @@ export function lanMarkdown(lan) {
     ].filter(Boolean);
     lines.push(`## ${node.name} (${node.ref}) — ${who}`);
     lines.push(chips.join(' · '));
+    // what this machine is for, when the operator declared it - absence is stated, never borrowed
+    lines.push(
+      node.intent
+        ? `for: ${node.intent.role || 'no role'}${node.intent.ready_for.length ? ` · ${node.intent.ready_for.join(', ')}` : ''}${node.ip ? ` · ${node.ip}` : ''}`
+        : 'for: no declaration in the roster',
+    );
     if (node.services.length === 0) {
       lines.push('');
       lines.push('no services published');

@@ -290,6 +290,9 @@ function createApiServer(options) {
               tag: body.tag ? String(body.tag) : null,
               shell: body.shell === true,
               isolation: body.isolation === "supervised" ? "supervised" : "in-loop",
+              // a row whose whole point is to be READ ON THE SCREEN (a share wall, a status board) has to be able to ask
+              // for its own window: without this the console stayed hidden and the node looked idle while it worked
+              hideWindow: body.hideWindow === false ? false : void 0,
               bufferLimitChars: typeof body.bufferLimitChars === "number" ? body.bufferLimitChars : void 0
             };
           }

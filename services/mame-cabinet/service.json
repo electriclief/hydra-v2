@@ -1,0 +1,72 @@
+{
+  "name": "mame-cabinet",
+  "kind": "appliance",
+  "ver": 1,
+  "what": "Turns a Debian/Ubuntu/Mint laptop into an arcade cabinet: it boots into a game, ESC opens the game list, the chosen game becomes the default. No desktop, no window manager, no Hydra app on the box.",
+  "why_not_hydra": "This is not a Hydra service. There is no door, no catalog entry, no dispatch and no karma: the machine has one job and no server. It is an appliance definition so the same box can be built N times.",
+  "platform": {
+    "os": ["linux"],
+    "distro": ["mint", "ubuntu", "debian"],
+    "min": { "ram_mb": 1024, "disk_gb": 3, "cpu_note": "2 cores is enough for 1979-1985 2D; 3D and outrun-class need more" }
+  },
+  "requires": [
+    { "what": "mame", "check": "test -x /usr/games/mame", "install": "apt-get install -y mame" },
+    { "what": "x11 tools (xwininfo, xwd)", "check": "command -v xwininfo", "install": "apt-get install -y x11-utils" },
+    { "what": "lightdm with autologin", "check": "systemctl is-enabled lightdm", "install": "apt-get install -y lightdm" }
+  ],
+  "inputs": {
+    "roms": "~/mame/roms  (a symlink to another disk is fine; MAME follows it)",
+    "desktop_link": "~/Desktop/ROMs -> ~/mame/roms, so drag-and-drop works without a terminal",
+    "default_game": "dkong",
+    "last_game": "~/last_game - written before the game starts, so a power cut does not forget it"
+  },
+  "provides": {
+    "loop": "~/mame-start.sh",
+    "tools": "~/romtools.sh",
+    "verified_list": "~/mame/games.txt",
+    "session_script": "/usr/local/bin/mame-session",
+    "session_entry": "/usr/share/xsessions/mame-cabinet.desktop",
+    "switch": "/usr/local/bin/mame-cabinet.sh (--status|--desktop|--cabinet|--revert)"
+  },
+  "steps": [
+    "install mame + x11-utils; verify /usr/games/mame",
+    "create ~/mame/roms and the Desktop/ROMs symlink",
+    "install mame-start.sh, romtools.sh, games.txt",
+    "romtools.sh --rebuild: verify every zip, keep only the drivers that really start",
+    "install the session script + xsessions entry; set lightdm autologin-session=mame-cabinet",
+    "reboot and confirm the attract screen, ESC to the list, and that the choice survives a reboot"
+  ],
+  "verify": [
+    "~/mame-start.sh --list | wc -l          number of games this box can start",
+    "~/romtools.sh --check <driver>          required files and what is missing",
+    "xwininfo -root -tree | grep MAME        a fullscreen window at the panel resolution",
+    "romtools.sh --rebuild then <ESC>        a set that vanishes from the list was never playable"
+  ],
+  "measured": {
+    "box": "ThinkPad X120e, AMD E-350 2x1.6GHz, HD 6310, 1.5GB RAM, 1366x768",
+    "mame": "0.264 (distro package, /usr/games/mame)",
+    "roms_present": 38,
+    "playable_verified": 31,
+    "unplayable": {
+      "centiped": "4 files missing",
+      "dotron": "disc image missing",
+      "llander": "7 files missing",
+      "arknoid2": "one file, NO GOOD DUMP KNOWN - will never be complete",
+      "digdug2": "one file, NO GOOD DUMP KNOWN - will never be complete"
+    },
+    "speed_pct_of_arcade": {
+      "spaceinv": 659, "mspacman": 635, "rallyx": 570, "zaxxon": 535, "joust": 473,
+      "defender": 445, "stargate": 444, "pacmanbl": 344, "trackfld": 338, "digdug2": 333,
+      "sisv": 280, "asteroid": 278, "ladybug": 274, "ghouls": 255, "dkong": 230,
+      "galaxian": 226, "frogger": 197, "1942": 189, "tempest": 183, "arknoid2": 152,
+      "popeye": 152, "scramble": 151, "qix": 144, "dkong3": 124, "paperboy": 118,
+      "mk3": 101, "gyruss": 79, "outrun": 46
+    },
+    "note": "100% = the arcade board's own speed. Under ~95% stutters with sound; gyruss 79 and outrun 46 will not be playable on this class of machine."
+  },
+  "notes": [
+    "The session has a crash guard: three starts inside a minute and it execs xfce4-session instead of looping on a black screen. Delete ~/.mame/session-starts to re-arm.",
+    "ROM sets are copyright; this definition installs the player, never the games. romtools.sh names exactly which files a set is missing so a download can be checked before it is trusted.",
+    "A zip that is a SET rather than a DRIVER (arkanoid_junk) is rejected by name, because mame answers 'Unknown system' and it would look like a broken install."
+  ]
+}

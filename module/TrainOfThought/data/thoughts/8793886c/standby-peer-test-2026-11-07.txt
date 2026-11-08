@@ -1,0 +1,9 @@
+  ok   the peer is seen
+  ok   the peer verdict comes from its advancing cycle
+  ok   the tree carries what the peer is doing
+  ok   the standby keeps its detail-free facts
+  ok   Core writes the observation under its own branch
+  ok   the written observation carries the standby
+  ok   the observation never claims a cycle it did not see
+
+Core standby integration: 7 passed / 0 failed

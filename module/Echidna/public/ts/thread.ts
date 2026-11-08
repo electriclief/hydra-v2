@@ -22,6 +22,8 @@ export interface Turn {
   ms?: number;
   /** Which hermes session answered, when it said. */
   sessionId?: string | null;
+  /** Token counts the agent reported for this turn (input/output/total), when it reported any. */
+  tokens?: unknown;
   /** Set when the turn is a failure, so the pane can mark it instead of pretending it is an answer. */
   failed?: boolean;
 }

@@ -21,7 +21,7 @@ import http from 'node:http';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { cycleEntry, doorsEntry, entryNames, idEntry, linkEntry, refOf, serviceEntries } from './self.js';
-import { classify, observation } from './verdict.js';
+import { classify, observation, standbyOf } from './verdict.js';
 import { minimal } from './broadcast.js';
 import { activeSet, drop, getJson, pull, register } from './stateClient.js';
 
@@ -172,6 +172,10 @@ async function observePeer(peer) {
   const prev = state.peers.get(peer.ref) || { cycle: null, misses: 0, verdict: 'stalled', seenAt: 0 };
   let cycle = null;
   let reachable = false;
+  // what the peer is DOING is a separate, cheap entry: the cycle answers "are you alive", the standby answers
+  // "and what are you busy with". A row that only knows the first reads "no report" for a box that is mining.
+  let standby = null;
+  let activeEntries = null;
 
   const direct = await pull(peer.url, `node.${peer.ref}.cycle`, null, 500);
   if (direct.ok && direct.body) {
@@ -186,17 +190,28 @@ async function observePeer(peer) {
     const set = await activeSet(peer.url, 500);
     if (set.ok && set.body && Array.isArray(set.body.entries)) {
       reachable = true; // it answered, even if it has no cycle entry yet
+      activeEntries = set.body.entries;
       const entry = set.body.entries.find((e) => String(e.name || '').endsWith('.cycle'));
       if (entry && entry.content && typeof entry.content.cycle === 'number') cycle = entry.content.cycle;
     }
   }
 
+  // one more pull, same budget: a peer that does not publish it costs a 404 and nothing else
+  const sb = await pull(peer.url, `node.${peer.ref}.standby`, null, 500);
+  if (sb.ok && sb.body) {
+    standby = standbyOf(sb.body.content ?? sb.body.entry?.content ?? null, Date.now());
+  } else if (activeEntries) {
+    // an older node may name its branch differently; its active set already told us what it publishes
+    const entry = activeEntries.find((e) => String(e.name || '').endsWith('.standby'));
+    if (entry) standby = standbyOf(entry.content, Date.now());
+  }
+
   const verdict = classify(prev, { cycle, reachable }, { stalledAfter: 3, goneAfter: 12 });
-  const record = { ...verdict, seenAt: Date.now() };
+  const record = { ...verdict, seenAt: Date.now(), standby };
   state.peers.set(peer.ref, { ...record, url: peer.url });
 
   // the observation lives under THIS node's branch - never inside the peer's
-  await register(STATE, N.observed(peer.ref), observation(verdict, record.seenAt), {}, 600);
+  await register(STATE, N.observed(peer.ref), observation(verdict, record.seenAt, standby), {}, 600);
   return record;
 }
 
@@ -314,6 +329,8 @@ function tree() {
       cycle: v.cycle,
       misses: v.misses,
       reason: v.reason,
+      // what it said it was doing when we last looked - null is "no report", not "idle"
+      standby: v.standby || null,
       seenAt: v.seenAt ? new Date(v.seenAt).toISOString() : null,
     })),
     services: [...state.services.entries()].map(([slug, svc]) => ({ slug, ...svc })),

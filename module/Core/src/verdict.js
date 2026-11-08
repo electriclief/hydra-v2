@@ -52,13 +52,41 @@ export function classify(prev = {}, seen = {}, thresholds = {}) {
   };
 }
 
+/**
+ * One peer's idle report, trimmed to the three facts a LAN row can show: what mode, what is it doing, and how
+ * old the sentence is. Never computed from anything but the peer's own words - a node that publishes nothing
+ * gets `null`, which every reader renders as "no report".
+ */
+export function standbyOf(raw, at = Date.now()) {
+  if (!raw || typeof raw !== 'object') return null;
+  const miner = raw.miner === true;
+  const ai = typeof raw.ai === 'string' ? raw.ai : '';
+  const mode = raw.mode === 'ai' || raw.mode === 'mining' || raw.mode === 'idle' ? raw.mode : ai ? 'ai' : miner ? 'mining' : 'idle';
+  const reportedAt = typeof raw.at === 'string' ? Date.parse(raw.at) : NaN;
+  const ageS = Number.isFinite(reportedAt) ? Math.max(0, Math.round((at - reportedAt) / 1000)) : null;
+  const poll = typeof raw.poll === 'number' ? raw.poll : null;
+  return {
+    mode,
+    ai: ai || null,
+    miner,
+    at: typeof raw.at === 'string' ? raw.at : null,
+    ageS,
+    // stale once the owner has missed three of its own polls - the same rule Mirror applies, so two screens
+    // can never disagree about whether a report is current
+    stale: ageS != null && poll != null ? ageS > poll * 3 : ageS != null ? ageS > 60 : false,
+  };
+}
+
 /** The observer's own record of one peer - written under the observer's branch, never the peer's. */
-export function observation(verdict, at = Date.now()) {
+export function observation(verdict, at = Date.now(), standby = null) {
   return {
     verdict: verdict.verdict,
     cycle: verdict.cycle,
     misses: verdict.misses,
     reason: verdict.reason,
+    // what the peer said it was doing, as a snapshot inside OUR observation: the live value always stays the
+    // peer's own entry, this is only what we saw when we looked
+    standby,
     at,
     seenAt: new Date(at).toISOString(),
   };

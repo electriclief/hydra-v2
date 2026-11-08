@@ -8,9 +8,7 @@
       "state": "active",
       "deps": [],
       "next": [
-        "re-probe .112 and .139 into roster.json with real hardware lines",
-        "give every row a role and ready_for[] instead of free-text notes",
-        "register the fleet page as a Join member on :8137"
+        "re-probe robert (.112) and ReX (.139) when they answer ssh - both DOWN at the 2026-11-07T18:24Z scan (port 22 timeout), so their hardware lines are still the notes from when they last answered"
       ],
       "tags": [
         "lan",
@@ -29,10 +27,275 @@
           "text": "ssh door + host inventory for the LAN nodes",
           "by": "hermes",
           "sessionRef": "8e3720cf"
+        },
+        {
+          "at": 1794075755690,
+          "kind": "session",
+          "text": "operator: work the DAG - LAN database intent + standby in the LAN row",
+          "by": "session",
+          "sessionRef": "hermes-123-dag-20261107"
+        },
+        {
+          "at": 1794075760789,
+          "kind": "claim",
+          "text": "claimed for 30 min",
+          "by": "hermes-123-dag-20261107"
+        },
+        {
+          "at": 1794076483536,
+          "kind": "event",
+          "text": "fleetctl scan 2026-11-07T18:24:20Z: 5/11 up. gtx1660 UP (GTX 1660 SUPER 3.4/6GB 100%, gemma-4-E4B-it-Q5_K_M, hermes-gw :8642), gvtx980 UP (980 Ti 0.4/6GB, cpu 367H/s), beast UP (Microsoft Basic Display Adapter, cpu 2060H/s), jims UP (GTX 1050 1.3/2GB 100%, cpu mining + gpu SRB, qwen2.5-1.5b), andrewjames UP (web :8081). DOWN with ssh port 22 timeouts: robert .112, ReX .139, XPS .140, XPSW .142, main .100, deadalus .129.",
+          "by": "hermes-123-dag-20261107",
+          "sessionRef": "hermes-123-dag-20261107"
+        },
+        {
+          "at": 1794076483583,
+          "kind": "note",
+          "text": "roster.json is now 12 rows - controller 123 plus 11 nodes - and every row carries role, ready_for[], door 8127, ip, hostname and notes. fleetctl state.json keeps declared.{role,ready_for} beside the observed block and the scan table prints ROLE.",
+          "by": "hermes-123-dag-20261107",
+          "sessionRef": "hermes-123-dag-20261107"
+        },
+        {
+          "at": 1794076483599,
+          "kind": "event",
+          "text": "Mirror reads the roster on every 5 s refresh: lan.json nodes[] carry intent{role,ready_for,door,endpoint}, counts gain declared/withIntent, and a top-level fleet block says 12 declared / 2 on the LAN / 10 not here by name. NEW GET :8137/api/fleet?for=<capability> ranks declared candidates (alive, then ready services, then name) with the endpoint to dial. Gate: 48 passed / 0 failed.",
+          "by": "hermes-123-dag-20261107",
+          "sessionRef": "hermes-123-dag-20261107"
+        },
+        {
+          "at": 1794076483619,
+          "kind": "event",
+          "text": "Join grew GET /api/roster and /api/roster/<name>, and /api/resolve/<name> now falls through to the roster instead of 404: /api/resolve/robert answers found, liveness declared, attached false, role image, ready_for image,tts. Gate: build + typecheck + 151 passed / 0 failed.",
+          "by": "hermes-123-dag-20261107",
+          "sessionRef": "hermes-123-dag-20261107"
+        },
+        {
+          "at": 1794076483636,
+          "kind": "note",
+          "text": "Menu LAN section renders a For row per node (role, ready_for, ip) and a roster line; read from the running window at 1024x600-class width: \"This node | For: controller, llm, tts, video, image, music, mining, doors, 192.168.1.123\" and \"Node - jims | For: main, tts, stt, llm-small, vision, cpu, 192.168.1.127\". Screenshot and JSON snapshots in this folder.",
+          "by": "hermes-123-dag-20261107",
+          "sessionRef": "hermes-123-dag-20261107"
+        },
+        {
+          "at": 1794076483654,
+          "kind": "decision",
+          "text": "Resolution belongs to Join (the resolver) and display to Mirror (the reader): no second listener, no roster daemon, the file is read per request and per refresh. Doors were restarted through ProcessWrapper tabs (kill + POST /api/processes), never as loose consoles.",
+          "by": "hermes-123-dag-20261107",
+          "sessionRef": "hermes-123-dag-20261107"
+        },
+        {
+          "at": 1794076483761,
+          "kind": "note",
+          "text": "edited by hermes-123-dag-20261107",
+          "by": "hermes-123-dag-20261107"
+        },
+        {
+          "at": 1794076517766,
+          "kind": "claim",
+          "text": "released (was hermes-123-dag-20261107)",
+          "by": "hermes-123-dag-20261107"
+        },
+        {
+          "at": 1794085242889,
+          "kind": "event",
+          "text": "robert is BACK, and it is not the machine the roster claimed: 192.168.1.109 (was .112), hostname user-Nitro-N50-600, Linux Mint 22.3 (kernel 6.14), Acer Nitro N50-600 - i5-9400F 6c/6t, 15 GiB RAM, 468 GB NVMe with 435 free, RX 590 8 GiB bound to amdgpu and reporting as \"AMD Radeon RX 590 Series (RADV POLARIS10)\" on Vulkan 1.4.305 (Mesa 25.0.7). sshd is key-only from echidna@123. Roster updated: ip .112 -> .109, door 8127 -> null (no Hydra runtime on Linux, so no endpoint gets published), os recorded, notes carry the hardware.",
+          "by": "hermes-123-dag-20261107"
+        },
+        {
+          "at": 1794085242924,
+          "kind": "event",
+          "text": "Mirror had to learn something for that roster row: a row with door:null now yields endpoint:null instead of silently claiming ip:8127. A row that simply omits door still gets the fleet convention 8127, so nothing else changed. Gate: 48 passed / 0 failed.",
+          "by": "hermes-123-dag-20261107"
+        },
+        {
+          "at": 1794085242940,
+          "kind": "event",
+          "text": "Two walls measured on robert, both from the clean install: (1) every current prebuilt Linux binary of sd.cpp AND audio.cpp needs GLIBC_2.43 (their CI is on Ubuntu 26.04); Mint 22.3 has 2.39, so no AI runtime loads - it has to be built from source on the box (cmake, ninja, git, libvulkan-dev). (2) there is no OpenCL vendor ICD at all, only ocl-icd-libopencl1, so SRBMiner sees zero GPUs until mesa-opencl-icd is installed. Vulkan itself is fully configured and works.",
+          "by": "hermes-123-dag-20261107"
+        },
+        {
+          "at": 1794085242957,
+          "kind": "event",
+          "text": "PRIORITY 3 DONE, measured on robert: xmrig 6.26.0 linux-static, pool rx.unmineable.com:3333, login \"leafdriving2.unmineable_miner_robert_cpu\" -> jobs started and a share came back ACCEPTED (1/0) at diff 100001. Hashrate 1072-1124 H/s on 5 of 6 threads. Huge pages supported but 0% allocated without root. So unmineable account mode accepts username.worker with no coin prefix, which is what unMiner itself uses on 123 (leafdriving2.unmineable_miner_RX6800, algorithm pearlpow, pool pearlpow.unmineable.com:3333, cpu_algorithm randomx).",
+          "by": "hermes-123-dag-20261107"
+        },
+        {
+          "at": 1794085242975,
+          "kind": "decision",
+          "text": "Worker naming on the unmineable account leafdriving2: one worker per rig and per device - unmineable_miner_RX6800 (123, GPU), unmineable_miner_RX590 (robert, GPU once OpenCL lands), unmineable_miner_robert_cpu (robert, RandomX). The dashboard is the only place these are separable, so the name has to carry the machine AND the device.",
+          "by": "hermes-123-dag-20261107"
+        },
+        {
+          "at": 1794085753287,
+          "kind": "event",
+          "text": "robert is a Hydra node now, with no root used: Node 24.22.2 unpacked into ~/opt, module/State and module/Core copied over (92K + 468K, no node_modules - both modules have zero runtime deps), State answering on 8127 and Core on 8136 as ref robert. Core /health: ok, cycle advancing. Started by ~/hydra/hydra.sh (start|stop|restart|status|logs), named pid files in ~/hydra/run, logs in ~/hydra/logs.",
+          "by": "hermes-123-dag-20261107"
+        },
+        {
+          "at": 1794085753324,
+          "kind": "event",
+          "text": "Attach path that actually worked: POST /api/members to 123 Join (8131) with {name:\"robert\", kind:\"node\", port:8127, url:\"http://192.168.1.109:8127\"}. After one tick Core listed robert alive (\"advanced 50 -> 51\"), Mirror /api/lan.json went to 3 nodes (123 alive, jims gone, robert alive image), and /api/fleet?for=image returns robert verdict alive cycle 57 with endpoint http://192.168.1.109:8127.",
+          "by": "hermes-123-dag-20261107"
+        },
+        {
+          "at": 1794085753338,
+          "kind": "event",
+          "text": "Gotcha worth keeping: Core builds its peer list as members() ?? parsePeers() - Join first, CORE_PEERS only as a fallback. Restarting core-8136 with env CORE_PEERS=robert@... therefore changed nothing, because Join already answered with a member list. A node is attached by registering in Join, not by editing an env var. Also: /api/fleet rows carry verdict (alive|stalled|gone|not-on-lan), not an alive boolean - reading the wrong field makes the whole fleet look dead.",
+          "by": "hermes-123-dag-20261107"
+        },
+        {
+          "at": 1794085753357,
+          "kind": "event",
+          "text": "Lesson from the start script: nohup alone is not enough over ssh - the child inherits the channel and the caller hangs until timeout even though the door came up. setsid + </dev/null + log redirect is what makes the call return.",
+          "by": "hermes-123-dag-20261107"
+        },
+        {
+          "at": 1794085753371,
+          "kind": "event",
+          "text": "roster robert row now carries door 8127 (it answers), endpoint http://192.168.1.109:8127, and a notes line with the hardware and exactly what is still missing (mesa-opencl-icd, source builds).",
+          "by": "hermes-123-dag-20261107"
+        },
+        {
+          "at": 1794086888233,
+          "kind": "event",
+          "text": "robert got its sudo grant and ran the whole root setup in one pass: packages installed (mesa-opencl-icd, clinfo, ffmpeg, git, cmake, ninja, build-essential, libvulkan-dev, vulkan-tools, pkg-config), and clinfo now lists Platform rusticl -> Device \"AMD Radeon RX 590 Series (radeonsi, polaris10, ACO, DRM 3.61)\". Real OpenCL on the real card, no CPU fallback.",
+          "by": "hermes-123-dag-20261107"
+        },
+        {
+          "at": 1794086888278,
+          "kind": "event",
+          "text": "systemd units failed first time with status 203/EXEC: the heredoc that wrote them ran under sudo, so $HOME had expanded to /root and ExecStart pointed at /root/opt/node... Fixed by rewriting ExecStart to the absolute /home/user/opt/node-v24.22.2-linux-x64/bin/node. hydra-state and hydra-core are now active (running), enabled at boot, and came back healthy after a restart: state entries 3, core ref robert.",
+          "by": "hermes-123-dag-20261107"
+        },
+        {
+          "at": 1794086888292,
+          "kind": "event",
+          "text": "Trap worth remembering: the pre-systemd nohup processes could not be killed by a pattern containing the module path, because their cmdline is only \"public/js/main.js\" / \"src/main.js\" with the module dir as cwd. pkill -f \"src/main.js\" is what actually frees the port; without it the units restart-loop on EADDRINUSE while the old process keeps answering /health, which looks exactly like success.",
+          "by": "hermes-123-dag-20261107"
+        },
+        {
+          "at": 1794086888309,
+          "kind": "event",
+          "text": "SRBMiner 3.8.5 refuses the card, with the reason spelled out once a pty is attached: \"Found 1 OpenCL platforms, but none is AMD, NVIDIA OR INTEL\". rusticl reports its platform vendor as Mesa, and SRBMiner filters on that string. Also learned: SRBMiner writes nothing to a pipe at all - exit 0 with zero lines - so every miner probe needs script -qec or it looks like a silent crash. Testing lolMiner, onezerominer and xmrig OpenCL for one that accepts a Mesa-vendor platform.",
+          "by": "hermes-123-dag-20261107"
+        },
+        {
+          "at": 1794087103844,
+          "kind": "event",
+          "text": "Miner verdict on Mint: lolMiner reports \"OpenCL driver detected. Number of OpenCL supported GPUs: 0\"; onezerominer says \"No Supported GPU found\"; SRBMiner says \"Found 1 OpenCL platforms, but none is AMD, NVIDIA OR INTEL\". Setting RUSTICL_ENABLE=radeonsi changes none of it - the refusal is a platform-VENDOR string filter (Mesa), not a missing device. xmrig is not a candidate at all: its OpenCL backend never covered RandomX.",
+          "by": "hermes-123-dag-20261107"
+        },
+        {
+          "at": 1794087103878,
+          "kind": "event",
+          "text": "What others actually do, from their own trackers: (1) hydrahive 0.6.2 (closed 2026-10-04) hit the identical wall on an RX 470 - srbminer \"OpenCL not found\", lolminer \"Number of OpenCL supported GPUs: 0\" - and their fix was to set RUSTICL_ENABLE=radeonsi for AMD miners plus report missing OpenCL honestly; they explicitly did NOT verify mining on real hardware through rusticl. (2) firominer PR #25 fixes the same class of bug by identifying GPUs through PCI vendor IDs instead of platform names - possible only in an open-source miner. (3) lolMiner changelog treats Polaris (RX 400/500) Linux mining as PAL/proprietary-driver territory and recommends modern drivers reporting HSA1.1 LC.",
+          "by": "hermes-123-dag-20261107"
+        },
+        {
+          "at": 1794087107883,
+          "kind": "event",
+          "text": "Practice check on Polaris + Linux: it is not Mesa at all. Mining OS images (HiveOS and friends) ship AMD proprietary amdgpu-pro OpenCL for gfx803. On stock Mint 22.3 that means scavenging legacy amdgpu-pro packages and grafting them in, with real ABI risk - versus Windows, where the RX 590 runs AMD own driver, OpenCL reports vendor AMD, and SRBMiner/lolMiner/unMiner all accept it as shipped. GPU mining is the workload where the OS choice is decided by the driver vendor rather than by preference. (Filed as event: \"finding\" is not a trail kind.)",
+          "by": "hermes-123-dag-20261107"
+        },
+        {
+          "at": 1794087334495,
+          "kind": "event",
+          "text": "Proved the RX 590 computes on Mint, so the card is not the problem: a C probe on rusticl built an OpenCL C kernel from SOURCE, ran it, and returned out[0]=1.0 out[1023]=1024.0. Device vendor reports AMD, id 0x1002, type GPU, OpenCL 3.0 / C 1.2. What rusticl refuses is a precompiled native binary via clCreateProgramWithBinary, and what the miners refuse is the platform vendor string \"Mesa/X.org\". lolMiner, SRBMiner and onezerominer ship precompiled gfx803 kernels, so on Mesa 25 (clover removed, rusticl only) there is no overlap between what they send and what the driver accepts.",
+          "by": "hermes-123-dag-20261107"
+        },
+        {
+          "at": 1794087334528,
+          "kind": "event",
+          "text": "Tried the string hack and it failed honestly: patched a private copy of libRusticlOpenCL.so.1.0.0 (Mesa/X.org -> AMD, same length, loaded via OCL_ICD_VENDORS). Result CL_UNKNOWN_ERROR getting the platform count - rusticl does not survive that edit, so the ICD was removed and the system left untouched. No binary-level shortcut exists.",
+          "by": "hermes-123-dag-20261107"
+        },
+        {
+          "at": 1794093595937,
+          "kind": "event",
+          "text": "robert is Windows 11 Pro now (build 26300, DESKTOP-AAJBDVJ, i5-9400F 6 cores, 15.9 GB). Mint did not survive the install: one 477 GB GPT disk, C: with 441 GB free. sshd + key + auto-logon are already set (AutoAdminLogon=1, DefaultUserName=User, no password, ForceAutoLogon=1, NoLockScreen=1).",
+          "by": "hermes-123-dag-20261107"
+        },
+        {
+          "at": 1794093595972,
+          "kind": "event",
+          "text": "The Windows OpenCL blocker was not a missing driver: Windows Update had installed only the display half, but the AMD payload was sitting in DriverStore (u0390451.inf_amd64_..B390182) with amdocl64.dll and 97 dlls in it. Copying that payload to C:AIopencl, registering HKLMSOFTWAREKhronosOpenCLVendors and adding the folder to PATH produced a working platform: \"AMD Accelerated Parallel Processing / Advanced Micro Devices, Inc.\" - the exact string SRBMiner and lolMiner look for. So a machine can have full AMD OpenCL without ever running an AMD installer.",
+          "by": "hermes-123-dag-20261107"
+        },
+        {
+          "at": 1794093595987,
+          "kind": "event",
+          "text": "With OpenCL up, SRBMiner on Windows enumerates the card properly: GPU0 radeon_rx_590_series [ellesmere] [8192 MB] [CU: 36] [MaxBuf: 6745 MB]. It then refused pearl with \"Algorithm pearlhash not supported on GPU0\" - pearl is a newer-GPU kernel, not a driver problem. So the Mint failure and the Windows failure were different failures: on Mint the miner never saw the card, on Windows it sees the card and simply lacks that algorithm.",
+          "by": "hermes-123-dag-20261107"
+        },
+        {
+          "at": 1794093596004,
+          "kind": "event",
+          "text": "AMD still ships a Polaris/Vega branch in 2026: whql-amd-software-adrenalin-edition-26.5.2-win11-may-vega-polaris.exe, linked from the RX 590 support page. drivers.amd.com answers a bare curl with a 302 to Download-Incomplete; the same URL with a browser User-Agent and a Referer header returns 206 and the file. Anyone who concludes \"the legacy driver is gone\" from a plain curl is wrong.",
+          "by": "hermes-123-dag-20261107"
+        },
+        {
+          "at": 1794094382954,
+          "kind": "event",
+          "text": "The Windows box went off the network twice for two different reasons. First: sleep - robert is a desktop with S3 available and the balanced plan was still armed, so it slept mid-session. Fixed at firmware-request level (standby/monitor/disk timeouts 0x0, hibernation off via powercfg /h off, HiberbootEnabled=0, CsEnabled=0, high performance plan). Second: Windows Defender quarantined SRBMiner-MULTI.exe at 18:17 as Trojan:Win32/Bearfoos.D!ml - an ML false positive - so the next run reported \"cannot find the file\" and looked like a path bug. C:AIminers is now excluded and the exe restored from the zip.",
+          "by": "hermes-123-dag-20261107"
+        },
+        {
+          "at": 1794094382990,
+          "kind": "event",
+          "text": "robert is on Wi-Fi (300 Mbps, Ethernet disconnected) and that is fine: mining needs well under 1 Mbit, the failure was sleep not the link. The Wi-Fi adapter still has \"allow the computer to turn this device off\" enabled - the only remaining power path that can drop the node.",
+          "by": "hermes-123-dag-20261107"
+        },
+        {
+          "at": 1794094383005,
+          "kind": "event",
+          "text": "First real etchash numbers from robert: DAG 4447 MB built in 27321 ms, \"Job received\" from etchash.unmineable.com - so the pool handshake and wallet string are good - card idle at 42 W and 52 C, hashrate 0.00 H/s because the 100 s window was mostly DAG build. A longer run is needed before quoting a hashrate; the pool answering is already proven.",
+          "by": "hermes-123-dag-20261107"
+        },
+        {
+          "at": 1794094383024,
+          "kind": "event",
+          "text": "Mining economics, measured against live data rather than guessed: ETC network 224.4 TH/s, 12.46 s blocks, 2.048 ETC reward, $6.90 - so the network emits ~$98k/day and one MH/s is worth $0.000437/day. An RX 590 at 24-32 MH/s earns $0.011-0.014/day. At ~276 W at the wall that is 6.64 kWh/day, which costs $0.66-$1.00/day at $0.10-$0.15/kWh. Net about -$29/month. Break-even needs 2,280 MH/s (81 cards) or power at $0.0018/kWh. Recommendation filed: robert idles as the LLM and media node at ~70 W; mining stays on 123 where the 6800 lives.",
+          "by": "hermes-123-dag-20261107"
+        },
+        {
+          "at": 1794094383046,
+          "kind": "event",
+          "text": "One-socket budget: 15 A at 120 V is 1800 W, safe continuous 1440 W. robert mining 276 W, 123 with the 6800 mining ~380 W, .134 idle ~100 W, .149 ~120 W, a 6-drive Proxmox NAS ~180 W = ~1050 W, which fits with nothing else on that circuit.",
+          "by": "hermes-123-dag-20261107"
+        },
+        {
+          "at": 1794097482947,
+          "kind": "event",
+          "text": "robert answered the mining question that Mint refused: with OpenCL alive, SRBMiner enumerates radeon_rx_590_series [ellesmere] [8192 MB] [CU: 36]. Standalone pearl was refused (no gfx803 kernel), but unMiner chose algorithm quantus and is hashing GPU-only at 90.4 MH/s (hashrate.cpu 0, total_gpu_workers 1) against quantus.unmineable.com:3333 with worker unmineable_miner_gmilnna. Its SRBMiner exposes an HTTP API on 127.0.0.1:60130, which is how the number was read - never from the screen.",
+          "by": "hermes-123-dag-20261107"
+        },
+        {
+          "at": 1794097482982,
+          "kind": "event",
+          "text": "Duplicate OpenCL platforms, not duplicate hardware: with my hand-registered C:AIopencl ICD the card listed as GPU0 [0][0] and GPU1 [1][0] both at 01:00.0, and etchash built two 4.4 GB DAGs in 8 GB of VRAM - 2.72 MH/s at 89 W. Deleting the registry value left one device and 7.56 MH/s. Windows and PnP both report exactly one display adapter the whole time. Lesson filed in gpu-mining-setup.",
+          "by": "hermes-123-dag-20261107"
+        },
+        {
+          "at": 1794097482999,
+          "kind": "event",
+          "text": "tiny11 has no Visual C++ runtime, and that is why nothing ran: msvcp140/vcruntime140/vcruntime140_1/concrt140 all absent, llama-cli.exe --version exit -1073741515 (0xC0000135 STATUS_DLL_NOT_FOUND) with zero output, sd-cli --help the same. Installing vc_redist.x64.exe (24.4 MB, Microsoft-signed) fixed both. Measured after: llama.cpp b12192 sees Vulkan0 Radeon RX 590 Series 8192 MiB and generates at 33.2 t/s (prompt 38.3 t/s) on Bonsai-1.7B; sd-cli reports 307 help lines with vid_gen, --audio-vae, --llm and Wan2.2 TI2V 5B temporal_decode_frames.",
+          "by": "hermes-123-dag-20261107"
+        },
+        {
+          "at": 1794097483019,
+          "kind": "event",
+          "text": "Video model verdict for robert, from published file sizes: sd.cpp supports MiniMax-H3 (day-1, 2026-08-04), Wan2.1/2.2, LTX-2.3/2.5 and HunyuanVideo 1.5, so nothing is unsupported. But MiniMax-H3 needs the pruned DiT (6.4 GB at Q2) plus a Qwen3-VL-32B encoder (12.5 GB at Q2) = 18.9 GB before either VAE, against 15.9 GB of RAM and 8 GB of VRAM - that is a 123 job, not a robert job. Wan2.2 TI2V-5B (3.27 GB DiT + 1.34 GB VAE + 3.49 GB umt5) is the only one of the three that fits this box; LTX-2.3/2.5 costs more because its Gemma-3/4-12B text encoder is roughly 7 GB on its own.",
+          "by": "hermes-123-dag-20261107"
+        },
+        {
+          "at": 1794097483037,
+          "kind": "event",
+          "text": "Hermes Agent is installed on robert: pinned commit 2bd378ed, hermes.exe in %LOCALAPPDATA%hermes\bin, and it brought uv 0.13.5, Python 3.14.9, Node 26.12.1, npm 12.0.2, ffmpeg 9.0.1, ripgrep 15.2.0, git 2.53.0 and cua-driver - so the node now has the media and JS runtimes it needs anyway. Provider is not baked in: config seeds model.provider auto with an OpenRouter base_url, and it can be pointed at another node llama.cpp server over the LAN later.",
+          "by": "hermes-123-dag-20261107"
         }
       ],
       "created": 1793562205616,
-      "touched": 1793562205629
+      "touched": 1794097483037
     },
     {
       "ref": "294cd029",
@@ -99,7 +362,7 @@
         {
           "at": 1793981192445,
           "kind": "state",
-          "text": "closed \u2014 All three items done: the 8135 door answers (/api/seats ok), the window owns the tab via DOOR_TABLE, and README.md now documents the tree, seats, API and gate.",
+          "text": "closed — All three items done: the 8135 door answers (/api/seats ok), the window owns the tab via DOOR_TABLE, and README.md now documents the tree, seats, API and gate.",
           "by": "agent"
         }
       ],
@@ -458,7 +721,8 @@
         "roll the same shape into llama-chat, qwen-image-2.1 and minimax-h3 - mark verified:false wherever no run backs the claim",
         "add chatterbox-tts, qwen3-tts-voicedesign and piper-tts with install faces and measured RTF",
         "run export-library.mjs and confirm the library gate holds with the new fields present",
-        "document schema / revision / installer_history / install in the authoring contract so the next author inherits it"
+        "document schema / revision / installer_history / install in the authoring contract so the next author inherits it",
+        "declare min_requirements (cpu, gpu arch floor, vram, ram) on every service, and allow the same service name to carry several backends - variants or one file with multiple back ends (operator decision 2026-11-07)"
       ],
       "tags": [
         "hydra",
@@ -520,10 +784,16 @@
           "kind": "event",
           "text": "qwen3_tts VoiceDesign measured on GTX 1660 SUPER (audio.cpp Vulkan, Q8 2687 MiB): 7.44 s audio in 14.92 s wall -> RTF 2.00 (0.50x realtime), peak rss 3902 MB, 24 kHz mono. No reference audio used - timbre came from --instruct only. Whisper tiny.en round-trip: all 15 words exact. Median F0 189.0 Hz (p10 173.9 / p90 221.4) vs chatterbox clone 184.6 Hz (p10 135.6 / p90 247.4): the narrow spread is the \"measured, unhurried\" instruction actually landing. Verdict: batch-grade at 2x realtime cost; chatterbox is 2.2x slower for the same 7 s line.",
           "by": "hermes-agent"
+        },
+        {
+          "at": 1794077553271,
+          "kind": "note",
+          "text": "edited by hermes-123-dag-20261107",
+          "by": "hermes-123-dag-20261107"
         }
       ],
       "created": 1793920269366,
-      "touched": 1793921864809,
+      "touched": 1794077553271,
       "dir": "thoughts/2629893c"
     },
     {
@@ -533,10 +803,6 @@
       "state": "active",
       "deps": [],
       "next": [
-        "ask: test the CUDA build on the 980 Ti (about 1 GB) or keep Vulkan as the recorded rule, marked verified:false",
-        "ask: does the install executor become a door that shells out over SSH, or stay agent-driven with the door as ledger",
-        "ask: permanent home for TTS - ReX while its plug is in, or 123 where 16 cores are already powered",
-        "ask: what floor does each audio service declare - 6 GB Turing, 2 GB GCN, or CPU-only",
         "ritual: every session that defers a question appends one next[] line here with the date and why it was deferred"
       ],
       "tags": [
@@ -568,10 +834,44 @@
           "kind": "decision",
           "text": "Standing rule: work the operator raises faster than it can be answered gets a node or a next[] line in this DAG before the session ends. Nothing is allowed to exist only in chat. The DAG is the reminder mechanism - quote the ref back to him later.",
           "by": "operator"
+        },
+        {
+          "at": 1794077553106,
+          "kind": "decision",
+          "text": "CUDA on the 980 Ti: GO. Operator, 2026-11-07: \"CUDA build on the 980 Ti - go for it! I want to load this machine up with services that actually work -- arch on card is too old is common - lets get by that\". So the rule is not \"Vulkan because the card is old\": build for the card arch (Maxwell sm_52) and record the measured number. Vulkan stays the fallback until a CUDA run is measured on that box.",
+          "by": "hermes-123-dag-20261107",
+          "sessionRef": "hermes-123-dag-20261107"
+        },
+        {
+          "at": 1794077553145,
+          "kind": "decision",
+          "text": "Install executor: stays AGENT-DRIVEN over plain ssh for now. Operator, 2026-11-07: \"at a concept level, I wanted hydra v2 to BE a ssh tunnel -- with a clear terminal window (you are ssh one line at a time, but terminal appears like you are actually always in shell) but for now just standard ssh is getting us by until that happy day\". The door is the ledger; the executor is the agent. The tunnel/terminal is the target shape of Hydra V2, not this build.",
+          "by": "hermes-123-dag-20261107",
+          "sessionRef": "hermes-123-dag-20261107"
+        },
+        {
+          "at": 1794077553160,
+          "kind": "decision",
+          "text": "Permanent TTS home: DEFERRED. Operator, 2026-11-07: \"wait on this -- you will get more low end nodes soon\". Do not commit ReX or 123; re-ask when the new low-end nodes land.",
+          "by": "hermes-123-dag-20261107",
+          "sessionRef": "hermes-123-dag-20261107"
+        },
+        {
+          "at": 1794077553176,
+          "kind": "decision",
+          "text": "Min requirements are a property of EVERY service, not of audio. Operator, 2026-11-07: \"this is not unique to audio -- all services have a min requirements list -- very possible you have the same service name with different back ends, or multiple back ends right in the service file is fine\". So a service definition declares min_requirements (cpu, gpu arch floor, vram, ram) and may carry more than one backend - either as variants of the same name or several backends in one file. Feeds 2629893c.",
+          "by": "hermes-123-dag-20261107",
+          "sessionRef": "hermes-123-dag-20261107"
+        },
+        {
+          "at": 1794077553199,
+          "kind": "note",
+          "text": "edited by hermes-123-dag-20261107",
+          "by": "hermes-123-dag-20261107"
         }
       ],
       "created": 1793920269385,
-      "touched": 1793924370553,
+      "touched": 1794077553199,
       "dir": "thoughts/cd60ec6e"
     },
     {
@@ -797,10 +1097,17 @@
           "kind": "note",
           "text": "Destiny seeded set rendered: base 210.5 (p10 186 p90 257), happy 285.7, sad 164.4, angry 363.6, laugh 338.0. The emotion clauses move her a long way - sad drops below Kate. Audition file docs/voice-samples/destiny-seeded.wav. STT word-check is PENDING: whisper lives only on ReX (192.168.1.148) and its sshd is down (ping ok, port 22 times out).",
           "by": "hermes-agent"
+        },
+        {
+          "at": 1794079582902,
+          "kind": "note",
+          "text": "980 Ti measured 2026-11-07 (warm process, qwen3_tts vdes, audio.cpp Vulkan): 4567.79 ms inference for 3600 ms audio = rtf 1.269, 0.788x realtime, peak footprint 3629 MB. Same sentence and voice instruction as the CUDA attempt that failed on arch. This is a real low-end datapoint: the card is usable for offline line-by-line audio, not for live conversation.",
+          "by": "hermes-123-dag-20261107",
+          "sessionRef": "hermes-123-dag-20261107"
         }
       ],
       "created": 1793923913697,
-      "touched": 1793934269779,
+      "touched": 1794079582902,
       "dir": "thoughts/291eac93"
     },
     {
@@ -934,9 +1241,7 @@
       "state": "active",
       "deps": [],
       "next": [
-        "LAN row still missing: Core.observePeer pulls only node.<peer>.cycle. It must also carry standby, Mirror must expose it, and the Menu must render \"Idle Service \u00b7 mining\" per node - then Jim shows mining.",
-        "The guard file data/standby/guard.state.json stays as a local fallback only (used when State cannot answer); it is never the LAN truth.",
-        "Any new module (file transfer) declares its own branch namespace and must not write .scheduler or .standby."
+        "jims reads 'no report' while fleetctl sees it UP and mining: its State :8127 (.127) answers nothing (46 missed at 18:40Z) - publish node.jims.standby by rolling the guard/shelf out to that box"
       ],
       "tags": [],
       "trail": [
@@ -945,10 +1250,70 @@
           "kind": "state",
           "text": "created",
           "by": "agent"
+        },
+        {
+          "at": 1794075755722,
+          "kind": "session",
+          "text": "operator: work the DAG - LAN database intent + standby in the LAN row",
+          "by": "session",
+          "sessionRef": "hermes-123-dag-20261107"
+        },
+        {
+          "at": 1794075760828,
+          "kind": "claim",
+          "text": "claimed for 30 min",
+          "by": "hermes-123-dag-20261107"
+        },
+        {
+          "at": 1794076483672,
+          "kind": "event",
+          "text": "Core observePeer now pulls node.<peer>.standby once per tick (500 ms budget; a 404 costs nothing) and writes {mode, ai, miner, at, ageS, stale} into node.<self>.observed.<peer> and into /api/tree peers. verdict.js gained standbyOf() and observation(verdict, at, standby) - same staleness rule as Mirror (age > 3 x the owner poll). Core gate: 45 passed / 0 failed.",
+          "by": "hermes-123-dag-20261107",
+          "sessionRef": "hermes-123-dag-20261107"
+        },
+        {
+          "at": 1794076483690,
+          "kind": "event",
+          "text": "Proved the path against a stub State because no live peer publishes standby: test/standby-peer.mjs = 7 passed / 0 failed (peer seen, verdict from an advancing cycle, tree carries mining, observation carried it, cycle never invented). Transcript in this folder.",
+          "by": "hermes-123-dag-20261107",
+          "sessionRef": "hermes-123-dag-20261107"
+        },
+        {
+          "at": 1794076483712,
+          "kind": "note",
+          "text": "Menu already renders the row; verified live for 123 at 18:33Z: chip \"mining PearlPow\" and row \"Idle Service | PearlPow 24.1 TH/s - 27 shares this run - reported 2s ago\", beside \"For | controller, llm, tts, video, image, music, mining, doors, 192.168.1.123\".",
+          "by": "hermes-123-dag-20261107",
+          "sessionRef": "hermes-123-dag-20261107"
+        },
+        {
+          "at": 1794076483730,
+          "kind": "note",
+          "text": "jims still reads \"no report\": fleetctl sees the box UP and mining over ssh (.127, cpu + gpu SRB), but its State :8127 answers nothing (46 missed at 18:40Z), so there is no node.jims.standby to carry. That half is the shelf/guard rollout on .127 (44ff5033, 49e30c7a), not code here.",
+          "by": "hermes-123-dag-20261107",
+          "sessionRef": "hermes-123-dag-20261107"
+        },
+        {
+          "at": 1794076483747,
+          "kind": "note",
+          "text": "Standing rules from this node are recorded in the folder README: guard.state.json is a local fallback only (never the LAN truth), and a new module declares its own branch namespace without writing .scheduler or .standby.",
+          "by": "hermes-123-dag-20261107",
+          "sessionRef": "hermes-123-dag-20261107"
+        },
+        {
+          "at": 1794076483776,
+          "kind": "note",
+          "text": "edited by hermes-123-dag-20261107",
+          "by": "hermes-123-dag-20261107"
+        },
+        {
+          "at": 1794076517803,
+          "kind": "claim",
+          "text": "released (was hermes-123-dag-20261107)",
+          "by": "hermes-123-dag-20261107"
         }
       ],
       "created": 1793973521904,
-      "touched": 1793973521904,
+      "touched": 1794076517803,
       "dir": "thoughts/8793886c"
     },
     {
@@ -988,7 +1353,7 @@
     },
     {
       "ref": "e093f426",
-      "title": "Hydra V2 design \u2014 what is built, what is open",
+      "title": "Hydra V2 design — what is built, what is open",
       "intent": "",
       "state": "active",
       "deps": [],
@@ -1344,6 +1709,517 @@
       ],
       "created": "2026-11-07T13:13:56",
       "touched": "2026-11-07T13:13:56"
+    },
+    {
+      "ref": "4563e80f",
+      "title": "A CUDA build runs on Maxwell-class cards (980 Ti), measured",
+      "intent": "Done means audio.cpp built for sm_52 runs on the GTX 980 Ti at .134 and one TTS model has a measured wall/audio ratio on that card, recorded here beside the Vulkan numbers, so no future session says \"the card is too old\" without a number. The driver rule is: build for the arch the card declares, do not fall back to Vulkan by default.",
+      "state": "active",
+      "deps": [
+        "2629893c"
+      ],
+      "next": [
+        "install the MSVC v143 14.44 x64 toolset into the VS 2022 BuildTools on .134, then configure audio.cpp with CUDA 12.9 + -DCMAKE_CUDA_ARCHITECTURES=52 and build audiocpp_cli",
+        "if that build lands, run the same qwen3_tts vdes sentence on CUDA and record wall/audio, rtf and VRAM peak beside the Vulkan numbers (4567.79 ms / 3600 ms, rtf 1.269)",
+        "if 14.44 also refuses, declare Maxwell CUDA a skip with these four transcripts as the reason and delete C:AIcuda12.9.1.exe + C:AIaudio-cuda12.4.zip to reclaim 3.8 GB"
+      ],
+      "tags": [
+        "tts",
+        "cuda",
+        "gpu",
+        "980ti",
+        "measured"
+      ],
+      "trail": [
+        {
+          "at": 1794077553223,
+          "kind": "state",
+          "text": "created",
+          "by": "hermes-123-dag-20261107"
+        },
+        {
+          "at": 1794077553289,
+          "kind": "note",
+          "text": "waits on Service definitions carry an install face (schema v2) [2629893c]",
+          "by": "hermes-123-dag-20261107"
+        },
+        {
+          "at": 1794078497477,
+          "kind": "event",
+          "text": "Prebuilt CUDA 12.4 build (audio-v0.9.4-bin-windows-x64-cuda12.4.zip, 446.1 MB) downloaded to .134 in 42 s and unpacked: backends cpu,cuda, ggml-cuda.dll 1088 MB; --list-devices reports the 980 Ti as CUDA:0, compute capability 5.2. The device initializes.",
+          "by": "hermes-123-dag-20261107",
+          "sessionRef": "hermes-123-dag-20261107"
+        },
+        {
+          "at": 1794078497511,
+          "kind": "event",
+          "text": "Then it refuses the first matmul: \"CUDA error: no kernel image is available for execution on the device\" at ggml_cuda_op_mul_mat. cuobjdump --list-elf ggml-cuda.dll shows cubins for sm_70/75/80/86/89/90 only - no sm_52. That is the whole \"arch too old\" wall: a packaging choice, not a hardware limit.",
+          "by": "hermes-123-dag-20261107",
+          "sessionRef": "hermes-123-dag-20261107"
+        },
+        {
+          "at": 1794078497529,
+          "kind": "event",
+          "text": "Toolchain on .134: VS18 Community cl 19.51? (14.51.36231) works with vcvars64 but CUDA 12.4 cudafe++ dies 0xC0000005 on it; VS2022 BuildTools has a complete MSVC 14.39.33519 but its cl does not print the Target: line nvcc 12.4 parses, so nvcc answers \"Host compiler targets unsupported OS\"; the 14.44 dir is a stub (Auxiliary only) and clang-cl is not installed.",
+          "by": "hermes-123-dag-20261107",
+          "sessionRef": "hermes-123-dag-20261107"
+        },
+        {
+          "at": 1794078497550,
+          "kind": "decision",
+          "text": "Path chosen: install CUDA Toolkit 12.9.1 (supports MSVC 14.4x, still compiles sm_52 - Maxwell is deprecated in 12.x and removed in 13.x), driver left untouched, then build audio.cpp with -DGGML_CUDA=ON -DCMAKE_CUDA_ARCHITECTURES=52.",
+          "by": "hermes-123-dag-20261107",
+          "sessionRef": "hermes-123-dag-20261107"
+        },
+        {
+          "at": 1794079582812,
+          "kind": "event",
+          "text": "Installed CUDA Toolkit 12.9.1 on .134 (3.4 GB download in 362 s, silent install of nvcc+cudart+cublas only, driver 582.66 untouched): nvcc 12.9.86 now sits beside 12.4. Source tree cloned shallow with submodules to C:AIaudio.cpp-src.",
+          "by": "hermes-123-dag-20261107",
+          "sessionRef": "hermes-123-dag-20261107"
+        },
+        {
+          "at": 1794079582846,
+          "kind": "event",
+          "text": "Four sm_52 build pairings all stop at nvcc host-compiler handshake: 12.4+cl19.51 cudafe++ 0xC0000005; 12.4+cl19.39 \"Host compiler targets unsupported OS\"; 12.9+cl19.39 same OS error even with -allow-unsupported-compiler and with -std=c++17/c++20; 12.9+cl19.51 cudafe++ 0xC0000005. cl itself compiles a <cstdio> program fine in the same env, and both SDKs (22621, 26100) fail alike. Transcript: thoughts/4563e80f/toolchain-deadends-2026-11-07.txt",
+          "by": "hermes-123-dag-20261107",
+          "sessionRef": "hermes-123-dag-20261107"
+        },
+        {
+          "at": 1794079582864,
+          "kind": "decision",
+          "text": "Next and only step on this path: install the MSVC v143 14.44 x64 toolset into the VS 2022 BuildTools (that directory is a stub today) and pair it with CUDA 12.9 - 14.44 sits inside 12.9 supported window, so neither the OS handshake nor the cudafe++ crash should fire. Source, cmake, ninja and arch flags are all already in place.",
+          "by": "hermes-123-dag-20261107",
+          "sessionRef": "hermes-123-dag-20261107"
+        },
+        {
+          "at": 1794079582883,
+          "kind": "event",
+          "text": "Measured the card while it was here - Vulkan build, qwen3_tts vdes, same voice and sentence as the CUDA attempt: inference 4567.79 ms for 3600 ms of audio, rtf 1.26883 (0.788x realtime), peak footprint 3629 MB, total wall 25.6 s with model load. The 980 Ti serves TTS today, it just cannot do it in realtime.",
+          "by": "hermes-123-dag-20261107",
+          "sessionRef": "hermes-123-dag-20261107"
+        },
+        {
+          "at": 1794079582924,
+          "kind": "note",
+          "text": "edited by hermes-123-dag-20261107",
+          "by": "hermes-123-dag-20261107"
+        },
+        {
+          "at": 1794080287255,
+          "kind": "event",
+          "text": "MSVC v143 14.44 component installed into the VS 2022 BuildTools (17.14 instance) in 185 s, cl 19.44.35228 present and selectable. Result: same \"Host compiler targets unsupported OS\", with and without -allow-unsupported-compiler, and also when 14.44 is forced via -ccbin into the VS18 vcvars env that 19.51 passes in. Five pairings now: 19.39/19.44 fail the OS handshake, 19.51 passes it and then cudafe++ dies. nvcc --help confirms -allow-unsupported-compiler only disables the VERSION check, not the OS check, so there is no flag to skip it. CUDA on this Maxwell card from Windows source is a dead end on this box; the build would need a Linux host or a prebuilt sm_52 binary. Keeping MSVC 14.44 and CUDA 12.9 (both useful, additive); deleting the 3.8 GB of installers.",
+          "by": "hermes-123-dag-20261107"
+        }
+      ],
+      "created": 1794077553223,
+      "touched": 1794080287255,
+      "dir": "thoughts/4563e80f"
+    },
+    {
+      "ref": "f098e622",
+      "title": "Hydra V2 IS an ssh tunnel with a terminal window (the target shape)",
+      "intent": "A design node, not a build order. Operator concept 2026-11-07: Hydra V2 should BE an ssh tunnel - the agent runs one line at a time, but the window shows a terminal that looks like a persistent shell. Done means the Menu can open a node and show a terminal that reads like a live shell (prompt, history, one block per command) while the transport underneath is a stateless ssh call per line. Until then standard ssh is the interim and the door stays the ledger.",
+      "state": "active",
+      "deps": [
+        "cdb81fd3"
+      ],
+      "next": [
+        "write down the seam: one line in, one block out, no pty held open on the far side - what the user sees vs what actually runs",
+        "decide the prompt illusion: local prompt rendering from the last cwd+exit code, not a far-side prompt",
+        "pick the transport for line-at-a-time: ssh exec per line now, a single ssh session with a framed protocol later",
+        "no daemon on the far node: the tunnel must work against a box with only sshd and nothing of ours installed"
+      ],
+      "tags": [
+        "design",
+        "ssh",
+        "terminal",
+        "hydra",
+        "tunnel"
+      ],
+      "trail": [
+        {
+          "at": 1794077553244,
+          "kind": "state",
+          "text": "created",
+          "by": "hermes-123-dag-20261107"
+        },
+        {
+          "at": 1794077553304,
+          "kind": "note",
+          "text": "waits on Talk to Echidna: the Menu's mark becomes the conversation, the interface sits beside it [cdb81fd3]",
+          "by": "hermes-123-dag-20261107"
+        }
+      ],
+      "created": 1794077553244,
+      "touched": 1794077553304,
+      "dir": "thoughts/f098e622"
+    },
+    {
+      "ref": "f089f721",
+      "title": "The 980 Ti node makes its own sale ad - and Hydra is the studio",
+      "intent": "Operator goal (2026-11-07): sell DESKTOP-Q8U0BTH (.134, GTX 980 Ti 6 GB, 7.9 GB RAM, 4 cores) for $300 CAD. The proof of value is that the node advertises itself: images, a video (any generator, even the worst one, spilling into RAM if that is what it takes - but RENDERED ON THIS NODE), a voice-over that sounds real, a music bed, assembled into one ad file - produced with the Hydra app running on that node. Nothing hired out, nothing rendered elsewhere. Standing policy from the operator for this node: try every backend that fits, keep what works, uninstall the rest (knowledge is the prize; a 980 Ti costs $40).",
+      "state": "active",
+      "deps": [],
+      "next": [
+        "CUDA: finish the sm_52 path (MSVC 14.44 + CUDA 12.9), build audiocpp_cli, and measure rtf against the measured Vulkan baseline of 1.269 (0.788x realtime)",
+        "image: choose the smallest backend that actually fits 6 GB (sd.cpp SD1.5, SDXL-turbo, or Flux-schnell Q4) and render 3 ad stills on .134 with the numbers filed",
+        "music: choose a bed generator that fits (ace-step / musicgen small through audio.cpp or sd.cpp) and render 30 s",
+        "video: decide the honest motion path - animate a still on the worst model that runs, or Ken Burns + ffmpeg - and render 10 s on this node",
+        "assembly: ffmpeg mux (stills -> motion -> voice-over -> music -> titles), every step driven by Hydra on .134, output the ad file locally",
+        "listing: write the $300 CAD copy from the measured numbers (what it renders, how fast, what it costs to run) and file it beside the artifacts"
+      ],
+      "tags": [
+        "hydra",
+        "node-134",
+        "980ti",
+        "self-ad",
+        "sell",
+        "media-stack",
+        "goal"
+      ],
+      "trail": [
+        {
+          "at": 1794079951568,
+          "kind": "state",
+          "text": "created",
+          "by": "hermes-123-dag-20261107"
+        },
+        {
+          "at": 1794080287290,
+          "kind": "decision",
+          "text": "Operator: \"980ti is a card I can buy for 0 - so for me knowledge is the prize - Lets try everything.... then uninstall what you didn't like and keep what you do like.\" Policy for .134: exhaust the backends, measure each, keep what works, uninstall the rest. Target: the node renders its own $300 CAD ad on itself - images, video (any generator, even the worst, RAM spill allowed, but rendered here), a real-sounding voice-over, a music bed, muxed into one file, driven by the Hydra app on that node.",
+          "by": "hermes-123-dag-20261107"
+        },
+        {
+          "at": 1794080296264,
+          "kind": "event",
+          "text": "Pipeline chosen on .134 with what already works instead of waiting on CUDA: sd.cpp win-vulkan build (29 MB) + SD1.5 Q8 GGUF (1682 MB) for stills; audio.cpp (already measured on Vulkan at rtf 1.269) for the voice-over; music from the audio.cpp music families (Stable-Audio-3-small-music q8 1606 MB, ACE-Step 1.5, or the Yue2-3B-GGUF already sitting on the box); video from sd.cpp Wan2.1 T2V 1.3B; mux with the ffmpeg 9.0.1 already installed (winget Gyan build). Every render gets a measured number, every failure gets a line.",
+          "by": "hermes-123-dag-20261107"
+        },
+        {
+          "at": 1794080654634,
+          "kind": "event",
+          "text": "FIRST AD ASSET on .134: sd.cpp master-9234ad8 (win-vulkan) + SD1.5 Q8_0 GGUF, 512x512, 20 steps, cfg 7, seed 42 -> 44.23 s generation (34.70 s sampling = 1.17 s/it, 8.39 s VAE decode), 47.7 s wall including model load, PNG 0.35 MB. Card reports fp16: 0 on Vulkan (Maxwell has no fp16 path) and the box is an i5-650 with 4 threads. Still filed as first-512.png in this thought; prompt was a desk/PC scene, came back usable but with the usual SD1.5 keyboard mush - fine as a mood still behind a title, not as a hero shot. Binary note: this build ships sd-cli.exe, not sd.exe, and -M takes img_gen (not txt2img).",
+          "by": "hermes-123-dag-20261107"
+        },
+        {
+          "at": 1794080714027,
+          "kind": "event",
+          "text": "Hydra on .134: C:AIhydra-local is a full tree (module/, library/, launchers/, start-hydra.cmd, stop-hydra.cmd, relaunch-hydra.cmd, open-hydra-window.cmd) with node at C:UsersUserAppDataLocalhermes\node\node.exe, but no door answers on 8125/8127/8128/8129/8131/8133/8135/8136/8137 and nothing listens in 8120-8150. So the machine HAS the app and is not running it - starting it through its own ProcessWrapper is what makes the ad credible as \"made with Hydra on that node\" rather than made over ssh.",
+          "by": "hermes-123-dag-20261107"
+        },
+        {
+          "at": 1794080714068,
+          "kind": "event",
+          "text": "Ad script v1 written to thoughts/f089f721/ad-script.md: 30 s, 16:9, six shots (three SD1.5 stills, one Wan2.1 1.3B moving shot, a thumbnail wall, a price card), Stable Audio 3 bed at -18 dB, qwen3_tts VoiceDesign VO of 60 words, ffmpeg 9.0.1 assembly, and a listing-honesty section that states the CUDA dead end and what a 2 s 480p clip actually costs.",
+          "by": "hermes-123-dag-20261107"
+        },
+        {
+          "at": 1794080984208,
+          "kind": "event",
+          "text": "MUSIC BED on .134: Stable Audio 3 Small Music (q8_0, 1606 MB) via audio.cpp --task gen --family stable_audio on Vulkan -> 30.000 s stereo 44.1 kHz pcm_s16le, 5.05 MB, in 20.89 s wall (rtf 0.696, i.e. 1.44x FASTER than realtime), session wall 13.42 s of that, peak commit 7221 MB with RSS 1200 MB (it leans on the pagefile at 7.9 GB). ffmpeg volumedetect: mean -19.5 dB, max 0.0 dB with 11 samples at full scale, no silence gaps over 5 s. Filed as music-bed-30s.wav in this thought. Music is the one media class where this node is comfortably fast.",
+          "by": "hermes-123-dag-20261107"
+        },
+        {
+          "at": 1794081535214,
+          "kind": "event",
+          "text": "VOICE-OVER on .134: qwen3_tts VoiceDesign (1.7B q8, the same model already measured) -> 22.96 s of 24 kHz mono speech in 44.63 s of inference (rtf 1.944, 0.514x realtime), 93.2 s wall with model load, peak commit 6542 MB, WAV 1.05 MB. ffmpeg: mean -31.7 dB, peak -13.0 dB, no gap longer than 0.8 s - so it is continuous speech at a healthy level, and it needs about +10 dB before the mix. Filed as vo-30s.wav. Whether it sounds real is the one thing I cannot measure - that is an ear test.",
+          "by": "hermes-123-dag-20261107"
+        },
+        {
+          "at": 1794081535248,
+          "kind": "event",
+          "text": "ASSEMBLY PATH PROVEN before the expensive renders: first-512.png -> scale/pad 1080p -> zoompan push-in -> music bed at volume 0.18 with a 1 s fade -> h264+aac, 1920x1080, 25 fps, exactly 6.500 s, 0.63 MB, ffmpeg exit 0 on the box (Gyan ffmpeg 9.0.1 already installed). Filed as preview-shot-A.mp4 + preview-frame.png. Lesson recorded: -loop 1 with no -t on the output encodes forever - the first attempt wrote 54 MB before I killed it.",
+          "by": "hermes-123-dag-20261107"
+        },
+        {
+          "at": 1794082722413,
+          "kind": "event",
+          "text": "Wan2.1 T2V 1.3B attempt 1 on .134: 480x480, 33 frames, 20 steps, umt5 Q4 on CPU, model offloaded - sampling COMPLETED in 1104.64 s at 53.5-53.9 s/step (18.4 min), then died loading the Wan VAE with exit -1073741819 (0xC0000005) and wrote no file. So the model runs on this card; the decode is what exceeds the box (7.9 GB RAM, VAE wants far more). Retry launched with the documented mitigation: 384x384, 17 frames, 16 steps, --backend vae=cpu and --vae-tiling.",
+          "by": "hermes-123-dag-20261107"
+        }
+      ],
+      "created": 1794079951568,
+      "touched": 1794082722413,
+      "dir": "thoughts/f089f721"
+    },
+    {
+      "ref": "dbe4739d",
+      "title": "MAME machines: the eight old laptops become arcade cabinets",
+      "intent": "Operator idea (2026-11-07): turn roughly eight spare old laptops into dedicated arcade machines - Linux Mint + MAME + operator-supplied ROMs. The design constraint is that from the player seat Linux does not exist: power on, and a game is running. The front end must be a full-screen cabinet-style ROM selector that remembers the last game and boots straight into it unless the player deliberately re-selects, with keyboard/joystick only, no mouse, no desktop, no window border, no cursor. Success is measured in boot-to-gameplay seconds on the slowest laptop that still runs at full frame rate.",
+      "state": "active",
+      "deps": [],
+      "next": [
+        "pick the front end against old-laptop limits: Attract Mode (lightest, themes are just Squirrel), EmulationStation (heavier, GL), Pegasus (Qt, prettier but heavier), versus a purpose-built kiosk launcher - note that \"boot the last game\" is NOT a stock feature of any of them, so it is either a theme script or a wrapper",
+        "define the kiosk session: autologin, X with no desktop and no window manager, frontend as the only client, cursor hidden, and a systemd user unit that starts it - so the laptop never shows a login, a panel or a wallpaper",
+        "build ONE golden image and clone it eight times: unattended Mint install plus a postinstall that drops MAME, the front end, the ROM set, per-machine config and the autostart, instead of hand-building each laptop",
+        "decide the input: USB gamepad per laptop (cheapest, instantly mappable) versus a keyboard encoder and real arcade buttons; MAME wants 6 buttons plus a stick per player, and some laptop keyboards ghost beyond 3 simultaneous keys",
+        "decide where ROMs live (per-laptop disk, or one SD card per machine) and pin the MAME version to the ROM set - a mismatched set silently boots to a black screen on half the titles",
+        "measure the honest ceiling per laptop: MAME is CPU-bound, so 1980s-90s 2D titles (CPS1/2, Neo Geo) are fine while 3D-era games will not hold frame rate no matter the settings; record boot-to-game seconds and frames per second per machine"
+      ],
+      "tags": [],
+      "trail": [
+        {
+          "at": 1794098091888,
+          "kind": "state",
+          "text": "created",
+          "by": "agent"
+        },
+        {
+          "at": 1794098211563,
+          "kind": "event",
+          "text": "DECISION (operator, 2026-11-07): not a front end bolted onto stock Mint - a custom Mint-based ISO whose ONLY visible interface is the arcade front end. Operator words: \"a custom mint backend mame machine front end iso installer - perfect!\". So the deliverable is a bootable installer image: install it, reboot, and the machine is an arcade cabinet.",
+          "by": "hermes-123-dag-20261107"
+        },
+        {
+          "at": 1794098211604,
+          "kind": "event",
+          "text": "Build shape for that ISO: Mint base remastered with Cubic (boot the ISO in a VM, chroot, inject packages and scripts, rebuild squashfs) rather than live-build, because Mint tooling and package versions should stay as Mint ships them. Into the chroot go: mame pinned to the ROM set, xorg plus a bare compositor, the kiosk frontend, plymouth splash, an autologin user, and a systemd user unit that starts the frontend as the only session. No desktop environment on the target, even if Mint ships one - the desktop is the thing being hidden.",
+          "by": "hermes-123-dag-20261107"
+        },
+        {
+          "at": 1794098211620,
+          "kind": "event",
+          "text": "Frontend contract: a full-screen SDL/pygame selector listing ROMs with MAME snapshot art, driven by keyboard or USB gamepad, Enter launches. It reads a last_game file; on boot it shows \"continue: <title>\" for a few seconds and then execs MAME, and only an explicit key press drops into the grid. That wrapper is the whole difference between a laptop with an emulator and a cabinet - no stock front end (Attract Mode, EmulationStation, Pegasus) boots back into the last game.",
+          "by": "hermes-123-dag-20261107"
+        },
+        {
+          "at": 1794098211639,
+          "kind": "event",
+          "text": "Provisioning/open questions to settle before building the ISO: where ROMs live (baked in only if the set is small; otherwise one SD card or USB per machine, with a first-boot scan), which MAME version the operator ROM set matches (mismatch boots black screens), per-machine input config (USB gamepad ctrlr file, since laptop keyboards ghost past ~3 keys), and the boot-time target (BIOS to gameplay under 25 s on the slowest laptop that still holds full frame rate).",
+          "by": "hermes-123-dag-20261107"
+        }
+      ],
+      "created": 1794098091888,
+      "touched": 1794098211639,
+      "dir": "thoughts/dbe4739d"
+    },
+    {
+      "ref": "78ae5f74",
+      "title": "robert is a working node: Windows 11, Vulkan media, and a Hydra row you can see from 123",
+      "intent": "Operator goal (2026-11-07): finish robert (Acer Nitro N50-600, i5-9400F, 15.9 GB RAM, RX 590 8 GiB, Windows 11 Pro build 26300) as a real node of the shelf, in another room, with every service runnable on the hardware that is actually in it - and prove it with measured numbers, not claims. Bob's hardware is Polaris/gfx803: Vulkan works, fp16 does not, OpenCL works through the AMD driver, ROCm does not exist on Windows. The node must show up on the other nodes (Menu/Mirror) and its long-running work must live in ProcessWrapper, never as a loose background process.",
+      "state": "active",
+      "deps": [],
+      "next": [
+        "MOSS-Image: finish the text encoder download (5.4 GB, resuming with -C - after the HF CDN stalled at 0 bytes twice) and render a 1024x1024 still with the four-file recipe including the external tokenizer",
+        "Wan2.2: read the 832x480x33 @30-step clip, verify frames with vision, and only then decide whether a longer clip (49-81 frames) is worth the wall time",
+        "put the node services on robert as real service definitions: llama-server (llama.cpp b12192 Vulkan), sd-cli as a request-driven service, and unMiner as the standby - each with a ProcessWrapper row and a close button",
+        "restart the miner only when the GPU is idle again (operator: stop it during smoke tests), and confirm the standby guard does not fight a running render",
+        "decide whether robert's Mirror should read a local roster copy (C:/AI/fleet/roster.json is now on the box) or stay observation-only, since declared intent lives on the controller"
+      ],
+      "tags": [],
+      "trail": [
+        {
+          "at": 1794099230990,
+          "kind": "state",
+          "text": "created",
+          "by": "agent"
+        },
+        {
+          "at": 1794099246497,
+          "kind": "event",
+          "text": "Hydra is live on robert and visible from 123: doors 8125/8127/8128/8129/8131/8132/8133/8135/8136/8137 bound 0.0.0.0, app UI on 127.0.0.1:8130, all seven probed doors answer 200 from the controller. Cold start (WMI-detached launch) reached :8130 in 32 s. Desktop shortcut \"Hydra V2\" -> relaunch-hydra.cmd with hydra.ico; electron 44.4.1 at C:\\AI\\electron (copied, not borrowed from Hermes, so a Hermes reinstall cannot move it), node 22.22.3 in Program Files (the doors are spawned as `node <script>` - main.cjs line 56 - so Electron alone is not enough).",
+          "by": "hermes-123-dag-20261107"
+        },
+        {
+          "at": 1794099246542,
+          "kind": "event",
+          "text": "Two blockers were not what they looked like. (1) The doors already bound 0.0.0.0 - doorArgs() passes --host 0.0.0.0 - so \"unreachable from 123\" was Windows Firewall on a fresh tiny11; rules added for node.exe, electron.exe and TCP 8125-8144. (2) A process started from an ssh session dies with that session, so the first launch appeared to work and then vanished; the durable launch is WMI Win32_Process.Create, which is outside the session job object.",
+          "by": "hermes-123-dag-20261107"
+        },
+        {
+          "at": 1794099246575,
+          "kind": "event",
+          "text": "A stale door was faking the fleet view on 123: :8137 was being served by a Mirror started at 13:33, before the roster patch, so it answered with the old shape - counts {nodes:2, alive:1}, no intent, no /api/fleet - while the patched code never got the port. Killed through ProcessWrapper (kill force + DELETE) and relaunched as mirror-8137-030-717d: counts {nodes:3, alive:2, services:8, declared:12, withIntent:3} and /api/fleet?for=image returns robert at http://192.168.1.109:8127. A door answering 200 is not evidence it is running the current code.",
+          "by": "hermes-123-dag-20261107"
+        },
+        {
+          "at": 1794099246592,
+          "kind": "event",
+          "text": "Video on the 590, measured: Wan2.2 TI2V-5B Q4_K_M + Wan2.2_VAE + umt5 Q4_K_M (8.1 GB), --offload-to-cpu, Vulkan reports \"Radeon RX 590 Series (AMD proprietary driver) | fp16: 0 | bf16: 0 | int dot: 0 | matrix cores: none\". Probe 480x288x17 @8 steps: condition 8.69 s, sampling 71.38 s (8.23 s/it), VAE 32.47 s, total 112.60 s, EXITCODE 0, 361 KB webm. Quality run 832x480x33 @30 steps settles at ~46 s/it. The probe frame is colour mush because 8 steps under-samples Wan2.2 - that is arithmetic, not a backend fault, and it is why the quality run exists.",
+          "by": "hermes-123-dag-20261107"
+        },
+        {
+          "at": 1794099246609,
+          "kind": "event",
+          "text": "llama.cpp on the same card: b12192 Vulkan sees Vulkan0 Radeon RX 590 8192 MiB (7402 free) and generates 33.2 t/s (prompt 38.3 t/s) on Bonsai-1.7B Q1_0 with -ngl 99. Both binaries were dead on arrival until vc_redist.x64.exe was installed (0xC0000135 STATUS_DLL_NOT_FOUND, zero output, not even --help) - tiny11 ships no Visual C++ runtime.",
+          "by": "hermes-123-dag-20261107"
+        },
+        {
+          "at": 1794099246626,
+          "kind": "event",
+          "text": "MOSS-Image is the known-good image path from the earlier Mint work, and the recipe is four files, not three: leejet/MOSS-Image-Base-GGUF DiT Q4_K (3173 MB) + unsloth/Qwen3.5-9B-GGUF Q4_K_M (5417 MB) + Comfy-Org/MOSS-Image vae/flux2-vae.safetensors (321 MB) + OpenMOSS-Team/MOSS-Image-Base tokenizer/tokenizer.json, passed as --tokenizer. Qwen3.5 vocabulary differs from the embedded Qwen tokenizer, so a missing tokenizer produces wrong-but-plausible images instead of an error.",
+          "by": "hermes-123-dag-20261107"
+        },
+        {
+          "at": 1794099246645,
+          "kind": "event",
+          "text": "Transfer notes for a Wi-Fi node in another room: hydra seed (module/ minus every module/*/data so the node cannot inherit the controller identity, logs or DAG) 148.7 MB and electron dist 158.5 MB both moved in ~20 s each; HF model pulls ran at ~10 MB/s until the CDN started holding 0-byte files, which is why the MOSS encoder is now fetched with -C - in a retry loop plus --speed-limit/--speed-time so a dead connection aborts instead of hanging.",
+          "by": "hermes-123-dag-20261107"
+        },
+        {
+          "at": 1794100856626,
+          "kind": "event",
+          "text": "BUG (found 2026-11-07 on robert, fixed same night): the standby guard steals the GPU from an active render. Root cause is a two-part miss in scripts/standby-guard.ps1. (1) Its AI-process list was @(audiocpp_cli, audiocpp_server, audiocpp_gguf, llama-server, llama-cli, sd-server, sd) - sd-cli was absent, and sd-cli is what every still and video render on these nodes actually runs. The guard therefore saw NO AI work while a 5B video model was sampling, and (2) its ResumeGraceSeconds default was 45 s. Result: 45 seconds into a render it launched unMiner, the card went from 46 s/it to 158 s/it, and Windows reset the driver with \"ggml_vulkan: device lost on Vulkan0 / vk::Queue::submit: ErrorDeviceLost\" thirteen steps in.",
+          "by": "hermes-123-dag-20261107"
+        },
+        {
+          "at": 1794100856663,
+          "kind": "event",
+          "text": "BUG FIX: (a) sd-cli, llama-bench and whisper-cli added to the guard AI-process list, so a batch render is recognised as work the moment it appears; (b) default grace raised from 45 s to 1800 s - the operator rule is 30 minutes of no activity before the miner may resume (\"wait 30 min for no activity before restarting miner... for this exact reason\"); (c) the guard now reads this node standby.after from module/Menu/data/node.json when -ResumeGraceSeconds is not passed explicitly, so the declared number in a node identity actually drives the behaviour instead of a script constant. Both nodes set to 1800.",
+          "by": "hermes-123-dag-20261107"
+        },
+        {
+          "at": 1794100856680,
+          "kind": "event",
+          "text": "BUG EVIDENCE: Hydra ProcessWrapper rows standby-guard-016-5598, standby-miner-022-a041 and standby-miner-017-25d9 were the launchers (pids 12128, 13108, 13828) - not a scheduled task, not a Run key, not the Startup folder, which were all checked and empty. Killing the guard and miner rows through the ProcessWrapper API and then re-running the render is the reproduction test: steps return to ~46 s/it with the guard gone.",
+          "by": "hermes-123-dag-20261107"
+        },
+        {
+          "at": 1794100856697,
+          "kind": "event",
+          "text": "Related environment fault found in the same incident: HKLM\\SYSTEM\\CurrentControlSet\\Control\\GraphicsDrivers\\TdrDelay was unset, i.e. the 2-second Windows default, so any submit that slows past 2 s under contention triggers a driver reset and sd.cpp reports \"device lost\" with no OOM and no model error. Set to 60 s on robert (takes effect at reboot). Worth checking on every Windows GPU node before blaming the model for a mid-run death.",
+          "by": "hermes-123-dag-20261107"
+        },
+        {
+          "at": 1794104675373,
+          "kind": "event",
+          "text": "ROBERT BOOTS ITSELF, end to end, proved by an actual reboot. Chain measured: (1) Winlogon AutoAdminLogon=1 + ForceAutoLogon=1 + DefaultUserName=User + DefaultDomainName=DESKTOP-AAJBDVJ + DefaultPassword set -> quser reports \"user console 1 Active\" and one explorer process, so no password was ever typed and no lock screen appeared; (2) the Hydra V2 shortcut in the Startup folder raised relaunch-hydra.cmd -> 14 node + 6 electron processes, 7/7 doors listening; (3) the standby guard assumed idle at boot and started unMiner THROUGH ProcessWrapper -> standby-miner row, then adopted the three unMiner children and SRBMiner as rows; (4) quantus at 91.2 MH/s 1-min, 90.6 MH/s on gpu0, cpu workers 0, first share accepted in 100 s.",
+          "by": "hermes-123-dag-20261107"
+        },
+        {
+          "at": 1794104675406,
+          "kind": "event",
+          "text": "The fleet password is a design, not a secret: user User with password \"unknown\", local Administrator, never expires. It was verified without logging anyone in - LogonUser(LOGON32_LOGON_NETWORK) for DESKTOP-AAJBDVJ\\User returned a token (VALID) while empty string, \"password\" and \"user\" were rejected with win32 1326. That is why the auto-logon can be trusted rather than hoped for: the registry value is the account real credential.",
+          "by": "hermes-123-dag-20261107"
+        },
+        {
+          "at": 1794104675422,
+          "kind": "event",
+          "text": "BUG, and a nasty one because it looked like \"mining will not start\": a trailing comma after the AiProcs array in the standby-guard param block made the script un-parseable, so EVERY guard launch died instantly. ProcessWrapper saw a dead row, raised another, and left seven stacked standby-guard rows (016-022) with no log lines at all - the guard never reached its first LogIt. The fix is one character, and the rule is now: parse a PowerShell file with [System.Management.Automation.Language.Parser]::ParseFile before shipping it, because a .ps1 that cannot parse fails with no process, no log and no error anywhere the operator would look.",
+          "by": "hermes-123-dag-20261107"
+        },
+        {
+          "at": 1794104675438,
+          "kind": "event",
+          "text": "BUG: two guards can be raised for one node (the app watchdog table plus any row started by hand) and they fight over the miner - one stopping it while the other starts it. Fixed with a named mutex Global\\hydra-standby-guard taken for the life of the process; a second guard exits immediately. Verified by deliberately raising two: the second was gone within 12 s and the first carried on mining.",
+          "by": "hermes-123-dag-20261107"
+        },
+        {
+          "at": 1794104675460,
+          "kind": "event",
+          "text": "WAN2.2 HERO RENDER SUCCEEDED on the RX 590: 704x416 x 33 frames, 24 steps, cfg 5.0, flow-shift 3.0, --vae-tiling --temporal-tiling, seed 7 -> generate_video completed in 999.59 s, C:\\AI\\ads\\wan22-hero3.webm, 973 KB VP8, EXITCODE 0. Frames 4/16/28 are a coherent photorealistic workbench shot: a graphics card on a pale wooden surface, warm lamp light from the left, cables blurred in the background, shallow depth of field. First-to-last-frame PSNR 32.15 dB, so there is real (gentle) motion rather than a freeze. The three earlier attempts and their distinct causes: miner contention + 2 s TdrDelay (device lost at step 13), VAE weight staging without tiling (decode failed), device lost again at step 18 until TdrDelay=60 was armed by a reboot.",
+          "by": "hermes-123-dag-20261107"
+        },
+        {
+          "at": 1794106111210,
+          "kind": "event",
+          "text": "MOSS-IMAGE WORKS ON THE 590 - the known-good recipe from the earlier Mint work carried over unchanged. 1024x1024, cfg-scale 3.0, seed 11, four files (DiT Q4_K + Qwen3.5-9B Q4_K_M encoder + flux2-vae + external tokenizer), --offload-to-cpu: generate_image completed in 1215.34 s, VAE decode 15.27 s, 20 steps at 59.25 s/it, C:\\AI\\ads\\moss-hero.png 1.87 MB EXITCODE 0. The picture is a coherent photorealistic upright cabinet in a dim garage: overhead bulb, concrete floor, shelves and boxes lost in background blur, film grain and vignette. Honest gaps: the marquee is a glowing smear rather than legible art and the CRT shows light instead of a game - expected for \"no text\" in the negative, and the next pass should either ask for an empty screen explicitly or paint the art in afterwards.",
+          "by": "hermes-123-dag-20261107"
+        },
+        {
+          "at": 1794106111244,
+          "kind": "event",
+          "text": "Cost of that still, for planning: 20 minutes of RX 590 wall time per 1024x1024 image at 20 steps. That is the fp32 tax on Polaris - no fp16, no int dot, no matrix cores - so MOSS on this box is a batch/turnaround tool, not an interactive one. If stills become a regular need on robert, lodestones/Kromoss (same four-file layout plus an 8-step DMD LoRA) is the shortcut worth trying next, and it drops into the same command.",
+          "by": "hermes-123-dag-20261107"
+        },
+        {
+          "at": 1794106111266,
+          "kind": "event",
+          "text": "THE YIELD WORKS END TO END, observed live rather than reasoned about: with the miner running from the boot chain, starting sd-cli produced \"YIELD stopped standby-miner-028-06e9 through ProcessWrapper\", \"YIELD miner stopped for AI work\", \"mode -> ai [sd-cli(12168,gpu,working)]\" within one 15 s poll. And a fresh guard started while the render was in flight logged \"boot: work already on the card (sd-cli(12168,gpu,working)) - miner stays down\" - the boot rule is conditional on the card really being free, not a blind start.",
+          "by": "hermes-123-dag-20261107"
+        },
+        {
+          "at": 1794106111285,
+          "kind": "event",
+          "text": "New node gap worth remembering: module/*/data is excluded from the seed so a node cannot inherit identity, but that also drops module/Event_Handler/data/palette.json, and an empty palette answers every POST /api/events/trigger with 404 - the guard silently lost its standby.yield and standby.resume records for a whole render. Copying the palette is not enough on its own: the Event door reads it once at start, so the app has to be restarted (or the door) before the names exist. Robert now reports 7 events: job.done, job.submitted, shelf.pulled, shelf.refused, standby.pin, standby.resume, standby.yield.",
+          "by": "hermes-123-dag-20261107"
+        }
+      ],
+      "created": 1794099230990,
+      "touched": 1794106111285,
+      "dir": "thoughts/78ae5f74"
+    },
+    {
+      "ref": "33c9ac28",
+      "title": "Fleet tree: every node visible, the running service lit, cpu miner beside the gpu one",
+      "intent": "Done means all three are true on the Menu tree (door 8133). (1) Every row of the roster appears under its own node, including nodes that will never run the Hydra app: X120e and andrewjames are UNMANAGED - declared in the roster with managed:false, reached by Echidna over ssh, never a door of their own. (2) Every node with a live standby report has exactly ONE highlighted entry naming what it is doing right now - idle-mining while it mines (no node has true idle), the AI service while it works - and a node with no report is marked unknown rather than lit by a guess. (3) Offline nodes sort to the bottom, greyed, with title=\"offline\" and the age of their last report, so absence is visible instead of silent. Beside the tree, the idle service runs TWO miners as two ProcessWrapper rows and two windows: the GPU on the card and xmrig RandomX on 2 threads, started together, stopped together, each with its own scrolling share panel, and the state payload carries both so the tree and the wall agree.",
+      "state": "active",
+      "deps": [
+        "78ae5f74"
+      ],
+      "next": [
+        "fix the false 'stalled' verdict: robert publishes its cycle under ref desktop-aajbdvj while node.json says robert, so Mirror reports 'answers, publishes no cycle' for a healthy node",
+        "unmanaged nodes: probe ssh from the controller (BatchMode, 3s) so the tree says reachable/unreachable instead of 'cannot be asked'",
+        "decide whether the CPU miner also belongs on 123 (rx 6800 is on pearlhash at 24.2 TH/s)"
+      ],
+      "tags": [
+        "design",
+        "hydra",
+        "fleet",
+        "menu",
+        "idle-service"
+      ],
+      "trail": [
+        {
+          "at": 1794156552070,
+          "kind": "state",
+          "text": "created",
+          "by": "hermes-123"
+        },
+        {
+          "at": 1794156552113,
+          "kind": "note",
+          "text": "xmrig 6.26.0 installed on robert at C:\\AI\\tools\\xmrig (Defender exclusion added, same decision as SRBMiner).",
+          "by": "hermes-123"
+        },
+        {
+          "at": 1794156552128,
+          "kind": "event",
+          "text": "MEASURED RandomX on robert: 538 H/s sustained on 2 threads, pool rx.unmineable.com:3333 diff 100001, 0 shares in 120 s -> ~1 share / 3 min. Runs beside the GPU, not instead of it.",
+          "by": "hermes-123"
+        },
+        {
+          "at": 1794156552144,
+          "kind": "decision",
+          "text": "The CPU miner is a SECOND declared mode of the same idle service (cpu-randomx, parallel:true), not a second service: one service name, two back ends, exactly like agent-brain.",
+          "by": "hermes-123"
+        },
+        {
+          "at": 1794157502766,
+          "kind": "note",
+          "text": "edited by hermes-123",
+          "by": "hermes-123"
+        },
+        {
+          "at": 1794157502786,
+          "kind": "event",
+          "text": "CPU miner LIVE on robert: xmrig 6.26.0, rx/0 RandomX, 2 threads, 522 H/s, 6 shares accepted, uptime 835s - beside the GPU (quantus 89.7 MH/s, 12 accepted; 90.2 before the CPU miner started, so the 2 threads cost the card nothing measurable). Two ProcessWrapper rows standby-cpu and standby-miner share tag=standby, so one YIELD stops both.",
+          "by": "hermes-123"
+        },
+        {
+          "at": 1794157502806,
+          "kind": "event",
+          "text": "CPU WALL live as its own row and window (cpu-wall pid 8024), title \"robert - cpu\", reading xmrig /2/summary; Startup\\CPU Wall.lnk verified by reading target/args/style back. place-windows.ps1 lays out app left, GPU wall top-right, CPU wall bottom-right on 1920x1080.",
+          "by": "hermes-123"
+        },
+        {
+          "at": 1794157502824,
+          "kind": "event",
+          "text": "MENU TREE live on both nodes: the idle-mining row carries .running and the LAN row reads \"idle-mining ▶ running\"; two new sections render from Mirror declaredAbsent - \"REACHED BY SSH - no Hydra app\" (andrewjames, X120e) and \"DECLARED - offline\" (8 rows) with title=\"offline: declared in the roster, not answering\". Verified by DOM query on both 8133 doors.",
+          "by": "hermes-123"
+        },
+        {
+          "at": 1794157502846,
+          "kind": "note",
+          "text": "xmrig shape that matters: /2/summary gives hashrate.total=[10s,60s,15m] and results.{shares_good,shares_total}; cpu.threads is the CORE COUNT (6), not the mining threads. Reading hashrate.60s yields 0 and a miner that is hashing looks dead.",
+          "by": "hermes-123"
+        }
+      ],
+      "created": 1794156552070,
+      "touched": 1794157502846,
+      "dir": "thoughts/33c9ac28"
     }
   ]
 }

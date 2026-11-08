@@ -46,7 +46,12 @@ async function createWrapperModule(options = {}) {
     spot: spotFor(template, t)
   }));
   const pushPanes = () => {
-    if (win && !win.isDestroyed()) win.webContents.send("ew:panes", { panes: paneViews() });
+    // a window whose renderer has gone away still answers isDestroyed() false for a moment; sending to its disposed
+    // frame throws "Render frame was disposed" on every state pull, which buries the log and hides the real failure
+    if (!win || win.isDestroyed()) return;
+    if (!win.webContents || win.webContents.isDestroyed()) return;
+    if (typeof win.webContents.isCrashed === "function" && win.webContents.isCrashed()) return;
+    win.webContents.send("ew:panes", { panes: paneViews() });
   };
   const menuDispatch = (event) => {
     dispatch(sink, { ...event });

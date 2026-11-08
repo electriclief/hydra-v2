@@ -24,6 +24,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { assemble, displayName } from './assemble.js';
 import { lanJson, lanMarkdown } from './lan.js';
+import { candidatesFor, fleetSummary, ipOf, loadRoster } from './roster.js';
 import { classify } from './verdict.js';
 
 const argPort = (() => {
@@ -53,7 +54,17 @@ function refFromNodeJson() {
 
 const REF = String(process.env.MIRROR_REF || process.env.HYDRA_REF || refFromNodeJson() || os.hostname()).toLowerCase();
 
-const state = { self: null, peers: [], lan: null, at: null, error: null };
+const state = { self: null, peers: [], lan: null, at: null, error: null, roster: null };
+
+/** This box's own LAN address, so its roster row can be joined on ip like every peer's. */
+function selfIp() {
+  for (const list of Object.values(os.networkInterfaces())) {
+    for (const addr of list || []) {
+      if (addr.family === 'IPv4' && !addr.internal) return addr.address;
+    }
+  }
+  return null;
+}
 
 async function getJson(url, timeoutMs = TIMEOUT) {
   const ctl = new AbortController();
@@ -156,11 +167,14 @@ async function refresh() {
       { cycle, reachable: got.reachable },
       { stalledAfter: 3, goneAfter: 12 },
     );
-    return { ref: peer.ref, url: peer.url, node, cycle: verdict.cycle, misses: verdict.misses, verdict: verdict.verdict, reason: verdict.reason };
+    return { ref: peer.ref, url: peer.url, ip: ipOf(peer.url), node, cycle: verdict.cycle, misses: verdict.misses, verdict: verdict.verdict, reason: verdict.reason };
   });
 
   log('peers done');
-  state.lan = lanJson({ self: state.self, peers: state.peers, at });
+  // declared intent is read fresh every refresh: the roster is the operator's file, and a role edited at 3pm
+  // must not wait for a restart. Unreadable is a fact in the payload, never a silent empty list.
+  state.roster = loadRoster();
+  state.lan = lanJson({ self: state.self, peers: state.peers, at, roster: state.roster, selfIp: selfIp() });
   state.at = at;
   state.error = null;
   log('end');
@@ -180,10 +194,33 @@ const server = http.createServer(async (req, res) => {
   };
 
   if (url.pathname === '/health') {
-    return send(200, { ok: true, nodes: state.lan?.counts?.nodes ?? 0, peers: state.peers.length, at: state.lan?.at ?? null, refreshError: state.error, refreshes: refreshN });
+    return send(200, { ok: true, nodes: state.lan?.counts?.nodes ?? 0, peers: state.peers.length, at: state.lan?.at ?? null, refreshError: state.error, refreshes: refreshN, roster: state.roster ? { ok: state.roster.ok, file: state.roster.file, rows: state.roster.rows.length } : null });
   }
   if (url.pathname === '/api/lan.json') return send(200, state.lan || { ok: false, error: 'no snapshot yet' });
   if (url.pathname === '/api/lan.md') return send(200, state.lan ? lanMarkdown(state.lan) : '# LAN\n\nno snapshot yet\n', 'text/markdown; charset=utf-8');
+  /**
+   * GET /api/fleet?for=tts - who can do X, from the declared roster joined to the live LAN.
+   * A reader that cannot read its input REFUSES: a 200 with an empty list would say "nobody can do TTS",
+   * which is a much worse lie than "the roster is at C:/AI/fleet/roster.json and I cannot open it".
+   */
+  if (url.pathname === '/api/fleet') {
+    const roster = state.roster || loadRoster();
+    if (!roster.ok) {
+      return send(503, {
+        ok: false,
+        error: { code: 'roster_unreadable', message: `cannot read the roster at ${roster.file}`, detail: roster.error },
+      });
+    }
+    const nodes = state.lan?.nodes || [];
+    const want = url.searchParams.get('for');
+    return send(200, {
+      ok: true,
+      at: state.lan?.at ?? null,
+      for: want || null,
+      candidates: candidatesFor(roster, nodes, want),
+      fleet: fleetSummary(roster, nodes),
+    });
+  }
   if (url.pathname.startsWith('/api/node/')) {
     const ref = url.pathname.slice('/api/node/'.length).toLowerCase();
     if (state.self && state.self.ref === ref) return send(200, { ok: true, role: 'self', node: state.self });
@@ -191,7 +228,7 @@ const server = http.createServer(async (req, res) => {
     if (peer) return send(200, { ok: true, role: 'peer', verdict: peer.verdict, node: peer.node });
     return send(404, { ok: false, error: 'no such node', ref });
   }
-  return send(404, { ok: false, error: 'nothing here', paths: ['/health', '/api/lan.json', '/api/lan.md', '/api/node/<ref>'] });
+  return send(404, { ok: false, error: 'nothing here', paths: ['/health', '/api/lan.json', '/api/lan.md', '/api/fleet?for=<capability>', '/api/node/<ref>'] });
 });
 
 server.listen(PORT, '0.0.0.0', async () => {

@@ -8,6 +8,7 @@ import { runTests as clientTests } from "./client.js";
 import { runTests as guiTests } from "./browser/gui.js";
 import { runTests as kindsTests } from "./kinds.js";
 import { runTests as membersTests } from "./members.js";
+import { runTests as rosterTests } from "./roster.js";
 import { runTests as apiTests } from "./apiServer.js";
 const HERE = path.resolve(fileURLToPath(new URL("../..", import.meta.url)));
 async function record(suiteName, fn) {
@@ -47,6 +48,7 @@ async function runGate() {
     { name: "kinds", run: kindsTests },
     { name: "declaration", run: declarationTests },
     { name: "members", run: membersTests },
+    { name: "roster", run: rosterTests },
     { name: "resolver", run: resolverTests },
     { name: "shelf", run: shelfTests },
     { name: "mcpTools", run: mcpTests },

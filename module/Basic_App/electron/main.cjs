@@ -352,6 +352,9 @@ async function main() {
     status: { url: `${DOORS.schedulerUrl}/api/statusline`, intervalMs: 2000, label: 'Process' },
   });
   await wrapper.whenBooted;
+  // The single-instance handler runs outside main(), so the wrapper is published where it can reach it: without this a
+  // refused second launch could only write a log line, and the operator saw a dead button.
+  globalThis.__hydraWrapper = wrapper;
 
   // ── the hands behind the menu bar ──────────────────────────────────────────
   const reloadTabs = () => {
@@ -486,7 +489,15 @@ async function main() {
     } catch { /* nothing left to say */ }
   };
 
-  app.on('window-all-closed', popEverything);
+  // Closing the window ends the app, deliberately. A process that keeps the single-instance lock with no window is the
+  // one state a click on the shortcut cannot recover from, so it must not exist: ask the root to pop everything, then
+  // quit for real if it has not already happened.
+  app.on('window-all-closed', () => {
+    popEverything();
+    setTimeout(() => {
+      try { app.quit(); } catch { /* on the way out already */ }
+    }, 2500);
+  });
   app.on('before-quit', popEverything);
 
   // Ctrl+R / F5 reloads every tab's page IN PLACE. The tabs are cross-origin iframes, so a
@@ -525,7 +536,28 @@ if (!app.requestSingleInstanceLock()) {
   app.quit();
 } else {
   app.on('second-instance', () => {
-    console.log('[basic] another instance was refused — one shelf per node');
+    // A click on the desktop shortcut, or any second launch, arrives here - and before this was a log line only, so a
+    // node whose window had been closed kept refusing every click in silence while its doors stayed up. Bring the
+    // window forward, or ask the wrapper to make one if none is left.
+    const w = BrowserWindow.getAllWindows()[0];
+    if (w) {
+      if (w.isMinimized()) w.restore();
+      w.show();
+      w.focus();
+      console.log('[basic] another instance was refused - the open window was brought forward');
+      return;
+    }
+    const wr = globalThis.__hydraWrapper;
+    if (wr && typeof wr.show === 'function') {
+      console.log('[basic] another instance was refused - no window was open, asking the wrapper to show one');
+      try {
+        wr.show();
+      } catch (err) {
+        console.log('[basic] the wrapper could not show a window: ' + (err && err.message));
+      }
+      return;
+    }
+    console.log('[basic] another instance was refused - one shelf per node');
   });
   app.whenReady().then(() => {
     main().catch((e) => {

@@ -2,8 +2,12 @@
 /**
  * The gate for Mirror: assembly, the brief, and the one thing that rots silently - the copied verdict rules.
  */
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
 import { assemble, allNodes, bookedRows, displayName, serviceRows } from './src/assemble.js';
 import { lanJson, lanMarkdown, SCHEMA_VERSION } from './src/lan.js';
+import { candidatesFor, intentFor, loadRoster } from './src/roster.js';
 import { classify } from './src/verdict.js';
 import { classify as coreClassify } from '../Core/src/verdict.js';
 
@@ -70,6 +74,61 @@ ok('brief names the machines', md.includes('Jims Laptop') && md.includes('123 â€
 ok('brief states the tally', md.includes('2 nodes') && md.includes('3 services'));
 const solo = lanMarkdown(lanJson({ self, peers: [], at: 1000 }));
 ok('the N=1 case says so out loud', solo.includes('No peers attached'));
+
+console.log('\ndeclared intent (the roster)');
+// a temp roster on disk: the reader must be tested against a real file, because "the role is missing" is
+// almost always a path that did not resolve, not a parsing rule that was wrong
+const rosterFile = path.join(os.tmpdir(), 'mirror-selftest-roster.json');
+fs.writeFileSync(
+  rosterFile,
+  JSON.stringify({
+    fleet: 'selftest',
+    controller: { name: '123', ip: '192.168.1.123', role: 'controller', ready_for: ['tts', 'doors'] },
+    nodes: [
+      { name: 'jims', ip: '192.168.1.127', door: 8127, role: 'main', ready_for: ['tts', 'llm-small'], enabled: true },
+      { name: 'asleep', ip: '192.168.1.150', role: 'gpu', ready_for: ['tts'], enabled: true },
+    ],
+  }),
+  'utf8',
+);
+const roster = loadRoster(rosterFile);
+ok('a real file loads', roster.ok === true && roster.rows.length === 3);
+ok('the controller is a row like any other', roster.rows[0].kind === 'controller');
+ok('ready_for survives', roster.rows.find((r) => r.name === 'jims').ready_for.includes('llm-small'));
+const missing = loadRoster(path.join(os.tmpdir(), 'nope-roster.json'));
+ok('an unreadable roster is a fact, not an exception', missing.ok === false && String(missing.error).length > 0);
+ok('an unreadable roster still carries its path', missing.file.includes('nope-roster.json'));
+
+const byIp = intentFor(roster, { ref: 'jims', ip: '192.168.1.127' });
+ok('intent joins on ip', byIp && byIp.role === 'main');
+ok('intent carries the door it answers on', byIp && byIp.endpoint === 'http://192.168.1.127:8127', String(byIp && byIp.endpoint));
+ok('intent joins on the ref when the ip is absent', intentFor(roster, { ref: '123' }).role === 'controller');
+ok('a display name still finds its row', intentFor(roster, { name: '123 â€” this box' }).role === 'controller');
+ok('an undeclared node gets null, never a neighbour role', intentFor(roster, { ref: 'stranger', ip: '192.168.1.99' }) === null);
+
+const lanWithIntent = lanJson({
+  self,
+  peers: [{ ref: 'jims', verdict: 'alive', cycle: 9, node: assemble(entries, 'jims'), ip: '192.168.1.127' }],
+  roster,
+  selfIp: '192.168.1.123',
+  at: 1000,
+});
+ok('the LAN row carries what the node is for', lanWithIntent.nodes.find((n) => n.ref === 'jims').intent.ready_for.includes('tts'));
+ok('the self row joins the controller declaration', lanWithIntent.nodes.find((n) => n.role === 'self').intent.role === 'controller');
+ok('counts say how many rows carry intent', lanWithIntent.counts.withIntent === 2);
+ok('the fleet summary counts declared vs present', lanWithIntent.fleet.declared === 3 && lanWithIntent.fleet.onLan === 2);
+ok('a declared node nobody saw is listed by name', lanWithIntent.fleet.notHereNames.includes('asleep'));
+const mdIntent = lanMarkdown(lanWithIntent);
+ok('the brief states the roster gap', mdIntent.includes('3 declared') && mdIntent.includes('asleep'));
+ok('the brief states intent per node', mdIntent.includes('for: main'));
+
+const ttsCandidates = candidatesFor(roster, lanWithIntent.nodes, 'tts');
+ok('picking a node for a job is a filter over ready_for', ttsCandidates.length === 3);
+ok('the live node comes before the absent one', ttsCandidates[0].verdict === 'alive' && ttsCandidates[ttsCandidates.length - 1].verdict === 'not-on-lan');
+ok('a candidate says what it is doing', ttsCandidates[0].standby !== undefined);
+ok('a candidate carries the address to dial', ttsCandidates[0].endpoint === 'http://192.168.1.123:8127', String(ttsCandidates[0].endpoint));
+ok('an unknown capability finds nobody', candidatesFor(roster, lanWithIntent.nodes, 'quantum').length === 0);
+ok('no capability lists every declared row', candidatesFor(roster, lanWithIntent.nodes, null).length === 3);
 
 console.log('\nverdict copies agree with Core');
 const cases = [

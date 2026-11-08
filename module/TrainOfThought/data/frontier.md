@@ -1,6 +1,6 @@
 # Train of Thought — frontier
 
-generated 2026-11-07T00:12:10.410Z from thoughts.json · 26 nodes (23 active, 1 blocked, 0 parked, 1 done)
+generated 2026-11-08T17:05:02.851Z from thoughts.json · 36 nodes (32 active, 1 blocked, 0 parked, 1 done)
 
 This file is generated. Do not edit it by hand; edit the store and it rewrites itself.
 
@@ -9,15 +9,6 @@ This file is generated. Do not edit it by hand; edit the store and it rewrites i
 A session usually serves MORE THAN ONE of these. Say which `ref`s you are serving, and record each
 with a `session` trail line (`POST /api/thoughts/<ref>/trail` `{kind:"session", text:"…", sessionRef:"…"}`).
 `session-start.mjs --take a,b` writes all of them in one go.
-
-### 5a5525ad — Add nodes and intent to the LAN database
-
-intent: One roster where every machine carries what it IS FOR, not just its address: role, ready_for[], and the door it answers on. Done means fleetctl scan reports intent per node, Join resolves each one by name, and a node can be picked for a job without reading the desktop.
-deps: 0/0 · tags: lan, fleet
-next:
-  - re-probe .112 and .139 into roster.json with real hardware lines
-  - give every row a role and ready_for[] instead of free-text notes
-  - register the fleet page as a Join member on :8137
 
 ### 954deebc — Wire the Thoughts tab into the window
 
@@ -46,49 +37,6 @@ next:
   - decide marks on disk vs fresh each boot (open question 1 in NOTES-2026-11-03-state-tree.md)
   - Menu strip: heads seen, Phoenix cycle counter, stalled vs unreachable, pressure where known
   - gate: synthetic peer that advances its cycle, then stalls, then goes silent - prove the three states
-
-### 2629893c — Service definitions carry an install face (schema v2)
-
-intent: Done means every service definition reads with schema 2, carries an install block whose steps each have a mechanical verify, and every behaviour change shows a credited installer_history entry. The loader side is green already; what remains is content, so any node can pick this up from the DAG without a session.
-deps: 0/0 · tags: hydra, services, schema, install
-next:
-  - write the install block + first installer_history entry into yue-music as the pattern, using the measured audio.cpp numbers
-  - roll the same shape into llama-chat, qwen-image-2.1 and minimax-h3 - mark verified:false wherever no run backs the claim
-  - add chatterbox-tts, qwen3-tts-voicedesign and piper-tts with install faces and measured RTF
-  - run export-library.mjs and confirm the library gate holds with the new fields present
-  - document schema / revision / installer_history / install in the authoring contract so the next author inherits it
-
-### cd60ec6e — Deferred questions: ask them when the operator is ready
-
-intent: No question that was asked and deferred gets lost. Each is captured at the moment it is deferred, listed under this ref, and answered once into a decision trail line. The operator triggers the backlog with "Train of Thought - I am ready for outstanding questions".
-deps: 0/0 · tags: operator, questions, ritual
-next:
-  - ask: test the CUDA build on the 980 Ti (about 1 GB) or keep Vulkan as the recorded rule, marked verified:false
-  - ask: does the install executor become a door that shells out over SSH, or stay agent-driven with the door as ledger
-  - ask: permanent home for TTS - ReX while its plug is in, or 123 where 16 cores are already powered
-  - ask: what floor does each audio service declare - 6 GB Turing, 2 GB GCN, or CPU-only
-  - ritual: every session that defers a question appends one next[] line here with the date and why it was deferred
-
-### 291eac93 — Character voices from a description (Sophion, Destiny, Kate)
-
-intent: Three distinct, repeatable character voices that need nobody elses recording: the timbre comes from an instruction string, so the same text recreates the same voice on any node. Done means each character has a fixed instruction kept in a file, an expressive sample set (neutral / happy / sad / angry / laugh) measured for RTF and pitch, and one engine chosen with numbers rather than adjectives.
-deps: 0/0 · tags: voice, tts, cast, episode
-next:
-  - pick the path per sample after listening: the three bases must be told apart with eyes closed
-  - lock each voice to a file (voice-destiny.txt, voice-kate.txt, voice-sophion.txt) so a re-run reproduces the timbre
-  - test whether emotion belongs in the instruction or in the engine (chatterbox has explicit emotion control; qwen3 vdes does not)
-  - measure warm-cache RTF properly: the 1660 numbers were cold-start and are not comparable to the 980 Ti warm runs
-  - decide the serving node once warm RTF is known on the RX 6800 - it is the only card that could make this realtime
-  - build the episode 2 dialogue bed from these voices and compare against ep01 v4 by ear
-
-### 8793886c — State is a bulletin board with per-owner branches, never a hub
-
-intent: 
-deps: 0/0
-next:
-  - LAN row still missing: Core.observePeer pulls only node.<peer>.cycle. It must also carry standby, Mirror must expose it, and the Menu must render "Idle Service · mining" per node - then Jim shows mining.
-  - The guard file data/standby/guard.state.json stays as a local fallback only (used when State cannot answer); it is never the LAN truth.
-  - Any new module (file transfer) declares its own branch namespace and must not write .scheduler or .standby.
 
 ### e093f426 — Hydra V2 design — what is built, what is open
 
@@ -211,17 +159,132 @@ next:
   - the board is the place a question waits for an answer: when a question is open, the composer is the answer
   - pin a card: a goal or an alert stays until dismissed, instead of being replaced by the next answer
 
-also ready: 954deebc, f2e2deb0, 64a4cbb3, 2629893c, cd60ec6e, 291eac93, 8793886c, e093f426, 44ff5033, 49e30c7a, 8ff46a1b, daa96bc0, cdb81fd3, c9c77ef1, 0d6a276c, adb20a28
+### 8793886c — State is a bulletin board with per-owner branches, never a hub
+
+intent: 
+deps: 0/0
+next:
+  - jims reads 'no report' while fleetctl sees it UP and mining: its State :8127 (.127) answers nothing (46 missed at 18:40Z) - publish node.jims.standby by rolling the guard/shelf out to that box
+
+### cd60ec6e — Deferred questions: ask them when the operator is ready
+
+intent: No question that was asked and deferred gets lost. Each is captured at the moment it is deferred, listed under this ref, and answered once into a decision trail line. The operator triggers the backlog with "Train of Thought - I am ready for outstanding questions".
+deps: 0/0 · tags: operator, questions, ritual
+next:
+  - ritual: every session that defers a question appends one next[] line here with the date and why it was deferred
+
+### 2629893c — Service definitions carry an install face (schema v2)
+
+intent: Done means every service definition reads with schema 2, carries an install block whose steps each have a mechanical verify, and every behaviour change shows a credited installer_history entry. The loader side is green already; what remains is content, so any node can pick this up from the DAG without a session.
+deps: 0/0 · tags: hydra, services, schema, install
+next:
+  - write the install block + first installer_history entry into yue-music as the pattern, using the measured audio.cpp numbers
+  - roll the same shape into llama-chat, qwen-image-2.1 and minimax-h3 - mark verified:false wherever no run backs the claim
+  - add chatterbox-tts, qwen3-tts-voicedesign and piper-tts with install faces and measured RTF
+  - run export-library.mjs and confirm the library gate holds with the new fields present
+  - document schema / revision / installer_history / install in the authoring contract so the next author inherits it
+  - declare min_requirements (cpu, gpu arch floor, vram, ram) on every service, and allow the same service name to carry several backends - variants or one file with multiple back ends (operator decision 2026-11-07)
+
+### 291eac93 — Character voices from a description (Sophion, Destiny, Kate)
+
+intent: Three distinct, repeatable character voices that need nobody elses recording: the timbre comes from an instruction string, so the same text recreates the same voice on any node. Done means each character has a fixed instruction kept in a file, an expressive sample set (neutral / happy / sad / angry / laugh) measured for RTF and pitch, and one engine chosen with numbers rather than adjectives.
+deps: 0/0 · tags: voice, tts, cast, episode
+next:
+  - pick the path per sample after listening: the three bases must be told apart with eyes closed
+  - lock each voice to a file (voice-destiny.txt, voice-kate.txt, voice-sophion.txt) so a re-run reproduces the timbre
+  - test whether emotion belongs in the instruction or in the engine (chatterbox has explicit emotion control; qwen3 vdes does not)
+  - measure warm-cache RTF properly: the 1660 numbers were cold-start and are not comparable to the 980 Ti warm runs
+  - decide the serving node once warm RTF is known on the RX 6800 - it is the only card that could make this realtime
+  - build the episode 2 dialogue bed from these voices and compare against ep01 v4 by ear
+
+### 5a5525ad — Add nodes and intent to the LAN database
+
+intent: One roster where every machine carries what it IS FOR, not just its address: role, ready_for[], and the door it answers on. Done means fleetctl scan reports intent per node, Join resolves each one by name, and a node can be picked for a job without reading the desktop.
+deps: 0/0 · tags: lan, fleet
+next:
+  - re-probe robert (.112) and ReX (.139) when they answer ssh - both DOWN at the 2026-11-07T18:24Z scan (port 22 timeout), so their hardware lines are still the notes from when they last answered
+
+### cc61723f — Phoenix Cycle: a registration registry like Event_Handler and the Process Manager
+
+intent: Phoenix is not a scheduler that knows what maintenance is - it is a registry that runs entries raised by their owners, exactly as Event_Handler and the Process Manager work. Every entry carries BOTH surfaces: an in-process tick thread the owner implements and an HTTP port the owner answers, because a thread-only entry is an invisible background process (forbidden) and a port-only entry needs a caller to remember it (the thing this module exists to remove). Triggers are declared - every / cron / on(event) / after(DAG refs) - never inferred. Every run leaves a receipt, every action runs under a lease so one slow entry cannot starve the rest, and the whole cycle plus its children stops on one close button. An empty registry is correct on a fresh install. Spec written at docs/spec/phoenix-registry.md. Done means: registry.json is honoured, six seed code entries plus two nag entries run and leave receipts, a nag surfaces one at a time in the monitor with TL;DR buttons, and stopping the cycle cancels outstanding leases honestly.
+deps: 0/0 · tags: hydra, phoenix, registry, scheduler, spec
+next:
+  - module/Phoenix scaffolding: registry.json, thread tick, port with GET /api/entries and POST /api/tick
+  - validation at registration: unknown trigger or missing owner is a refusal, not a no-op
+  - receipts per entry with lease_s enforcement, cancelled-not-failed on stop
+  - nag lane: ToT node tag=nag with due, surfaced one per tick in the monitor card
+  - escalate to litegraph only past ~20 inter-dependent entries - after[] is already the edge, so no data migration
+
+### 4fbafaae — Every node runs Hermes and a llama.cpp model sized to its card, as a service
+
+intent: Hydra is Hermes-happy: for a node to be part of the fleet it offers two things - a Hermes agent (so the node can be given a job, not just a port) and a llama.cpp server with a model that actually fits its VRAM. That pair is what makes local housekeeping possible at all: the caretaker job never leaves the LAN and never touches a paid provider. Done means every live node advertises {hermes, llama} in its state caps, the model choice is derived from measured VRAM (not from the card's marketing name), the Process Manager supervises llama-server through WATCHDOG_TABLE so it is visible and stoppable, and the caretaker role can be filed on any node that advertises both.
+deps: 0/0 · tags: fleet, hermes, llama.cpp, caretaker, housekeeping
+next:
+  - publish caps.hermes and caps.llama per node in State, with the model id and context size actually loaded
+  - size the model by measured VRAM: 16GB -> 9B q4, 8GB -> 7B q4, 6GB -> 4B q4, 2GB -> 1.5B q4 (targets to verify by measurement, not promises)
+  - declare llama-server in WATCHDOG_TABLE per node so it appears in the Hydra app and dies with one close button
+  - caretaker role only files work on nodes that advertise both caps; otherwise defer or nag
+
+### 389bc43f — Agents reach Hydra through MCP, not through a prose brief
+
+intent: The mother brief is a crutch: it teaches Echidna by lecture. Any agent - including a 2B local model - should instead be handed tools and discover the fleet by calling them, so a tiny model needs no briefing and no long context. Hydra's MCP door already exists and answers at http://127.0.0.1:8126/mcp (protocol 2025-06-18, serverInfo event-handler, tools event_list/event_trigger/event_log/event_purge verified by a live initialize + tools/list). Two steps remain: (1) register that endpoint with Hermes so every spawned agent inherits it as an MCP server, including the Echidna chat instance and any 'hermes -z' caretaker; (2) add Easy-button tools to the Hydra MCP with zero required arguments - hydra_monitor (the top card), hydra_tot (bullets), hydra_phoenix (upkeep), hydra_doors (what is up) - so a small model can orient in one call each. The prose brief then shrinks to identity only, and remains as the fallback when the MCP door is down.
+deps: 0/0 · tags: hydra, mcp, echidna, agents, easy-button
+next:
+  - find where Hermes keeps custom MCP server definitions (agent.mcp is the summariser model, not the server list)
+  - register http://127.0.0.1:8126/mcp for every agent; verify an MCP tool call works from a spawned hermes
+  - add hydra_monitor / hydra_tot / hydra_phoenix / hydra_doors with empty inputSchema
+  - keep the identity-only brief as the fallback and delete the state mirror from the prompt once MCP is live
+
+### f089f721 — The 980 Ti node makes its own sale ad - and Hydra is the studio
+
+intent: Operator goal (2026-11-07): sell DESKTOP-Q8U0BTH (.134, GTX 980 Ti 6 GB, 7.9 GB RAM, 4 cores) for $300 CAD. The proof of value is that the node advertises itself: images, a video (any generator, even the worst one, spilling into RAM if that is what it takes - but RENDERED ON THIS NODE), a voice-over that sounds real, a music bed, assembled into one ad file - produced with the Hydra app running on that node. Nothing hired out, nothing rendered elsewhere. Standing policy from the operator for this node: try every backend that fits, keep what works, uninstall the rest (knowledge is the prize; a 980 Ti costs $40).
+deps: 0/0 · tags: hydra, node-134, 980ti, self-ad, sell, media-stack, goal
+next:
+  - CUDA: finish the sm_52 path (MSVC 14.44 + CUDA 12.9), build audiocpp_cli, and measure rtf against the measured Vulkan baseline of 1.269 (0.788x realtime)
+  - image: choose the smallest backend that actually fits 6 GB (sd.cpp SD1.5, SDXL-turbo, or Flux-schnell Q4) and render 3 ad stills on .134 with the numbers filed
+  - music: choose a bed generator that fits (ace-step / musicgen small through audio.cpp or sd.cpp) and render 30 s
+  - video: decide the honest motion path - animate a still on the worst model that runs, or Ken Burns + ffmpeg - and render 10 s on this node
+  - assembly: ffmpeg mux (stills -> motion -> voice-over -> music -> titles), every step driven by Hydra on .134, output the ad file locally
+  - listing: write the $300 CAD copy from the measured numbers (what it renders, how fast, what it costs to run) and file it beside the artifacts
+
+### dbe4739d — MAME machines: the eight old laptops become arcade cabinets
+
+intent: Operator idea (2026-11-07): turn roughly eight spare old laptops into dedicated arcade machines - Linux Mint + MAME + operator-supplied ROMs. The design constraint is that from the player seat Linux does not exist: power on, and a game is running. The front end must be a full-screen cabinet-style ROM selector that remembers the last game and boots straight into it unless the player deliberately re-selects, with keyboard/joystick only, no mouse, no desktop, no window border, no cursor. Success is measured in boot-to-gameplay seconds on the slowest laptop that still runs at full frame rate.
+deps: 0/0
+next:
+  - pick the front end against old-laptop limits: Attract Mode (lightest, themes are just Squirrel), EmulationStation (heavier, GL), Pegasus (Qt, prettier but heavier), versus a purpose-built kiosk launcher - note that "boot the last game" is NOT a stock feature of any of them, so it is either a theme script or a wrapper
+  - define the kiosk session: autologin, X with no desktop and no window manager, frontend as the only client, cursor hidden, and a systemd user unit that starts it - so the laptop never shows a login, a panel or a wallpaper
+  - build ONE golden image and clone it eight times: unattended Mint install plus a postinstall that drops MAME, the front end, the ROM set, per-machine config and the autostart, instead of hand-building each laptop
+  - decide the input: USB gamepad per laptop (cheapest, instantly mappable) versus a keyboard encoder and real arcade buttons; MAME wants 6 buttons plus a stick per player, and some laptop keyboards ghost beyond 3 simultaneous keys
+  - decide where ROMs live (per-laptop disk, or one SD card per machine) and pin the MAME version to the ROM set - a mismatched set silently boots to a black screen on half the titles
+  - measure the honest ceiling per laptop: MAME is CPU-bound, so 1980s-90s 2D titles (CPS1/2, Neo Geo) are fine while 3D-era games will not hold frame rate no matter the settings; record boot-to-game seconds and frames per second per machine
+
+### 78ae5f74 — robert is a working node: Windows 11, Vulkan media, and a Hydra row you can see from 123
+
+intent: Operator goal (2026-11-07): finish robert (Acer Nitro N50-600, i5-9400F, 15.9 GB RAM, RX 590 8 GiB, Windows 11 Pro build 26300) as a real node of the shelf, in another room, with every service runnable on the hardware that is actually in it - and prove it with measured numbers, not claims. Bob's hardware is Polaris/gfx803: Vulkan works, fp16 does not, OpenCL works through the AMD driver, ROCm does not exist on Windows. The node must show up on the other nodes (Menu/Mirror) and its long-running work must live in ProcessWrapper, never as a loose background process.
+deps: 0/0
+next:
+  - MOSS-Image: finish the text encoder download (5.4 GB, resuming with -C - after the HF CDN stalled at 0 bytes twice) and render a 1024x1024 still with the four-file recipe including the external tokenizer
+  - Wan2.2: read the 832x480x33 @30-step clip, verify frames with vision, and only then decide whether a longer clip (49-81 frames) is worth the wall time
+  - put the node services on robert as real service definitions: llama-server (llama.cpp b12192 Vulkan), sd-cli as a request-driven service, and unMiner as the standby - each with a ProcessWrapper row and a close button
+  - restart the miner only when the GPU is idle again (operator: stop it during smoke tests), and confirm the standby guard does not fight a running render
+  - decide whether robert's Mirror should read a local roster copy (C:/AI/fleet/roster.json is now on the box) or stay observation-only, since declared intent lives on the controller
+
+also ready: f2e2deb0, 64a4cbb3, e093f426, 44ff5033, 49e30c7a, 8ff46a1b, daa96bc0, cdb81fd3, c9c77ef1, 0d6a276c, adb20a28, 8793886c, cd60ec6e, 2629893c, 291eac93, 5a5525ad, cc61723f, 4fbafaae, 389bc43f, f089f721, dbe4739d, 78ae5f74
 
 ## Stuck, and why
 
 - `04bf6852` Salvage main — marked blocked (blocked)
 - `db39b286` Idle Service: the Scheduler decides when a node is idle — no next action recorded (open)
+- `0adbce25` Watch for a Qwen 4 small model that fits the RX 6800 16 GB — no next action recorded (open)
 - `109e3f84` Prove sshd survives a cold start on main — waiting on 1 of 1 dependencies (active)
 - `0e535747` Snapshot the ReadyNAS NV+ before archiving to it — waiting on 1 of 1 dependencies (active)
 - `bfd6aba0` LAN view: Core publishes, Mirror reads, the Menu shows every node — waiting on 1 of 1 dependencies (active)
 - `1e31aeda` An installer executes a service.json install block — waiting on 1 of 1 dependencies (active)
 - `86fb7fea` Hydra V2 gains a verb layer over MCP (fleet_run, tts_speak, tot_file) — waiting on 1 of 1 dependencies (active)
+- `4563e80f` A CUDA build runs on Maxwell-class cards (980 Ti), measured — waiting on 1 of 1 dependencies (active)
+- `f098e622` Hydra V2 IS an ssh tunnel with a terminal window (the target shape) — waiting on 1 of 1 dependencies (active)
+- `33c9ac28` Fleet tree: every node visible, the running service lit, cpu miner beside the gpu one — waiting on 1 of 1 dependencies (active)
 - `a41a9db8` Wrap the voice engine as a Hydra V2 service — waiting on 2 of 2 dependencies (active)
 
 ## Files

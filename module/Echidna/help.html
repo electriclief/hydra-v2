@@ -31,6 +31,7 @@
     the same book of jobs and the same state — so this page grows by adding panels, never by capping what it can do.
   </div>
 
+  <section id="summary">
   <h2>What it is</h2>
   <p>A Hydra V2 door on <code>:8138</code>. Its own module, because the conversation outlives the Menu window: the Menu
   displays it, it does not contain it.</p>
@@ -42,6 +43,8 @@
     (image, audio, video) from what we made; and the honest state of speech.</td></tr>
   </table>
 
+  </section>
+  <section id="concepts">
   <h2>The board (top half)</h2>
   <p>A news caster's screen behind him: one card, replaced in place, never scrolled. It shows the current question
   while the agent works, then the answer; goals and outputs can be put there too. A <em>back</em> button walks the few
@@ -54,9 +57,14 @@
   (<code>GET /api/conversation?host=&lt;ref&gt;</code>), so two nodes cannot disagree about what was said. A viewer says
   <em>hosted on 123</em> and its composer is disabled instead of pretending to be local.</p>
   <h2>How it answers</h2>
-  <p>It shells out to the real agent — <code>hermes chat --query-file … --oneshot -Q</code> — with a timeout it cannot
-  hang past, and keeps the session id so the next ask continues the same conversation. The binary it will run is
-  reported in the pane's status chip before you ask, so a missing agent is visible rather than discovered as silence.</p>
+  <p>It shells out to the real agent — <code>hermes chat --query-file … --oneshot -Q --format stream-json</code> — with a
+  timeout it cannot hang past, and keeps the session id so the next ask continues the same conversation. The binary it
+  will run is reported in the pane's status chip before you ask, so a missing agent is visible rather than discovered
+  as silence.</p>
+  <p class="muted">The answer arrives while it is being written: the agent's <code>text</code> deltas are forwarded to the
+  pane as server-sent events, so the bubble grows word by word instead of holding a spinner. The final turn is built
+  from the agent's own <code>result</code> line, which is also what lands in <code>thread.jsonl</code> — the stream and
+  the history are the same answer, not two versions of it.</p>
   <p class="muted">One ask at a time. A second ask while one is running is refused with a reason, not queued behind a
   spinner.</p>
 
@@ -73,6 +81,8 @@
   <p>Echidna follows the Prime Directive and will not take on a malicious project. A request to harm, deceive or extract
   from someone is refused in the conversation, not quietly obeyed.</p>
 
+  </section>
+  <section id="wiring">
   <h2>Files and endpoints</h2>
   <table>
     <tr><th>Path</th><th>What</th></tr>
@@ -82,6 +92,7 @@
     <tr><td><code>data/prompts/</code></td><td>One file per ask, kept as evidence of what was actually sent.</td></tr>
     <tr><td><code>GET /api/state</code></td><td>Thread, Easy Mode, agent status.</td></tr>
     <tr><td><code>POST /api/say</code></td><td><code>{"text":"…"}</code> → asks once, returns the two turns it wrote.</td></tr>
+    <tr><td><code>POST /api/say/stream</code></td><td>The same ask as server-sent events: <code>turn</code> (the question on the record), <code>delta</code> (words in flight), <code>meta</code> (token counts), <code>done</code> (the published turn), <code>fail</code>. A <code>:</code> comment every 10 s keeps a quiet connection alive.</td></tr>
   </table>
 
   <h2>Honest limits today</h2>
@@ -92,6 +103,7 @@
     <li>Launch buttons open pages; a button that would run a command is shown as <em>not wired</em> until the
     action runner exists.</li>
   </ul>
+</section>
 </main>
 </body>
 </html>
