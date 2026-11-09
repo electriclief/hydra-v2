@@ -1,9 +1,9 @@
 {
-  "generatedAt": "2026-11-08T17:05:02.851Z",
+  "generatedAt": "2026-11-09T08:44:09.653Z",
   "store": "thoughts.json",
   "counts": {
-    "total": 36,
-    "active": 32,
+    "total": 38,
+    "active": 34,
     "blocked": 1,
     "parked": 0,
     "done": 1
@@ -448,6 +448,24 @@
       "depsDone": 0,
       "depsTotal": 0,
       "tags": []
+    },
+    {
+      "ref": "5008ace6",
+      "title": "Every keeper drive from the pile becomes a bootable tiny11 installer, with Windows on the same disk",
+      "intent": "Done means a drive out of the \"is it dead\" pile boots tiny11 setup on ReX, setup installs to Disk 0 Partition 2 on that same disk without a second machine or a USB stick, and the builder refuses any disk it cannot prove by the drive's own serial. Also done when the remaining keepers can each be built with one command, and the boot chain is verified by reading sector 0, the partition entries and the volume boot record - not by a file listing.",
+      "next": [
+        "confirm ReX boots the built drive and picks Disk 0 Partition 2 (operator, next morning)",
+        "build the remaining keepers as they come out of the pile, one command each",
+        "if ReX turns out to be UEFI-only, rebuild GPT with a real EFI system partition instead of the MBR layout"
+      ],
+      "depsDone": 0,
+      "depsTotal": 0,
+      "tags": [
+        "disks",
+        "tiny11",
+        "rex",
+        "installer"
+      ]
     }
   ],
   "alsoReady": [
@@ -472,7 +490,8 @@
     "389bc43f",
     "f089f721",
     "dbe4739d",
-    "78ae5f74"
+    "78ae5f74",
+    "5008ace6"
   ],
   "stuck": [
     {
@@ -553,6 +572,13 @@
       "missing": 1
     },
     {
+      "ref": "c04efb1d",
+      "title": "miner1 is a rig: sshd, every PCIe slot counted, llama.cpp Vulkan + SRBMiner + lolMiner + launcher",
+      "state": "active",
+      "reason": "waiting on 1 of 1 dependencies",
+      "missing": 1
+    },
+    {
       "ref": "a41a9db8",
       "title": "Wrap the voice engine as a Hydra V2 service",
       "state": "active",
@@ -564,7 +590,7 @@
     "claimed": 0,
     "notActive": 3,
     "noAction": 0,
-    "waitingOnDeps": 9,
-    "ready": 23
+    "waitingOnDeps": 10,
+    "ready": 24
   }
 }

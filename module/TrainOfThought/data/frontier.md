@@ -1,6 +1,6 @@
 # Train of Thought — frontier
 
-generated 2026-11-08T17:05:02.851Z from thoughts.json · 36 nodes (32 active, 1 blocked, 0 parked, 1 done)
+generated 2026-11-09T08:44:09.653Z from thoughts.json · 38 nodes (34 active, 1 blocked, 0 parked, 1 done)
 
 This file is generated. Do not edit it by hand; edit the store and it rewrites itself.
 
@@ -270,7 +270,16 @@ next:
   - restart the miner only when the GPU is idle again (operator: stop it during smoke tests), and confirm the standby guard does not fight a running render
   - decide whether robert's Mirror should read a local roster copy (C:/AI/fleet/roster.json is now on the box) or stay observation-only, since declared intent lives on the controller
 
-also ready: f2e2deb0, 64a4cbb3, e093f426, 44ff5033, 49e30c7a, 8ff46a1b, daa96bc0, cdb81fd3, c9c77ef1, 0d6a276c, adb20a28, 8793886c, cd60ec6e, 2629893c, 291eac93, 5a5525ad, cc61723f, 4fbafaae, 389bc43f, f089f721, dbe4739d, 78ae5f74
+### 5008ace6 — Every keeper drive from the pile becomes a bootable tiny11 installer, with Windows on the same disk
+
+intent: Done means a drive out of the "is it dead" pile boots tiny11 setup on ReX, setup installs to Disk 0 Partition 2 on that same disk without a second machine or a USB stick, and the builder refuses any disk it cannot prove by the drive's own serial. Also done when the remaining keepers can each be built with one command, and the boot chain is verified by reading sector 0, the partition entries and the volume boot record - not by a file listing.
+deps: 0/0 · tags: disks, tiny11, rex, installer
+next:
+  - confirm ReX boots the built drive and picks Disk 0 Partition 2 (operator, next morning)
+  - build the remaining keepers as they come out of the pile, one command each
+  - if ReX turns out to be UEFI-only, rebuild GPT with a real EFI system partition instead of the MBR layout
+
+also ready: f2e2deb0, 64a4cbb3, e093f426, 44ff5033, 49e30c7a, 8ff46a1b, daa96bc0, cdb81fd3, c9c77ef1, 0d6a276c, adb20a28, 8793886c, cd60ec6e, 2629893c, 291eac93, 5a5525ad, cc61723f, 4fbafaae, 389bc43f, f089f721, dbe4739d, 78ae5f74, 5008ace6
 
 ## Stuck, and why
 
@@ -285,6 +294,7 @@ also ready: f2e2deb0, 64a4cbb3, e093f426, 44ff5033, 49e30c7a, 8ff46a1b, daa96bc0
 - `4563e80f` A CUDA build runs on Maxwell-class cards (980 Ti), measured — waiting on 1 of 1 dependencies (active)
 - `f098e622` Hydra V2 IS an ssh tunnel with a terminal window (the target shape) — waiting on 1 of 1 dependencies (active)
 - `33c9ac28` Fleet tree: every node visible, the running service lit, cpu miner beside the gpu one — waiting on 1 of 1 dependencies (active)
+- `c04efb1d` miner1 is a rig: sshd, every PCIe slot counted, llama.cpp Vulkan + SRBMiner + lolMiner + launcher — waiting on 1 of 1 dependencies (active)
 - `a41a9db8` Wrap the voice engine as a Hydra V2 service — waiting on 2 of 2 dependencies (active)
 
 ## Files

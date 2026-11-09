@@ -152,7 +152,12 @@ function Get-AlgoLabel([string]$algo) {
 # summary on its own listening port; the port is random per launch, so it is looked up from the process.
 # Nothing found means null - the display then says "mining" without inventing an algorithm or a rate.
 function Get-MinerDetail {
-  $p = Get-Process -Name 'SRBMiner-MULTI' -ErrorAction SilentlyContinue | Select-Object -First 1
+  # Follow the declaration, not a brand: the manager can run SRBMiner, lolMiner, or anything else a node names.
+  $p = $null
+  foreach ($n in (Get-MinerProcessNames)) {
+    $p = Get-Process -Name $n -ErrorAction SilentlyContinue | Select-Object -First 1
+    if ($p) { break }
+  }
   if (-not $p) { return $null }
   $port = 0
   try {
@@ -165,6 +170,28 @@ function Get-MinerDetail {
     $j = Invoke-RestMethod -Uri ("http://127.0.0.1:" + $port + "/") -TimeoutSec 3
     $a = @($j.algorithms) | Select-Object -First 1
     if (-not $a) { return $null }
+
+    # lolMiner reports Algorithms[].Total_Performance already expressed in Performance_Unit (Mh/s, factor 1e6);
+    # SRBMiner reports algorithms[].hashrate.'1min' as raw H/s. Same panel, two shapes - read both, or the miner
+    # detail is blank on half the fleet.
+    if ($null -ne $a.Total_Performance) {
+      $factor = 1.0
+      if ($a.Performance_Factor) { $factor = [double]$a.Performance_Factor }
+      $rateL = [double]$a.Total_Performance * $factor
+      $fL = Format-Rate $rateL
+      $algoL = [string]$a.Algorithm
+      return @{
+        algo     = $algoL
+        label    = (Get-AlgoLabel $algoL)
+        rate     = $fL[0]
+        unit     = $fL[1]
+        accepted = [int]$a.Total_Accepted
+        rejected = [int]$a.Total_Rejected
+        pool     = [string]$a.Pool
+        at       = (Get-Date).ToString('s')
+      }
+    }
+
     $rate = [double]$a.hashrate.'1min'
     $f = Format-Rate $rate
     return @{
@@ -194,10 +221,23 @@ function Get-IdleState {
   return $null
 }
 
+function Get-MinerProcessNames {
+  # WHICH binaries count as "the miner" is instance data (node.json verify.processes, else stop.processes), never a
+  # constant. A hardcoded SRBMiner/unMiner pair made a lolMiner node publish mode=idle and miner=false while its card
+  # sat at 100 % utilisation - the fleet then showed the node as not mining while it was, which is worse than silence.
+  $names = @()
+  if ($Policy -and $Policy.verify -and $Policy.verify.processes) { $names = @($Policy.verify.processes) }
+  if (-not $names -and $Policy -and $Policy.stop -and $Policy.stop.processes) { $names = @($Policy.stop.processes) }
+  $names = @($names | Where-Object { $_ } | ForEach-Object { [string]$_ })
+  if ($names.Count -eq 0) { $names = @('SRBMiner-MULTI', 'unMiner', 'lolMiner', 'xmrig') }
+  return $names
+}
+
 function Get-MinerRunning {
   # Process presence is the truth. A scheduled task that still says "Running" with no children is a wrapper that
   # outlived its miner, and trusting it made the footer claim "mining" with nothing hashing.
-  $procs = @(Get-Process -Name 'SRBMiner-MULTI', 'unMiner' -ErrorAction SilentlyContinue)
+  $names = Get-MinerProcessNames
+  $procs = @(Get-Process -Name $names -ErrorAction SilentlyContinue)
   if ($procs.Count -gt 0) { return $true }
   $t = schtasks /query /tn $MinerTask /fo list 2>$null | Out-String
   if ($t -match 'Running') {

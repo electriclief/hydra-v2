@@ -2220,6 +2220,165 @@
       "created": 1794156552070,
       "touched": 1794157502846,
       "dir": "thoughts/33c9ac28"
+    },
+    {
+      "ref": "5008ace6",
+      "title": "Every keeper drive from the pile becomes a bootable tiny11 installer, with Windows on the same disk",
+      "intent": "Done means a drive out of the \"is it dead\" pile boots tiny11 setup on ReX, setup installs to Disk 0 Partition 2 on that same disk without a second machine or a USB stick, and the builder refuses any disk it cannot prove by the drive's own serial. Also done when the remaining keepers can each be built with one command, and the boot chain is verified by reading sector 0, the partition entries and the volume boot record - not by a file listing.",
+      "state": "active",
+      "deps": [],
+      "next": [
+        "confirm ReX boots the built drive and picks Disk 0 Partition 2 (operator, next morning)",
+        "build the remaining keepers as they come out of the pile, one command each",
+        "if ReX turns out to be UEFI-only, rebuild GPT with a real EFI system partition instead of the MBR layout"
+      ],
+      "tags": [
+        "disks",
+        "tiny11",
+        "rex",
+        "installer"
+      ],
+      "trail": [
+        {
+          "at": 1794211521794,
+          "kind": "state",
+          "text": "created",
+          "by": "hermes"
+        },
+        {
+          "at": 1794211521834,
+          "kind": "decision",
+          "text": "Installer and install target on ONE disk is allowed: boot.wim is loaded into a RAM disk, so the media partition is idle while setup runs and can hold the boot files (MBR active partition).",
+          "by": "hermes",
+          "sessionRef": "66077439"
+        },
+        {
+          "at": 1794211521852,
+          "kind": "note",
+          "text": "Builder verified on a 16 GB test VHD with the real ISO: P1 FAT32 6.4 GB active + P2 NTFS 9.6 GB; install.wim 4.44 GB -> install.swm 3.70 GB; 5.34 GB in 970 files; bootmgr/boot\\bcd/boot.wim/efi\\boot\\bootx64.efi all present.",
+          "by": "hermes",
+          "sessionRef": "66077439"
+        },
+        {
+          "at": 1794211521868,
+          "kind": "note",
+          "text": "Built on the real drive WD1200BEVS-60RST0 serial WD-WXC807000973: P1 FAT32 6.4 GB TINY11 + P2 NTFS 105.3 GB WINDOWS, 5.34 GB in 970 files.",
+          "by": "hermes",
+          "sessionRef": "66077439"
+        },
+        {
+          "at": 1794211521887,
+          "kind": "note",
+          "text": "Boot chain proven from the raw disk: sector 0 383/446 boot-code bytes non-zero, signature 55 AA, P1 boot flag 0x80 type 0x0C, P2 type 0x07, P1 volume boot record names BOOTMGR. bootsect /nt60 /mbr reported \"Successfully updated disk bootcode\".",
+          "by": "hermes",
+          "sessionRef": "66077439"
+        },
+        {
+          "at": 1794211521905,
+          "kind": "decision",
+          "text": "Serial guard reads the DRIVE serial out of SMART, not the disk object: the JMicron bridge in that slot reports 03211113324B for every drive plugged into it (the Ventoy stick reported the identical string).",
+          "by": "hermes",
+          "sessionRef": "66077439"
+        },
+        {
+          "at": 1794211521923,
+          "kind": "note",
+          "text": "Disk pile graded today: 19 sheets, 11 WIPE AND USE, 6 TOSS, 2 data-at-risk. Best keepers: Toshiba MK5075GSX 3,069 h, Kingston SA400 98% life left, HGST Z5K500 1,242 h, WD400BB 40 GB (2001) 30 MB/s flat.",
+          "by": "hermes",
+          "sessionRef": "66077439"
+        },
+        {
+          "at": 1794211600751,
+          "kind": "session",
+          "text": "installer drives + miner1 bring-up",
+          "by": "session",
+          "sessionRef": "66077439"
+        }
+      ],
+      "created": 1794211521794,
+      "touched": 1794211600751,
+      "dir": "thoughts/5008ace6"
+    },
+    {
+      "ref": "c04efb1d",
+      "title": "miner1 is a rig: sshd, every PCIe slot counted, llama.cpp Vulkan + SRBMiner + lolMiner + launcher",
+      "intent": "Done when ssh answers on 192.168.1.112, pcie-report.ps1 states how many of the 8 slots carry a live controller (answer the \"7 of 8 slots powered\" question with a count, not an impression), llama.cpp Vulkan and SRBMiner and lolMiner are installed and start as visible rows under ProcessWrapper with desktop launchers, and every card added one at a time is verified with a measured hashrate or token rate recorded on the node.",
+      "state": "active",
+      "deps": [
+        "5a5525ad"
+      ],
+      "next": [
+        "wait for 192.168.1.112:22, then run pcie-report.ps1 and card-inventory.ps1",
+        "count controllers with a driver and without: a card in a dead slot does not appear at all",
+        "install VC++ runtime, llama.cpp Vulkan, SRBMiner, lolMiner; Defender exclusions on each folder",
+        "desktop launcher per tool and a Hydra/ProcessWrapper row - never a loose background process",
+        "per card added: measure hashrate (miner) or token rate (llama) and write it on the node"
+      ],
+      "tags": [
+        "miner1",
+        "gpu",
+        "vulkan",
+        "srbminer",
+        "lolminer"
+      ],
+      "trail": [
+        {
+          "at": 1794211521815,
+          "kind": "state",
+          "text": "created",
+          "by": "hermes"
+        },
+        {
+          "at": 1794211521943,
+          "kind": "note",
+          "text": "192.168.1.112 does not answer any TCP port (timeout, ARP entry present); 192.168.1.138 answers ping but REFUSES 22/2121/445/5985/3389. LAN sweep: port 22 open on .109 .122 .123 .127 .131 .134 .147 .149, none of them miner1.",
+          "by": "hermes",
+          "sessionRef": "66077439"
+        },
+        {
+          "at": 1794211521966,
+          "kind": "note",
+          "text": "One-paste bootstrap served and verified at http://192.168.1.123:8140/miner1-bootstrap.ps1 (OpenSSH capability or GitHub zip for tiny11, service+firewall+PowerShell shell, key into administrators_authorized_keys with SYSTEM/Administrators ACL).",
+          "by": "hermes",
+          "sessionRef": "66077439"
+        },
+        {
+          "at": 1794211521986,
+          "kind": "note",
+          "text": "pcie-report.ps1 written: SMBIOS slot table, every VGA/3D controller by PCI id including driverless ones, Windows adapters with ConfigManagerErrorCode, and counts.",
+          "by": "hermes",
+          "sessionRef": "66077439"
+        },
+        {
+          "at": 1794211522008,
+          "kind": "session",
+          "text": "Operator went to sleep; miner1 bring-up waits on ssh answering at 192.168.1.112.",
+          "by": "hermes",
+          "sessionRef": "66077439"
+        },
+        {
+          "at": 1794211522028,
+          "kind": "note",
+          "text": "waits on Add nodes and intent to the LAN database [5a5525ad]",
+          "by": "agent"
+        },
+        {
+          "at": 1794211600784,
+          "kind": "session",
+          "text": "installer drives + miner1 bring-up",
+          "by": "session",
+          "sessionRef": "66077439"
+        },
+        {
+          "at": 1794213849647,
+          "kind": "note",
+          "text": "miner1 ssh answers but is a FRESH install: 192.168.1.112:22 = OpenSSH_for_Windows_9.5, ED25519 host key SHA256:OVxqIyILwdqFdlMFe+udrD0oi+5zWu9QsUip50yEGxg (previous install was SHA256:E84OC580pEZUF/zJZGf0qnkPGmNQ61lEadD7YUQbUAg); key echidna@123 SHA256:4wqzEQl+1UPcxHyp3QIyAe53jfx6+/tR3VKMq25ka1Y REJECTED -> 'user@192.168.1.112: Permission denied (publickey,password,keyboard-interactive)'; Administrator/administrator -> 'Connection reset by 192.168.1.112 port 22'; only port 22 open (445/3389/8127/8136/8137 closed), ARP MAC e4-fa-c4-03-9d-96. No authorized key and no password, so 0 controllers counted, 0 bytes installed. Needs the one-paste bootstrap re-run ON the box: powershell -NoProfile -ExecutionPolicy Bypass -Command \"iwr http://192.168.1.123:8140/miner1-bootstrap.ps1 -UseBasicParsing | iex\"",
+          "by": "cron"
+        }
+      ],
+      "created": 1794211521815,
+      "touched": 1794213849647,
+      "dir": "thoughts/c04efb1d"
     }
   ]
 }

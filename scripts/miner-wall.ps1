@@ -17,18 +17,59 @@
 param(
   [int]$PollSeconds = 5,
   [string]$Root = 'C:\AI\hydra-local',
-  [string]$ApiBase = 'http://127.0.0.1:60130/',
+  [string]$ApiBase = '',
   [int]$HeartbeatSeconds = 60
 )
 
 $ErrorActionPreference = 'Continue'
+
+# WHERE the miner listens and WHAT this node calls itself come from the instance layer (node.json), never from a
+# literal: one script ships to every node, and a title naming another machine's card is the label bug the operator
+# has already reported once. A box with no node.json still draws, using its hostname and the default port.
+$nodeName = $env:COMPUTERNAME
+$standbyLabel = 'standby mining'
+$apiPort = 60130
+$nodeFile = Join-Path $Root 'module\Menu\data\node.json'
+if (-not (Test-Path $nodeFile)) { $nodeFile = Join-Path $Root 'module\Core\data\node.json' }
+if (Test-Path $nodeFile) {
+  try {
+    $nj = Get-Content $nodeFile -Raw | ConvertFrom-Json
+    if ($nj.name) { $nodeName = [string]$nj.name }
+    if ($nj.standby -and $nj.standby.label) { $standbyLabel = [string]$nj.standby.label }
+    $a = @()
+    if ($nj.standby -and $nj.standby.start -and $nj.standby.start.args) { $a = @($nj.standby.start.args) }
+    for ($i = 0; $i -lt $a.Count; $i++) {
+      if ($a[$i] -eq '--apiport' -and $a.Count -gt ($i + 1)) { $apiPort = [int]$a[$i + 1] }
+      elseif ($a[$i] -match '^--api-port=(\d+)$') { $apiPort = [int]$Matches[1] }
+    }
+  } catch { }
+}
+if (-not $ApiBase) { $ApiBase = 'http://127.0.0.1:' + $apiPort + '/' }
+
 $piped = $false
 try { $piped = [Console]::IsOutputRedirected } catch { }
-if (-not $piped) { try { $Host.UI.RawUI.WindowTitle = 'robert - mining (quantus)' } catch { } }
+if (-not $piped) { try { $Host.UI.RawUI.WindowTitle = $nodeName + ' - ' + $standbyLabel } catch { } }
 
 $guardLog = Join-Path $Root 'data\standby\guard.log'
 $wall = New-Object System.Collections.Generic.List[string]
 $seen = @{}   # share numbers already shown: the log is read by byte offset, and a partial read must never print twice
+# WHICH CARD. The operator corrected this once already (RX 570, not 590): take the name from the node's own
+# declaration rather than a literal that goes stale, and keep a fallback that is at least the right family.
+$card = 'RX 570 8 GB (ellesmere)'
+try {
+  $candidates = @(
+    (Join-Path (Split-Path -Parent $PSScriptRoot) 'module\Menu\data\node.json'),
+    (Join-Path $PSScriptRoot '..\module\Menu\data\node.json'),
+    'C:\AI\hydra-local\module\Menu\data\node.json'
+  )
+  foreach ($c in $candidates) {
+    if (Test-Path $c) {
+      $nj = Get-Content $c -Raw | ConvertFrom-Json
+      if ($nj.gpu) { $card = [string]$nj.gpu; break }
+    }
+  }
+} catch { }
+
 $state = @{ accepted = $null; rejected = $null; rate = $null; unit = 'MH/s'; uptime = $null; api = 'down'; pool = 'unknown'; since = $null; started = (Get-Date) }
 
 # start at the end of the guard log: the wall is about now, and the header carries the totals that came before
@@ -50,7 +91,13 @@ if ((Test-Path $guardLog) -and $offset -gt 0) {
   $seed = @()
   foreach ($line in ($tail -split "`r?`n")) {
     if ($line.Length -lt 20) { continue }
+    # a log line can be partial (the guard writes while we read): a line without a timestamp is not an
+    # event, and casting it to DateTime killed the whole wall - measurably, this is the bug that made the
+    # GPU window come up black while the miner was fine.
+    if ($line -notmatch '^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}') { continue }
     $ts = ([datetime]$line.Substring(0, 19)).ToString('HH:mm:ss')
+    # the guard writes both miners into one log: "CPU share accepted ..." is the OTHER wall's news
+    if ($line -match 'CPU (share accepted|SHARE REJECTED)') { continue }
     if ($line -match 'share accepted (\d+) \(\+(\d+)\)\s+(\S+)\s+([\d.]+)\s+(\S+)\s+pool (\S+)') {
       $seed += ('{0}   ACCEPTED  #{1,-5} +{2}   {3} {4}   {5}' -f $ts, $matches[1], $matches[2], $matches[4], $matches[5], $matches[6])
       $seen['A' + $matches[1]] = 1
@@ -85,6 +132,28 @@ function Get-Api {
     $a = @($r.algorithms) | Select-Object -First 1
     if (-not $a) { $state.api = 'down'; return $false }
     $state.api = 'up'
+
+    # lolMiner's shape first: Algorithms[].Total_Performance is already expressed in Performance_Unit (Mh/s, with
+    # Performance_Factor 1e6), shares are flat Total_Accepted/Total_Rejected, pool is a string, uptime lives on Session.
+    # SRBMiner's shape is below. Two miners, one panel - reading only SRBMiner fields made a hashing lolMiner card
+    # render as "rate 0 H/s  pool unknown", which is the exact false negative a proof window must never produce.
+    if ($null -ne $a.Total_Performance) {
+      $factor = 1.0
+      if ($a.Performance_Factor) { $factor = [double]$a.Performance_Factor }
+      $fL = Format-Rate ([double]$a.Total_Performance * $factor)
+      $state.rate = $fL[0]
+      $state.unit = $fL[1]
+      $state.accepted = [int]$a.Total_Accepted
+      $state.rejected = [int]$a.Total_Rejected
+      if ($r.Session -and $null -ne $r.Session.Uptime) { $state.uptime = [int]$r.Session.Uptime }
+      if ($a.Pool) { $state.pool = [string]$a.Pool }
+      if ($r.Session -and $r.Session.Startup_String) {
+        $st = [string]$r.Session.Startup_String
+        if ($st -match '_(\d{2})-(\d{2})-(\d{2})$') { $state.since = ($Matches[1] + ':' + $Matches[2] + ':' + $Matches[3]) }
+      }
+      return $true
+    }
+
     # SRBMiner's own shape: the live rate is hashrate.'1min' (a quoted key, hence the dots), shares are nested, and the
     # pool is an object whose .pool is the host:port. Reading "hashrate_total_now" here silently returned zero.
     $state.rate = $null
@@ -121,7 +190,13 @@ function Get-NewShares {
   } finally { $fs.Dispose() }
   foreach ($line in ($chunk -split "`r?`n")) {
     if ($line.Length -lt 20) { continue }
+    # a log line can be partial (the guard writes while we read): a line without a timestamp is not an
+    # event, and casting it to DateTime killed the whole wall - measurably, this is the bug that made the
+    # GPU window come up black while the miner was fine.
+    if ($line -notmatch '^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}') { continue }
     $ts = ([datetime]$line.Substring(0, 19)).ToString('HH:mm:ss')
+    # the guard writes both miners into one log: "CPU share accepted ..." is the OTHER wall's news
+    if ($line -match 'CPU (share accepted|SHARE REJECTED)') { continue }
     if ($line -match 'share accepted (\d+) \(\+(\d+)\)\s+(\S+)\s+([\d.]+)\s+(\S+)\s+pool (\S+)') {
       $key = 'A' + $matches[1]
       if ($seen.ContainsKey($key)) { continue }
@@ -161,12 +236,12 @@ function Draw {
   Clear-Host
   $bar = '=' * 78
   Write-Host $bar -ForegroundColor DarkCyan
-  Write-Host '  ROBERT  -  MINING QUANTUS                    proof, not a claim' -ForegroundColor Cyan
+  Write-Host ('  ' + $nodeName.ToUpper() + '  -  ' + $standbyLabel.ToUpper() + '        proof, not a claim') -ForegroundColor Cyan
   Write-Host $bar -ForegroundColor DarkCyan
-  Write-Host ('  card      RX 590 8 GB (ellesmere)      pool  ' + $state.pool) -ForegroundColor Gray
+  Write-Host ('  card      ' + $card.PadRight(26) + 'pool  ' + $state.pool) -ForegroundColor Gray
   Write-Host ('  rate      ' + $rate.PadRight(24) + 'uptime   ' + $up) -ForegroundColor Gray
   Write-Host ('  accepted  ' + ([string]$acc).PadRight(24) + 'rejected ' + [string]$rej) -ForegroundColor Gray
-  if ($state.api -eq 'down') { Write-Host '  miner api  DOWN - the card is not answering on :60130' -ForegroundColor Red }
+  if ($state.api -eq 'down') { Write-Host ('  miner api  DOWN - the card is not answering on :' + $apiPort) -ForegroundColor Red }
   Write-Host $bar -ForegroundColor DarkCyan
   Write-Host '  time        event      #      delta   rate        pool' -ForegroundColor DarkGray
 
@@ -182,7 +257,7 @@ function Draw {
   if ($wall.Count -eq 0) { Write-Host '  waiting for the next share...' -ForegroundColor DarkGray }
 
   Write-Host $bar -ForegroundColor DarkCyan
-  Write-Host ('  ' + $now.ToString('HH:mm:ss') + '   watching :60130 and the guard log   ' + $(if ($state.rate) { 'card is hashing' } else { 'NO READING FROM THE CARD' }) + '   next line within ' + $PollSeconds + 's') -ForegroundColor DarkCyan
+  Write-Host ('  ' + $now.ToString('HH:mm:ss') + ('   watching :' + $apiPort + ' and the guard log   ') + $(if ($state.rate) { 'card is hashing' } else { 'NO READING FROM THE CARD' }) + '   next line within ' + $PollSeconds + 's') -ForegroundColor DarkCyan
 }
 
 Get-Api | Out-Null
@@ -201,7 +276,7 @@ while ($true) {
     if ((((Get-Date) - $lastBeat).TotalSeconds) -ge $HeartbeatSeconds) {
       $lastBeat = Get-Date
       $up = if ($state.uptime) { '{0}h {1:00}m' -f [int]($state.uptime / 3600), [int](($state.uptime % 3600) / 60) } elseif ($state.since) { 'since ' + $state.since.Substring([Math]::Max(0, $state.since.Length - 5)) } else { '-' }
-      Write-Output ('{0}  alive     {1} {2}   accepted {3}   rejected {4}   up {5}{6}' -f (Get-Date).ToString('HH:mm:ss'), $state.rate, $state.unit, $state.accepted, $state.rejected, $up, $(if ($state.api -eq 'down') { '   API DOWN - the card is not answering on :60130' } else { '' }))
+      Write-Output ('{0}  alive     {1} {2}   accepted {3}   rejected {4}   up {5}{6}' -f (Get-Date).ToString('HH:mm:ss'), $state.rate, $state.unit, $state.accepted, $state.rejected, $up, $(if ($state.api -eq 'down') { ('   API DOWN - the card is not answering on :' + $apiPort) } else { '' }))
     }
   } else {
     Draw
