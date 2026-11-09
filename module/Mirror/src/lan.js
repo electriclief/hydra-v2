@@ -19,7 +19,7 @@ export function lanJson({ self, peers = [], at = Date.now(), cycleOf = () => nul
   if (self) nodes.push(view(self, 'self', at, cycleOf(self.ref), { roster, ip: selfIp }));
   for (const peer of peers) {
     nodes.push(
-      view(peer.node, peer.verdict, at, peer.cycle, { misses: peer.misses, reason: peer.reason, ref: peer.ref, roster, ip: peer.ip || null }),
+      view(peer.node, peer.verdict, at, peer.cycle, { misses: peer.misses, reason: peer.reason, ref: peer.ref, roster, ip: peer.ip || null, minerProbe: peer.minerProbe || null }),
     );
   }
 
@@ -74,7 +74,9 @@ function declaredAbsent(roster, nodes) {
       door: r.door,
       notes: r.notes || '',
       // the one word the tree needs: unmanaged boxes are expected to be silent, switched-off ones are not
-      why: r.managed === false ? 'unmanaged' : 'offline',
+      // a row with no address is not 'offline' and not 'unmanaged': it has never been on the wire, so
+      // saying either would be a claim about a machine nobody has plugged in yet.
+      why: !r.ip ? 'no address yet' : (r.managed === false ? 'unmanaged' : 'offline'),
     }));
 }
 
@@ -108,6 +110,44 @@ function standbyOf(raw, at) {
   };
 }
 
+/**
+ * A node that publishes no standby report can still be MINING, and when its miner answers on its own API that is
+ * a measurement - the same class of fact as a heartbeat, not a guess. The shape is deliberately the same as a
+ * reported standby, with `source: 'miner-api'` and `measured: true` so no screen can present it as the node's own
+ * claim. It carries no grace, no resumeAt and no idleSince: those belong to the guard, which is not talking.
+ */
+function standbyFromMiner(probe, at) {
+  if (!probe || typeof probe !== 'object') return null;
+  const rate = typeof probe.rate === 'number' ? probe.rate : null;
+  return {
+    mode: 'mining',
+    ai: null,
+    miner: true,
+    source: 'miner-api',
+    measured: true,
+    minerDetail: {
+      at: probe.at || null,
+      label: probe.algo || 'mining',
+      algo: probe.algo || null,
+      rate,
+      unit: null,
+      accepted: probe.accepted ?? null,
+      rejected: probe.rejected ?? null,
+      pool: probe.pool || null,
+      uptime: probe.uptime || null,
+    },
+    cpuDetail: null,
+    cpu: false,
+    pinned: false,
+    at: probe.at || null,
+    resumeAt: null,
+    idleSince: null,
+    pollS: null,
+    ageS: 0,
+    stale: false,
+  };
+}
+
 function view(node, verdict, at, cycle, extra = {}) {
   // a peer that does not answer has NO node: it must still render, with its ref and nothing else
   const services = serviceRows(node);
@@ -134,7 +174,7 @@ function view(node, verdict, at, cycle, extra = {}) {
     })(),
     // WHAT THE CARD IS DOING, as its owner reported it. `ageS` is the honesty: a report older than the owner's
     // own poll interval is stale, and a screen must be able to say so instead of showing old news as current.
-    standby: standbyOf(node?.standby, at),
+    standby: standbyOf(node?.standby, at) || standbyFromMiner(extra.minerProbe, at),
     observedAt: node?.observed || null,
     degraded: node?.health?.degraded === true,
     misses: extra.misses ?? null,

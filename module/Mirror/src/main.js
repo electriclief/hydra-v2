@@ -24,7 +24,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { assemble, displayName } from './assemble.js';
 import { lanJson, lanMarkdown } from './lan.js';
-import { candidatesFor, fleetSummary, ipOf, loadRoster } from './roster.js';
+import { candidatesFor, fleetSummary, ipOf, loadRoster, matchRow } from './roster.js';
 import { classify } from './verdict.js';
 
 const argPort = (() => {
@@ -174,6 +174,33 @@ async function refresh() {
   // declared intent is read fresh every refresh: the roster is the operator's file, and a role edited at 3pm
   // must not wait for a restart. Unreadable is a fact in the payload, never a silent empty list.
   state.roster = loadRoster();
+
+  // A box with no State door can still be working, and its miner is the witness: if the miner's OWN API answers,
+  // that is a measurement, not a guess. Only rows that declare `minerApi` are probed, so nothing is dialled that
+  // the operator did not put in the roster, and the result is labelled `miner-api` all the way to the screen.
+  await Promise.all(
+    state.peers.map(async (p) => {
+      p.minerProbe = null;
+      if (p.node?.standby) return;                 // a real standby report always wins
+      const row = matchRow(state.roster, { ref: p.ref, name: p.node?.id?.name, ip: p.ip });
+      if (!row?.minerApi) return;
+      const res = await getJson(row.minerApi, 1500);
+      const j = res.ok ? res.body : null;          // getJson answers { ok, status, body }, not a bare object
+      const a = Array.isArray(j?.algorithms) ? j.algorithms[0] : null;
+      if (!a) return;
+      p.minerProbe = {
+        at: new Date().toISOString(),
+        algo: a.name ?? null,
+        rate: a.hashrate?.['1min'] ?? null,
+        accepted: a.shares?.accepted ?? null,
+        rejected: a.shares?.rejected ?? null,
+        pool: a.pool?.pool ?? null,
+        uptime: a.pool?.time_connected ?? null,
+        declared: row.minerApi,
+      };
+    }),
+  );
+
   state.lan = lanJson({ self: state.self, peers: state.peers, at, roster: state.roster, selfIp: selfIp() });
   state.at = at;
   state.error = null;

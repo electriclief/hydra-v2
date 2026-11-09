@@ -54,6 +54,9 @@ export function loadRoster(file = DEFAULT_ROSTER) {
       // member of the house - it is one Echidna reaches over ssh and cannot ask for state. Absent means managed
       // (every row written before this field existed was a Hydra node).
       managed: row.managed !== false,
+      // WHAT ITS MINER ANSWERS ON. Declared, never guessed: a box with no State door can still be mining, and
+      // this URL is the only thing that lets the tree say so from a measurement instead of staying silent.
+      minerApi: typeof row.minerApi === 'string' && row.minerApi ? row.minerApi : null,
       os: row.os || (row.managed === false ? 'linux' : 'windows'),
       kind,
     });

@@ -1037,7 +1037,9 @@
     if (sb.mode === 'mining') {
       var idle = null;
       (n.services || []).forEach(function (s) { if (!idle && /idle/i.test(String(s.name || ''))) idle = s.name; });
-      return { who: idle || 'idle-mining', label: (sb.minerDetail && (sb.minerDetail.label || sb.minerDetail.algo)) || 'mining', why: 'mining' };
+      // measured from the miner's own API (a node with no State door still works): same row, different evidence
+      var why = sb.source === 'miner-api' ? 'miner api' : 'mining';
+      return { who: idle || 'idle-mining', label: (sb.minerDetail && (sb.minerDetail.label || sb.minerDetail.algo)) || 'mining', why: why };
     }
     return { who: null, label: 'idle', why: 'idle' };
   }
@@ -1059,15 +1061,16 @@
     }
 
     box.innerHTML = fleetLine + peers.map(function (n) {
-      var chips = [n.verdict];
-      chips.push(n.cycle == null ? 'no cycle' : 'cycle ' + n.cycle);
+      var measuredOnly = !!(n.standby && n.standby.source === 'miner-api');
+      var chips = [measuredOnly ? 'no state door' : n.verdict];
+      if (!measuredOnly) chips.push(n.cycle == null ? 'no cycle' : 'cycle ' + n.cycle);
       if (n.standby && !n.standby.stale && n.standby.mode === 'mining') {
         // the chip carries the algorithm when the miner publishes one: a card earning is not a status, it is a fact
         var mdChip = n.standby.minerDetail || null;
         chips.push(mdChip && (mdChip.label || mdChip.algo) ? 'mining ' + (mdChip.label || mdChip.algo) : 'mining');
       }
       if (n.standby && !n.standby.stale && n.standby.mode === 'ai') chips.push('AI');
-      if (n.misses) chips.push(n.misses + ' missed');
+      if (n.misses && !measuredOnly) chips.push(n.misses + ' missed');
       if (n.degraded) chips.push('degraded');
       if (n.seenAt) chips.push(ago(n.seenAt));
 
@@ -1082,6 +1085,15 @@
         return '<li class="lan-row' + (isRun ? ' running' : '') + '"><span class="lan-name">' + esc(s.name) + runningChip + '</span>'
           + '<span class="lan-meta">' + esc(meta) + '</span></li>';
       }).join('');
+      if (!rows && run.who && n.standby && n.standby.source === 'miner-api') {
+        // nothing is published here (no door), but the miner answered and named itself: show that as the row,
+        // with the evidence on its face, instead of "no services published" over a machine that is mining 1743 H/s
+        var md = n.standby.minerDetail || {};
+        var found = (md.rate ? Math.round(md.rate) + ' H/s · ' : '') + (md.accepted == null ? '' : md.accepted + ' accepted');
+        rows = '<li class="lan-row running"><span class="lan-name">' + esc(run.who)
+          + '<span class="chip alive" title="running now">▶ running</span></span>'
+          + '<span class="lan-meta">' + esc("measured from its miner's API · " + found) + '</span></li>';
+      }
       if (!rows) rows = '<li class="lan-row"><span class="lan-meta">no services published</span></li>';
 
       var booked = (n.booked || []).map(function (b) {
@@ -1098,6 +1110,10 @@
         standbyRow = '<li class="lan-row"><span class="lan-name">Idle Service</span><span class="lan-meta">no report for ' + (sb.ageS == null ? '?' : sb.ageS + 's') + ' - last said ' + esc(sb.mode) + '</span></li>';
       } else if (sb.mode === 'ai') {
         standbyRow = '<li class="lan-row"><span class="lan-name">AI work</span><span class="lan-meta">' + esc((sb.ai || 'unnamed process') + ' - reported ' + sb.ageS + 's ago') + '</span></li>';
+      } else if (sb.mode === 'mining' && sb.source === 'miner-api') {
+        // measured, not reported: the lit service row below carries the rate and the share count, so a second
+        // row saying the same thing in different words would be noise on a card that already has four lines
+        standbyRow = '';
       } else if (sb.mode === 'mining') {
         // what the miner says it is doing, not just the word "mining": algorithm and rate, when it reports them
         var md = sb.minerDetail || null;
@@ -1152,8 +1168,9 @@
   //   offline   - a Hydra node that is not on the wire right now, greyed with its declared role and the word offline
   function absentSections(lan) {
     var absent = lan.declaredAbsent || [];
-    var unmanaged = absent.filter(function (a) { return a.managed === false; });
-    var offline = absent.filter(function (a) { return a.managed !== false; });
+    var bench = absent.filter(function (a) { return !a.ip; });
+    var unmanaged = absent.filter(function (a) { return a.ip && a.managed === false; });
+    var offline = absent.filter(function (a) { return a.ip && a.managed !== false; });
     var out = '';
 
     if (unmanaged.length) {
@@ -1179,6 +1196,21 @@
           + '<span class="chip gone">offline</span></span></div>'
           + '<ul class="lan-list">'
           + '<li class="lan-row"><span class="lan-name">For</span><span class="lan-meta">' + esc([a.role || 'no role', caps, a.ip || ''].filter(Boolean).join(' · ')) + '</span></li>'
+          + '</ul></div>';
+      }).join('');
+    }
+
+    // declared, but never on the wire: there is no address to ask, so the honest row says exactly that
+    // instead of "offline" (which would imply it was here and went away) or "ssh" (which would imply a route)
+    if (bench.length) {
+      out += '<h2 class="tree-heading" style="margin-top:16px">Declared · <b>no address yet</b></h2>';
+      out += bench.map(function (a) {
+        var caps = (a.ready_for || []).join(', ');
+        return '<div class="node parked" title="declared in the roster, but no address has been assigned yet - nothing to ask until it is on the wire">'
+          + '<div class="node-head"><b>' + esc(a.name) + '</b><span class="chips">'
+          + '<span class="chip gone">no address</span><span class="chip">' + esc(a.os || '') + '</span></span></div>'
+          + '<ul class="lan-list">'
+          + '<li class="lan-row"><span class="lan-name">For</span><span class="lan-meta">' + esc([a.role || 'no role', caps].filter(Boolean).join(' · ')) + '</span></li>'
           + '</ul></div>';
       }).join('');
     }
