@@ -537,6 +537,17 @@ export function createServer(options: ServerOptions): http.Server {
         }
       }
 
+      if (p === '/api/monitor' && method === 'GET') {
+        // A writer with no reader is half a feature: whoever publishes a card (an agent, a publisher like
+        // scripts/monitor-mining.mjs) also needs to be able to read the board back and prove it landed.
+        sendJson(res, 200, {
+          ok: true,
+          monitor: { card: monitorCard(), index: monitor.index, total: monitor.stack.length },
+          stack: monitor.stack,
+        });
+        return;
+      }
+
       if (p === '/api/monitor' && method === 'POST') {
         let body: Record<string, unknown>;
         try {

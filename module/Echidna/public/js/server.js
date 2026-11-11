@@ -406,6 +406,14 @@ function createServer(options) {
           return;
         }
       }
+      if (p === "/api/monitor" && method === "GET") {
+        sendJson(res, 200, {
+          ok: true,
+          monitor: { card: monitorCard(), index: monitor.index, total: monitor.stack.length },
+          stack: monitor.stack
+        });
+        return;
+      }
       if (p === "/api/monitor" && method === "POST") {
         let body;
         try {
