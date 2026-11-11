@@ -1,0 +1,11 @@
+{
+  "name": "StateToFile",
+  "kind": "door",
+  "port": 8151,
+  "start": "\"%LOCALAPPDATA%\\hermes\\node\\node.exe\" src/main.js",
+  "wiredAtBoot": false,
+  "deps": [
+    "State"
+  ],
+  "what": "Writes what the registry holds into ONE atomic snapshot file, so a node that boots into an empty room can be handed its pointer table back. The file is never the truth: the registry is."
+}

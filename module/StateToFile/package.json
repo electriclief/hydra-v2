@@ -1,0 +1,12 @@
+{
+  "name": "state-to-file",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Snapshot writer",
+  "scripts": {
+    "start": "node src/main.js --port 8151",
+    "selftest": "node selftest.mjs",
+    "test": "node selftest.mjs"
+  }
+}

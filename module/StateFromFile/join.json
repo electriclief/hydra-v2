@@ -1,0 +1,11 @@
+{
+  "name": "StateFromFile",
+  "kind": "door",
+  "port": 8152,
+  "start": "\"%LOCALAPPDATA%\\hermes\\node\\node.exe\" src/main.js",
+  "wiredAtBoot": false,
+  "deps": [
+    "State"
+  ],
+  "what": "Replays a snapshot into a registry as registrations. Skips what a live owner already publishes, never restores a role, and answers a torn file with the path instead of an empty LAN."
+}

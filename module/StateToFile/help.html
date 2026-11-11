@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>State to File — the snapshot writer</title>
+<style>
+ :root { color-scheme: dark; --bg:#111318; --panel:#191c23; --border:#303541; --text:#e5e7eb; --muted:#a1a8b7; }
+ * { box-sizing: border-box; }
+ body { margin:0; padding:32px; background:var(--bg); color:var(--text); font:15px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif; max-width:78ch; }
+ h1 { margin:0 0 4px; font-size:24px; font-weight:600; }
+ h2 { margin:30px 0 10px; font-size:13px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; color:var(--muted); }
+ .kicker { margin:0 0 26px; color:var(--muted); font-size:13px; }
+ code { font:13px/1.5 ui-monospace,Consolas,monospace; background:#0b0d11; border:1px solid var(--border); border-radius:5px; padding:1px 5px; }
+ table { width:100%; border-collapse:collapse; margin:6px 0 14px; font-size:14px; }
+ th, td { text-align:left; padding:7px 10px; border-bottom:1px solid var(--border); vertical-align:top; }
+ th { color:var(--muted); font-size:12px; text-transform:uppercase; letter-spacing:.06em; }
+</style></head><body>
+<header><h1>State to File</h1>
+<p class="kicker">the snapshot writer · door on :8151 · one file per writing node</p></header>
+
+<section id="summary">
+<p>State is memory-only on purpose: it boots blank, holds what it is handed, and a registration dies with its
+registrant. That is what makes the house easy to reason about — and it is also why a cold boot with no peers answering
+has nothing to point at. This door is the answer to that and nothing more: it subscribes to the registry's change feed
+and keeps <b>one file</b> of what the registry said, so a node with an empty room can be handed its phone book back.</p>
+</section>
+
+<section id="concepts">
+<h2>What the file is, and is not</h2>
+<table>
+<tr><th>it is</th><th>it is not</th></tr>
+<tr><td>a snapshot of names and their content, at one moment</td><td>a database the registry reads at boot</td></tr>
+<tr><td>replaceable: each write is tmp + rename, so a reader sees old or new, never half</td><td>append-only history</td></tr>
+<tr><td>signed: <code>writtenBy</code>, <code>at</code>, <code>source</code>, and each entry's <code>updatedAt</code></td><td>anonymous — a reader must be able to refuse something older than its owner</td></tr>
+</table>
+<p>The feed is preferred and a poll is the fallback, both debounced: a registry that ticks every five seconds must not
+mean a disk write every five seconds. A registry that is not answering produces a typed failure
+(<code>unreachable</code>/<code>timeout</code>) and leaves the last good file alone — an empty snapshot would be a lie
+about the LAN.</p>
+</section>
+
+<section id="wiring">
+<h2>Wiring, for humans</h2>
+<table>
+<tr><th>needs</th><th>from</th><th>required</th></tr>
+<tr><td>a registry to read</td><td>State, <code>:8127</code></td><td>yes</td></tr>
+<tr><td>a place to write</td><td><code>--file</code>, default <code>data/state-snapshot.&lt;ref&gt;.json</code></td><td>yes</td></tr>
+<tr><td>what to keep</td><td><code>--query node --query root</code></td><td>no — those two are the default</td></tr>
+</table>
+<table>
+<tr><th>gives</th><th>to</th><th>shape</th></tr>
+<tr><td><code>POST /api/snapshot</code></td><td>an operator</td><td>writes now, answers count + bytes</td></tr>
+<tr><td><code>GET /api/file</code></td><td>an operator</td><td>path, size, and the first 400 bytes</td></tr>
+<tr><td><code>GET /health</code></td><td>the LAN</td><td>writes, last write, last error, feed state</td></tr>
+</table>
+<p class="note">The reader is a separate door on purpose: writing and replaying are different risks, and a node may run
+one without the other.</p>
+</section>
+
+<script type="application/json" id="contract">
+{
+  "module": "StateToFile",
+  "port": 8151,
+  "kind": "door",
+  "needs": [
+    { "name": "state", "from": "State :8127", "required": true },
+    { "name": "file", "from": "--file", "required": true }
+  ],
+  "gives": [
+    { "name": "/api/snapshot", "to": "operator", "kind": "http" },
+    { "name": "/api/file", "to": "operator", "kind": "http" },
+    { "name": "/health", "to": "the LAN", "kind": "http" }
+  ]
+}
+</script>
+</body></html>

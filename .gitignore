@@ -56,3 +56,6 @@ module/Phoenix/data/
 # Tell Mom receipts are this node's runtime history, not the repo's
 module/TellMom/data/told.jsonl
 module/Echidna/data/monitor.json
+data/snapshots/
+module/StateToFile/data/
+module/StateFromFile/data/

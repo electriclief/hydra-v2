@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>State from File — the snapshot reader</title>
+<style>
+ :root { color-scheme: dark; --bg:#111318; --border:#303541; --text:#e5e7eb; --muted:#a1a8b7; }
+ * { box-sizing: border-box; }
+ body { margin:0; padding:32px; background:var(--bg); color:var(--text); font:15px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif; max-width:78ch; }
+ h1 { margin:0 0 4px; font-size:24px; font-weight:600; }
+ h2 { margin:30px 0 10px; font-size:13px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; color:var(--muted); }
+ .kicker { margin:0 0 26px; color:var(--muted); font-size:13px; }
+ code { font:13px/1.5 ui-monospace,Consolas,monospace; background:#0b0d11; border:1px solid var(--border); border-radius:5px; padding:1px 5px; }
+ table { width:100%; border-collapse:collapse; margin:6px 0 14px; font-size:14px; }
+ th, td { text-align:left; padding:7px 10px; border-bottom:1px solid var(--border); vertical-align:top; }
+ th { color:var(--muted); font-size:12px; text-transform:uppercase; letter-spacing:.06em; }
+</style></head><body>
+<header><h1>State from File</h1>
+<p class="kicker">the snapshot reader · door on :8152 · replays one file into a registry</p></header>
+
+<section id="summary">
+<p>A node that boots into an empty room — no peers answering, a registry that has just started — can be handed the phone
+book back: one snapshot file, replayed into State as registrations, so the pointer table exists before the first peer
+answers. It is the other half of State to File, and it is deliberately a separate door: writing and replaying carry
+different risks, and a node may run one without the other.</p>
+</section>
+
+<section id="concepts">
+<h2>Four rules that keep it a seed, not a truth</h2>
+<table>
+<tr><th>rule</th><th>why</th></tr>
+<tr><td>a replay never deletes and never overwrites a live owner</td><td>the registry wins the moment its owner publishes again</td></tr>
+<tr><td>a live owner's <b>values</b> are skipped, its <b>link</b> is kept</td><td>a replayed heartbeat would be a fabricated "alive"; a replayed address is exactly what a reader needs</td></tr>
+<tr><td><code>root.*</code> is skipped unless <code>--replay-claims</code></td><td>holding the root is earned by booting and renewing a lease, never inherited from a file</td></tr>
+<tr><td>a torn or missing file is <code>ok:false</code> with the path</td><td>an empty answer reads as "nothing to do" and hides the problem</td></tr>
+</table>
+<p>"Live" is measured, not assumed: the reader looks for <code>node.&lt;ref&gt;.cycle</code> in the target registry, which
+is the same signal every other reader uses.</p>
+</section>
+
+<section id="wiring">
+<h2>Wiring, for humans</h2>
+<table>
+<tr><th>needs</th><th>from</th><th>required</th></tr>
+<tr><td>a registry to write into</td><td>State, <code>:8127</code></td><td>yes</td></tr>
+<tr><td>a snapshot to read</td><td><code>--file</code></td><td>yes</td></tr>
+<tr><td>permission to replay a role</td><td><code>--replay-claims</code></td><td>no — off by design</td></tr>
+</table>
+<table>
+<tr><th>gives</th><th>to</th><th>shape</th></tr>
+<tr><td><code>GET /api/preview</code></td><td>an operator</td><td>what would be registered, and what would not, with reasons</td></tr>
+<tr><td><code>POST /api/replay</code></td><td>an operator</td><td>registered / skipped / failed counts</td></tr>
+<tr><td><code>--auto</code></td><td>the boot path</td><td>one replay at start, then idle</td></tr>
+</table>
+</section>
+
+<script type="application/json" id="contract">
+{
+  "module": "StateFromFile",
+  "port": 8152,
+  "kind": "door",
+  "needs": [
+    { "name": "state", "from": "State :8127", "required": true },
+    { "name": "file", "from": "--file", "required": true }
+  ],
+  "gives": [
+    { "name": "/api/preview", "to": "operator", "kind": "http" },
+    { "name": "/api/replay", "to": "operator", "kind": "http" },
+    { "name": "/health", "to": "the LAN", "kind": "http" }
+  ]
+}
+</script>
+</body></html>
