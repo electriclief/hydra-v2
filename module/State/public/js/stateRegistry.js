@@ -180,12 +180,19 @@ class State {
       const slot = this.entries.get(found.hit);
       const content = slot?.content;
       if (!content || content.kind !== "link" || typeof content.to !== "string") continue;
-      const remote = typeof content.as === "string" && content.as ? content.as : query;
-      const relayed = await relayPull(content.to, remote, via, RELAY_TIMEOUT_MS, hops);
-      if (relayed.ok) {
+      const declared = typeof content.as === "string" && content.as ? content.as : null;
+      const remainder = query.slice(prefix.length + 1);
+      const attempts = declared ? [declared] : remainder && remainder !== query ? [remainder, query] : [query];
+      let relayed = null;
+      for (const remote of attempts) {
+        relayed = await relayPull(content.to, remote, via, RELAY_TIMEOUT_MS, hops);
+        if (relayed.ok) break;
+        if (relayed.why !== "absent") break;
+      }
+      if (relayed && relayed.ok) {
         return {
           ok: true,
-          name: relayed.name || remote,
+          name: relayed.name || query,
           at: relayed.at || (/* @__PURE__ */ new Date()).toISOString(),
           full: relayed.full !== false,
           content: relayed.value,
@@ -195,7 +202,7 @@ class State {
           via: relayed.via
         };
       }
-      return { ok: false, code: "no_such_entry", name: query, at: (/* @__PURE__ */ new Date()).toISOString(), why: relayed.why, via: relayed.via };
+      return { ok: false, code: "no_such_entry", name: query, at: (/* @__PURE__ */ new Date()).toISOString(), why: relayed ? relayed.why : "absent", via: relayed ? relayed.via : via };
     }
     return null;
   }

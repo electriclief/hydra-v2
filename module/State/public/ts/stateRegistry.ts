@@ -367,12 +367,27 @@ export class State {
       const content = slot?.content as { kind?: unknown; to?: unknown; as?: unknown } | null;
       if (!content || content.kind !== 'link' || typeof content.to !== 'string') continue;
 
-      const remote = typeof content.as === 'string' && content.as ? content.as : query;
-      const relayed = await relayPull(content.to, remote, via, RELAY_TIMEOUT_MS, hops);
-      if (relayed.ok) {
+      // WHAT THE FAR SIDE IS ASKED FOR (the remainder rule, 2026-11-10). A link at `node.123` owns everything past it,
+      // so the target is asked for the REMAINDER ("makesnodifference") first; a registry that instead holds the SAME
+      // full name — every node names its own branch identically in its own registry — is still answered by the second
+      // attempt, so both spellings resolve and nothing that worked before stops working. An entry that declares `as`
+      // overrides both: it is saying, explicitly, which name its target holds.
+      const declared = typeof content.as === 'string' && content.as ? content.as : null;
+      const remainder = query.slice(prefix.length + 1);
+      const attempts = declared ? [declared] : remainder && remainder !== query ? [remainder, query] : [query];
+
+      let relayed: Awaited<ReturnType<typeof relayPull>> | null = null;
+      for (const remote of attempts) {
+        relayed = await relayPull(content.to, remote, via, RELAY_TIMEOUT_MS, hops);
+        if (relayed.ok) break;
+        // only a clean absence justifies trying the other spelling; a target that is unreachable or timed out has already
+        // answered the question, and asking it a second name would just double the wait
+        if (relayed.why !== 'absent') break;
+      }
+      if (relayed && relayed.ok) {
         return {
           ok: true,
-          name: relayed.name || remote,
+          name: relayed.name || query,
           at: relayed.at || new Date().toISOString(),
           full: relayed.full !== false,
           content: relayed.value,
@@ -382,7 +397,7 @@ export class State {
           via: relayed.via,
         };
       }
-      return { ok: false, code: 'no_such_entry', name: query, at: new Date().toISOString(), why: relayed.why, via: relayed.via };
+      return { ok: false, code: 'no_such_entry', name: query, at: new Date().toISOString(), why: relayed ? relayed.why : 'absent', via: relayed ? relayed.via : via };
     }
     return null;
   }

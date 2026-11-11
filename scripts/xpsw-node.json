@@ -1,0 +1,42 @@
+{
+  "name": "xpsw - Dell XPS 8300 (GTX 1060)",
+  "gpu": "GeForce GTX 1060 6 GB (Pascal, CC 6.1)",
+  "modelsDir": "C:/AI/models",
+  "note": "Added to Hydra 2026-11-10. Fan rack fitted beside the card before onboarding: ETCHASH steady state 82 C at 96-97 W (was 88 C at 74 W with no rack). The card's own fan still reports 0 %, so the rack is the only airflow - it runs, but it has no headroom.",
+  "modelsDirs": {
+    "llama-chat": "C:/AI/models"
+  },
+  "ref": "xpsw",
+  "standby": {
+    "label": "lolMiner ETCHASH",
+    "after": 1800,
+    "pinned": false,
+    "start": {
+      "command": "C:\\AI\\miners\\lolminer\\lolMiner.exe",
+      "args": [
+        "--algo", "ETCHASH",
+        "--pool", "etchash.unmineable.com:3333",
+        "--user", "leafdriving2.unmineable_miner_xpsw",
+        "--pass", "x",
+        "--apiport", "60151",
+        "--nocolor"
+      ],
+      "cwd": "C:\\AI\\miners\\lolminer",
+      "via": "direct"
+    },
+    "stop": {
+      "processes": [
+        "lolMiner",
+        "SRBMiner-MULTI",
+        "xmrig"
+      ]
+    },
+    "verify": {
+      "processes": [
+        "lolMiner"
+      ],
+      "timeoutS": 60
+    },
+    "note": "How THIS box is idle. 1800 s of no AI activity before the miner may start (operator rule) - the card is 82 C at steady state, so nothing else should be scheduling work on it silently."
+  }
+}

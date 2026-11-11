@@ -33,6 +33,9 @@ function parseCommand(command) {
   if (started || cur.length) argv.push(cur);
   return argv;
 }
+function sameExe(p) {
+  return String(p ?? "").trim().replace(/\\/g, "/").replace(/\/+$/, "").toLowerCase();
+}
 function pidAlive(pid) {
   try {
     if (process.platform === "win32") {
@@ -141,6 +144,10 @@ class ProcessWrapperService extends EventEmitter {
   launch(spec) {
     if (this.closed) throw new Error("wrapper is shut down");
     if (!spec || !spec.command || !String(spec.command).trim()) throw new Error("command is required");
+    if (spec.allowDuplicate !== true) {
+      const dup = this.findDuplicate(spec);
+      if (dup) return dup;
+    }
     const id = makeId(spec.name || spec.command, ++this.seq);
     const argv = spec.args && spec.args.length ? [spec.command, ...spec.args.map(String)] : parseCommand(spec.command);
     if (!argv.length) throw new Error("command is required");
@@ -232,6 +239,31 @@ class ProcessWrapperService extends EventEmitter {
       out.push({ ...rec, chars: { ...rec.chars } });
     }
     return out.sort((a, b) => b.spawnedAt - a.spawnedAt);
+  }
+  /**
+   * The life that is ALREADY doing this work, or null.
+   *
+   * Two requests are the same work when they name the same thing - same `name` - or when they resolve to the same
+   * exe, the same argv and the same directory. Matching on the name alone is not enough (an unnamed launch of the same
+   * exe twice is the same job) and matching on the command alone is not enough either (one exe can serve two roles).
+   * `ignoreId` skips one life, so replacing a row never matches the row being replaced.
+   */
+  findDuplicate(spec, ignoreId) {
+    if (!spec || !spec.command || !String(spec.command).trim()) return null;
+    const argv = spec.args && spec.args.length ? [spec.command, ...spec.args.map(String)] : parseCommand(spec.command);
+    if (!argv.length) return null;
+    const exe = sameExe(argv[0]);
+    const argsKey = argv.slice(1).join("\0");
+    const cwd = spec.cwd ? path.resolve(spec.cwd) : process.cwd();
+    const wantName = String(spec.name ?? "").trim().toLowerCase();
+    for (const rec of this.table.values()) {
+      if (ignoreId && rec.id === ignoreId) continue;
+      if (rec.life !== "starting" && rec.life !== "running") continue;
+      const sameName = !!wantName && rec.name.trim().toLowerCase() === wantName;
+      const sameWork = sameExe(rec.command) === exe && rec.args.join("\0") === argsKey && path.resolve(rec.cwd) === cwd;
+      if (sameName || sameWork) return { ...rec, chars: { ...rec.chars } };
+    }
+    return null;
   }
   /** One record, or null. */
   get(id) {
@@ -755,6 +787,28 @@ async function runTests() {
   ok("and none of its noise is captured on this loop", (w.get(supRec.id)?.chars.stdout ?? -1) === 0, String(w.get(supRec.id)?.chars.stdout));
   const supKill = await w.kill(supRec.id, { force: true });
   ok("a supervised child is still stoppable from the table", supKill.outcome === "killed", JSON.stringify(supKill));
+  const dupA = w.launch({ name: "dup-target", command: process.execPath, args: ["-e", "setInterval(()=>{},100)"] });
+  const dupB = w.launch({ name: "dup-target", command: process.execPath, args: ["-e", "setInterval(()=>{},100)"] });
+  ok("a second launch by the same name returns the life already up", dupB.id === dupA.id, dupA.id + " vs " + dupB.id);
+  ok(
+    "and the table holds one row for it",
+    w.list({ life: "running" }).filter((r) => r.name === "dup-target").length === 1,
+    String(w.list({ life: "running" }).filter((r) => r.name === "dup-target").length)
+  );
+  const dupC = w.launch({ name: "dup-target", command: process.execPath, args: ["-e", "setInterval(()=>{},100)"], allowDuplicate: true });
+  ok("allowDuplicate is the explicit override", dupC.id !== dupA.id, dupA.id + " vs " + dupC.id);
+  const dupD = w.launch({ command: "C:\\AI\\Miners\\Thing.exe", args: ["--flag"], cwd: dir });
+  const dupE = w.launch({ command: "c:/ai/miners/thing.exe", args: ["--flag"], cwd: dir });
+  ok("an unnamed launch of the same exe+argv+cwd is the same work", dupE.id === dupD.id, dupD.id + " vs " + dupE.id);
+  const dupF = w.launch({ command: "C:\\AI\\Miners\\Thing.exe", args: ["--other"], cwd: dir });
+  ok("a different argv is a different life", dupF.id !== dupD.id, dupD.id + " vs " + dupF.id);
+  await w.kill(dupA.id, { force: true });
+  await w.kill(dupC.id, { force: true });
+  await w.kill(dupD.id, { force: true });
+  await w.kill(dupF.id, { force: true });
+  const dupG = w.launch({ command: "C:\\AI\\Miners\\Thing.exe", args: ["--flag"], cwd: dir });
+  ok("a finished life does not block the same work starting again", dupG.id !== dupD.id, dupD.id + " vs " + dupG.id);
+  await w.kill(dupG.id, { force: true });
   await w.shutdown();
   ok("shutdown leaves nothing running", w.list({ life: "running" }).length === 0);
   const failed = results.filter((r) => r.startsWith("FAIL"));
@@ -765,6 +819,7 @@ export {
   ProcessWrapperService,
   createWrapper,
   parseCommand,
-  runTests
+  runTests,
+  sameExe
 };
 //# sourceMappingURL=processWrapper.js.map

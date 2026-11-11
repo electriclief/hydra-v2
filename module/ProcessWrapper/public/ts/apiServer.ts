@@ -402,7 +402,21 @@ export function createApiServer(options: ApiServerOptions): ApiServer {
               bufferLimitChars: typeof body.bufferLimitChars === 'number' ? body.bufferLimitChars : undefined,
             };
           }
-          const rec = wrapper.launch(spec);
+          // A SECOND REQUEST FOR THE SAME WORK IS ONE LIFE, NOT TWO. Measured failure this prevents: a double-click and
+          // a retried call started two miners on one card and two guards fighting over one miner, and the operator had
+          // to close windows by hand. The wrapper answers a duplicate with the life already up; this says so out loud,
+          // because a caller that cannot tell a fresh spawn from a reused row will keep asking.
+          const force = body.force === true;
+          const already = force ? null : wrapper.findDuplicate(spec);
+          if (already) {
+            sendJson(res, 200, {
+              process: already,
+              duplicate: true,
+              note: `already running as ${already.id} (${already.life}); send {"force":true} to launch a second copy`,
+            });
+            return;
+          }
+          const rec = wrapper.launch(force ? { ...spec, allowDuplicate: true } : spec);
           sendJson(res, 201, { process: rec });
         } catch (err) {
           sendError(res, 400, 'launch_failed', (err as Error).message);

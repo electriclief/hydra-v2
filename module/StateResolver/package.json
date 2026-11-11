@@ -1,0 +1,12 @@
+{
+  "name": "state-resolver",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node src/main.js",
+    "selftest": "node selftest.mjs",
+    "test": "npm run selftest"
+  },
+  "description": "State Resolver - publishes this node's branch, observes peers, and resolves a root state's pointers."
+}

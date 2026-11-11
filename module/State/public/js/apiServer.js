@@ -318,7 +318,25 @@ async function runTests() {
     const followed = await jsonOf(await fetch(base + "/api/state/pull?name=node.fake.services.remote"));
     ok("a name behind a link resolves through it", followed.ok === true && followed.content?.name === "remote-service", JSON.stringify(followed).slice(0, 200));
     ok("the answer says where it came from", typeof followed.source === "string" && followed.source.includes(String(port)) && followed.hops >= 1, JSON.stringify({ source: followed.source, hops: followed.hops }));
-    ok("the far side was asked the same name", followed.content?.asked === "node.fake.services.remote");
+    ok("the far side is asked for the REMAINDER of the path", followed.content?.asked === "services.remote", String(followed.content?.asked));
+    const picky = http.createServer((req, res) => {
+      const asked = new URL(req.url ?? "/", "http://peer");
+      const name = asked.searchParams.get("name") ?? "";
+      if (name !== "node.picky.services.remote") {
+        res.writeHead(404, { "content-type": "application/json" });
+        res.end(JSON.stringify({ ok: false, error: { code: "no_such_entry" } }));
+        return;
+      }
+      res.writeHead(200, { "content-type": "application/json" });
+      res.end(JSON.stringify({ ok: true, name, at: (/* @__PURE__ */ new Date()).toISOString(), full: true, marks: {}, content: { name: "same-name", asked: name }, hops: 1, via: ["http://peer"] }));
+    });
+    await new Promise((ready) => picky.listen(0, "127.0.0.1", () => ready()));
+    const pickyPort = picky.address().port;
+    state.register("node.picky", { kind: "link", to: `http://127.0.0.1:${pickyPort}`, at: Date.now() });
+    const viaFull = await jsonOf(await fetch(base + "/api/state/pull?name=node.picky.services.remote"));
+    ok("a registry holding the SAME full name still resolves (fallback)", viaFull.ok === true && viaFull.content?.asked === "node.picky.services.remote", JSON.stringify(viaFull).slice(0, 200));
+    state.drop("node.picky");
+    await new Promise((done) => picky.close(() => done()));
     const hereOnly = await fetch(base + "/api/state/pull?name=node.fake.services.remote&follow=0");
     ok("follow=0 answers only from this registry", hereOnly.status === 404);
     state.register("node.selfish", { kind: "link", to: base, at: Date.now() });

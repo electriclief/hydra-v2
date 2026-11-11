@@ -30,7 +30,7 @@ const PUBLISHED: ReadonlySet<string> = new Set(['queued', 'running']);
 
 export function refFromNodeJson(root: string | null): string | null {
   if (!root) return null;
-  for (const rel of [path.join('Core', 'data', 'node.json'), path.join('Menu', 'data', 'node.json')]) {
+  for (const rel of [path.join('StateResolver', 'data', 'node.json'), path.join('Menu', 'data', 'node.json')]) {
     try {
       const parsed = JSON.parse(readFileSync(path.join(root, rel), 'utf8')) as { ref?: unknown };
       if (parsed && typeof parsed.ref === 'string' && parsed.ref.trim()) return parsed.ref.trim().toLowerCase();
@@ -53,7 +53,7 @@ export interface SchedulerPublish {
  * Keeping this pure is what lets the gate prove the drop path without a State process.
  *
  * OWNERSHIP: this function writes `node.<ref>.scheduler*` and nothing else. Standby/Idle Service is published by
- * the guard that owns it, doors by the shell, services by the catalog, the heartbeat by Core. A module that
+ * the guard that owns it, doors by the shell, services by the catalog, the heartbeat by the State Resolver. A module that
  * republishes another's facts becomes a single point of failure for a truth it does not own.
  */
 export function schedulerPublish(jobs: Job[], stats: Stats, ref: string, previously: string[] = []): SchedulerPublish {
@@ -167,7 +167,7 @@ export interface StandbyPolicy {
 
 export function readStandbyPolicy(root: string | null): StandbyPolicy {
   if (!root) return {};
-  for (const rel of [path.join('Core', 'data', 'node.json'), path.join('Menu', 'data', 'node.json')]) {
+  for (const rel of [path.join('StateResolver', 'data', 'node.json'), path.join('Menu', 'data', 'node.json')]) {
     try {
       const parsed = JSON.parse(readFileSync(path.join(root, rel), 'utf8')) as { standby?: StandbyPolicy };
       if (parsed && parsed.standby && typeof parsed.standby === 'object') return parsed.standby;

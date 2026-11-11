@@ -1,0 +1,71 @@
+{
+  "name": "llm-vulkan",
+  "kind": "service",
+  "ver": 1,
+  "what": "llama.cpp on the Vulkan backend, one server per box, spreading a model across every card the box has. The point of it: a pile of $20 cards that are individually useless for an LLM can hold one together.",
+  "why_this_and_not_cuda": "These cards are Kepler/Maxwell/GCN vintage. CUDA support stopped at 10.2 for Kepler and 11.x for Maxwell/Pascal; ROCm dropped Polaris and never had these. Vulkan is the only path that still works on all of them at once, and it is the same path already measured on robert (sd.cpp) and the 980 Ti.",
+  "platform": {
+    "os": ["windows", "linux"],
+    "min": {
+      "ram_mb": 4096,
+      "vulkan": "a driver that exposes each card as a Vulkan device; ggml-vulkan asks for Vulkan 1.2 features and silently skips devices it cannot use",
+      "cpu_note": "cores do not matter for token generation, but prompt processing on a 2-core box is slow enough to notice"
+    }
+  },
+  "requires": [
+    {
+      "what": "llama.cpp built with the Vulkan backend",
+      "check": "llama-server.exe --list-devices  (must name Vulkan0, Vulkan1, ...)",
+      "install": "use the prebuilt llama-<ver>-bin-win-vulkan-x64.zip release, or -DGGML_VULKAN=ON",
+      "evidence": "measured on 123: llama-b9585 ships ggml-vulkan.dll (53,586,944 bytes) and answers --list-devices"
+    },
+    {
+      "what": "a GGUF model",
+      "check": "the file opens and its size fits (VRAM total - ~600 MB overhead)",
+      "install": "n/a - a model is data, not an install"
+    }
+  ],
+  "inputs": {
+    "model": "path to a .gguf",
+    "devices": "-dev Vulkan0,Vulkan1,...  (comma list; omit one and it is not used)",
+    "split": "-sm layer  (or row/tensor for same-model parallel work; layer is the only sane default for mixed cards)",
+    "tensor_split": "-ts N0,N1,...  fraction per device - the honest way to give the 4 GB card three times the share of a 1 GB card",
+    "layers": "-ngl 999  (all layers off the CPU; lower it if the total does not fit)",
+    "context": "-c 4096..32768, depends on RAM for the CPU-side buffers",
+    "port": "8080, OpenAI-compatible /v1"
+  },
+  "provides": {
+    "endpoint": "http://<node>:8080/v1  (OpenAI-compatible; this is what Hydra's llama-lan back end points at)"
+  },
+  "steps": [
+    "install the Vulkan build; run --list-devices and record exactly which cards appear",
+    "pick a model that fits the SUM of VRAM; start with -ngl 999 -sm layer and no -ts",
+    "if one card runs out first, set -ts to the measured VRAM proportions",
+    "measure: prompt tokens/s and generation tokens/s, and which devices the log says it loaded",
+    "publish the node's readiness only after that number exists"
+  ],
+  "verify": [
+    "llama-server --list-devices                     which cards Vulkan can actually use",
+    "log line 'load_tensors: offloaded N/M layers'    how much of the model really left the CPU",
+    "curl /v1/chat/completions with a one-line prompt  an answer, and a timed one"
+  ],
+  "limits": {
+    "capacity_vs_speed": "Layer split adds VRAM, not speed. One card computes at a time, so generation runs at roughly the speed of the card holding the active layer - the pile buys model SIZE, not tokens per second.",
+    "one_box_only": "Vulkan cannot span machines. Two boxes are two servers; llama.cpp's experimental --rpc backend exists but is not a design anyone should schedule against. Hydra picks a box, it does not weld two together.",
+    "old_cards_may_not_appear": "A card can be installed and working in Windows and still never appear as a Vulkan device the model can use (driver too old, Vulkan 1.0 only). --list-devices is the verdict, not the spec sheet.",
+    "one_gb_cards": "A 4-bit 7B layer is roughly 140 MB, so a 1 GB card holds a handful of layers after context buffers. Six such cards are worth pooling; one is not worth the electricity for an LLM.",
+    "mining_shares_the_cards": "On a box that also mines, the two services want the same cards. That is the standby guard's decision, exactly as on robert - never both at once, and the guard is what stops a render from being starved by a miner.",
+    "two_cores": "Prompt processing and model loading are CPU-bound at the edges. A 2-core node serves tokens fine and takes a long time to load a model."
+  },
+  "measured": {
+    "flags_confirmed": "llama.cpp b9585 win-x64 Vulkan: -dev / --split-mode {none,layer,row,tensor} / -ts / -mg / --list-devices",
+    "node_123": "Radeon RX 6800 16 GB - single card, so pooling is untested here",
+    "declared_nodes": ["miner1 (mine any algo, or llm-vulkan)", "miner2 (llm-vulkan only - cards too old for useful mining)"],
+    "pending": "no multi-card measurement exists yet: the 6-card pile on miner1 has not been enumerated"
+  },
+  "notes": [
+    "A role is a claim, a verdict is a measurement: miner1 and miner2 declare ready_for llm-vulkan only after --list-devices and a timed answer exist on that box.",
+    "The same service name on two very different boxes is normal - the node's own declaration says which resource class it is bidding with.",
+    "If a single card in the pile is broken or too old to enumerate, leave it out with -dev rather than removing it from the box: the tree keeps reporting the hardware that is really there."
+  ]
+}

@@ -1,8 +1,0 @@
-{
-  "name": "Core",
-  "kind": "door",
-  "port": 8136,
-  "start": "\"%LOCALAPPDATA%\hermes\node\node.exe\" src/main.js",
-  "wiredAtBoot": false,
-  "what": "The basic server: registers this node's own subtree in State (node.<ref>.id/.doors/.cycle), ticks the Phoenix cycle counter, records what it sees of each peer under its own branch, and serves one assembled tree at /api/tree. Holds no truth about anyone else."
-}

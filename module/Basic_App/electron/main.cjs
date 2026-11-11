@@ -68,7 +68,7 @@ const DOOR_TABLE = [
   { key: 'sessiondiary', dir: 'SessionDiary', port: 8134, args: ['--scan', '120'] },
   { key: 'thoughts', dir: 'TrainOfThought', port: 8135 },
   // the basic server and its reader: everything above says WHAT this node offers, these two say WHO it is
-  { key: 'core',   dir: 'Core',   port: 8136, script: 'src/main.js' },
+  { key: 'resolver', dir: 'StateResolver', port: 8136, script: 'src/main.js' },
   { key: 'mirror', dir: 'Mirror', port: 8137, script: 'src/main.js' },
   // Echidna is the agent's FACE, not the Menu's child: it is its own door so the Menu (or any node) can display
   // it, and so the talk thread keeps existing when the Menu is closed.

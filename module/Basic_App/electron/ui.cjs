@@ -32,7 +32,7 @@ const CATALOG = [
   { name: 'State', path: 'localhost:8127', group: 'development', help: 'State' },
   { name: 'Services', path: 'localhost:8128', group: 'development', help: 'Services' },
   { name: 'Resources', path: 'localhost:8129', group: 'development', help: 'ResourceManager' },
-  { name: 'Core', path: 'localhost:8136', group: 'development', help: 'Core' },
+  { name: 'State Resolver', path: 'localhost:8136', group: 'development', help: 'StateResolver' },
   { name: 'Mirror', path: 'localhost:8137', group: 'development', help: 'Mirror' },
 ];
 

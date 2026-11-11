@@ -3,7 +3,7 @@ import path from "node:path";
 const PUBLISHED = /* @__PURE__ */ new Set(["queued", "running"]);
 function refFromNodeJson(root) {
   if (!root) return null;
-  for (const rel of [path.join("Core", "data", "node.json"), path.join("Menu", "data", "node.json")]) {
+  for (const rel of [path.join("StateResolver", "data", "node.json"), path.join("Menu", "data", "node.json")]) {
     try {
       const parsed = JSON.parse(readFileSync(path.join(root, rel), "utf8"));
       if (parsed && typeof parsed.ref === "string" && parsed.ref.trim()) return parsed.ref.trim().toLowerCase();
@@ -95,7 +95,7 @@ async function fire(eventUrl, name, payload) {
 }
 function readStandbyPolicy(root) {
   if (!root) return {};
-  for (const rel of [path.join("Core", "data", "node.json"), path.join("Menu", "data", "node.json")]) {
+  for (const rel of [path.join("StateResolver", "data", "node.json"), path.join("Menu", "data", "node.json")]) {
     try {
       const parsed = JSON.parse(readFileSync(path.join(root, rel), "utf8"));
       if (parsed && parsed.standby && typeof parsed.standby === "object") return parsed.standby;

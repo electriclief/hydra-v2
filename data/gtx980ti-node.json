@@ -1,0 +1,43 @@
+{
+    "host": "DESKTOP-Q8U0BTH",
+    "joined": "2026-11-06T19:38:25",
+    "name": "gtx-980ti",
+    "ref": "980ti",
+    "gpu": "GeForce GTX 980 Ti, 6144 MB (Maxwell, CC 5.2) - CUDA only, no Vulkan compute path needed for mining",
+    "standby": {
+        "label": "etchash mining (GTX 980 Ti)",
+        "after": 1800,
+        "pinned": false,
+        "start": {
+            "command": "C:\\AI\\miners\\lolminer\\lolMiner.exe",
+            "args": [
+                "--algo",
+                "ETCHASH",
+                "--pool",
+                "etchash.unmineable.com:3333",
+                "--user",
+                "leafdriving2.unmineable_miner_gtx980",
+                "--apiport",
+                "61235",
+                "--log",
+                "on",
+                "--logfile",
+                "C:\\AI\\logs\\lolmine.log"
+            ],
+            "cwd": "C:\\AI\\miners\\lolminer",
+            "via": "direct"
+        },
+        "stop": {
+            "processes": [
+                "lolMiner"
+            ]
+        },
+        "verify": {
+            "processes": [
+                "lolMiner"
+            ],
+            "timeoutS": 90
+        },
+        "note": "Measured on this box 2026-11-09: SRBMiner 3.8.6 refuses Maxwell (CUDA 'not on list of supported devices'); lolMiner 1.98a accepts the card, builds the 4447 MB etchash DAG in 7.8 s, pool authorizes the worker. Rate is 1.53 MH/s where the card class does 25-30 - the build is the suspect, not the card. after=1800 is the operator's 30-minute quiet rule."
+    }
+}

@@ -8,11 +8,16 @@
 param(
   [Parameter(Mandatory = $true)][string]$Name,      # e.g. services-8128
   [Parameter(Mandatory = $true)][string]$Module,    # e.g. Services
-  [Parameter(Mandatory = $true)][int]$Port
+  [Parameter(Mandatory = $true)][int]$Port,
+  # Doors that are pages (Menu, Services, TrainOfThought) serve from public\js\main.js. The ones that ARE the
+  # server - Mirror, Core, State - start from src\main.js, and a raiser that cannot say so silently raises the
+  # browser bundle on a port, which answers nothing: "bound to nothing".
+  [string]$Entry = ''
 )
 $ErrorActionPreference = 'Continue'
 $root = 'C:\AI\hydra-local'
-$mainJs = Join-Path $root "module\$Module\public\js\main.js"
+$mainJs = if ($Entry) { Join-Path $root $Entry } else { Join-Path $root "module\$Module\public\js\main.js" }
+if (-not (Test-Path $mainJs)) { "entry not found: $mainJs - nothing raised"; exit 1 }
 "door $Name on $Port  ($mainJs)"
 
 $conns = Get-NetTCPConnection -LocalPort $Port -ErrorAction SilentlyContinue | Select-Object -ExpandProperty OwningProcess -Unique

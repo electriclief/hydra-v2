@@ -290,13 +290,20 @@ function createApiServer(options) {
               tag: body.tag ? String(body.tag) : null,
               shell: body.shell === true,
               isolation: body.isolation === "supervised" ? "supervised" : "in-loop",
-              // a row whose whole point is to be READ ON THE SCREEN (a share wall, a status board) has to be able to ask
-              // for its own window: without this the console stayed hidden and the node looked idle while it worked
-              hideWindow: body.hideWindow === false ? false : void 0,
               bufferLimitChars: typeof body.bufferLimitChars === "number" ? body.bufferLimitChars : void 0
             };
           }
-          const rec2 = wrapper.launch(spec);
+          const force = body.force === true;
+          const already = force ? null : wrapper.findDuplicate(spec);
+          if (already) {
+            sendJson(res, 200, {
+              process: already,
+              duplicate: true,
+              note: `already running as ${already.id} (${already.life}); send {"force":true} to launch a second copy`
+            });
+            return;
+          }
+          const rec2 = wrapper.launch(force ? { ...spec, allowDuplicate: true } : spec);
           sendJson(res, 201, { process: rec2 });
         } catch (err) {
           sendError(res, 400, "launch_failed", err.message);

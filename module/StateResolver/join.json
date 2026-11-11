@@ -1,0 +1,8 @@
+{
+  "name": "StateResolver",
+  "kind": "door",
+  "port": 8136,
+  "start": "\"%LOCALAPPDATA%\\hermes\\node\\node.exe\" src/main.js",
+  "wiredAtBoot": false,
+  "what": "State Resolver (renamed from Core, 2026-11-10): registers this node's own subtree in State (node.<ref>.id/.doors/.cycle), publishes one link per attached member so a restarted State is repopulated, records what it sees of each peer under its own branch, resolves a path across those links - the walk itself lives in State :8127 (remainder rule, typed absence) - and serves one assembled tree at /api/tree. Holds no truth about anyone else."
+}

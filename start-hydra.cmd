@@ -1,26 +1,33 @@
 @echo off
-REM ================================================================
-REM  HEADLESS debug start — doors only, NO window.
+REM =====================================================================================
+REM  HYDRA V2 - the ONE launcher. Every node runs this same file from the Startup folder.
 REM
-REM  This launcher starts nothing itself. The shell does it: ProcessWrapper
-REM  hidden, then State / Services / ResourceManager as ProcessWrapper-owned
-REM  processes, then Basic_App in-process — and stops because of --headless.
-REM  Nothing is ever a free console window (the old five-window launcher is
-REM  gone on purpose).
+REM  It decides nothing about the node beyond what the node already is:
+REM    - an Electron build present  -> the shelf WITH its window (what a person stands in front of)
+REM    - no Electron                -> shelf-headless.mjs, same doors, same rows, no window
+REM  Both paths raise ProcessWrapper and every door through it, and the shelf hands the mining
+REM  line to the monitor when node.json declares a miner. So the menu and the monitor are state,
+REM  not a per-node arrangement: nothing in this file knows a machine name, an IP or a card.
 REM
-REM  Normal use = open-hydra-window.cmd (same stack, WITH the window and its
-REM  golden-layout tabs: Basic | service pages | Process).
-REM ================================================================
-set ELECTRON=C:\Users\User\AppData\Local\hermes\node\node_modules\electron\dist\electron.exe
-if not exist "%ELECTRON%" (
-  echo   No electron found at %ELECTRON%
-  exit /b 1
+REM  Idempotent: a door already answering is adopted, never restarted; a second shelf exits.
+REM =====================================================================================
+setlocal
+cd /d "%~dp0"
+if not exist "logs" mkdir "logs"
+
+set "NODE=%~dp0tools\node\node.exe"
+if not exist "%NODE%" set "NODE=node"
+
+set "ELECTRON="
+if exist "%LOCALAPPDATA%\hermes\node\node_modules\electron\dist\electron.exe" set "ELECTRON=%LOCALAPPDATA%\hermes\node\node_modules\electron\dist\electron.exe"
+if exist "%~dp0tools\electron\electron.exe" set "ELECTRON=%~dp0tools\electron\electron.exe"
+
+if defined ELECTRON (
+  echo   electron: %ELECTRON%
+  echo   raising the shelf with a window
+  start "" "%ELECTRON%" "%~dp0module\Basic_App\electron\main.cjs"
+  exit /b 0
 )
-cd /d C:\AI\hydra-local\module\Basic_App
-start "hydra-headless" /min "%ELECTRON%" electron\main.cjs --headless
-echo.
-echo   Doors coming up hidden: 8125 PW . 8127 State . 8128 Services . 8129 RM . 8130 Basic
-echo   Shelf face (open it yourself): http://127.0.0.1:8130/
-echo   Catalog: http://127.0.0.1:8128/api/services   (reload: POST /api/services/reload)
-echo   Stop: run stop-hydra.cmd
-echo.
+
+echo   no electron on this node - raising the shelf headless
+"%NODE%" "%~dp0shelf-headless.mjs" >> "%~dp0logs\shelf-boot.log" 2>&1
