@@ -30,7 +30,7 @@ const ROOT = arg('root', 'C:\\AI\\hydra-local');
 const ECHIDNA = Number(arg('echidna', 8138));
 const INTERVAL = Number(arg('interval', 10));
 const ONCE = process.argv.includes('--once');
-const RATE_STEP = 0.05;          // MH/s — a move smaller than this is noise, not news
+const RATE_STEP = 0.005;         // relative move (0.5 %) that counts as news, not an absolute one: 87 MH/s and 669 GH/s cannot share a threshold
 const HEARTBEAT_MIN = 15;
 const LOG = path.join(ROOT, 'logs', 'monitor-mining.log');
 
@@ -54,6 +54,33 @@ function readNode() {
   return { ref: raw?.ref ?? 'node', port, label: raw?.standby?.label ?? 'mining' };
 }
 
+/** Normalise the two miner APIs this fleet actually runs: lolMiner and SRBMiner-MULTI. */
+function shape(j) {
+  const alg = Array.isArray(j.Algorithms) ? j.Algorithms[0] : (Array.isArray(j.algorithms) ? j.algorithms[0] : null);
+  if (!alg) return null;
+  if (alg.Total_Performance !== undefined) {
+    // lolMiner: MH/s already, flat fields, uptime in Session
+    return {
+      algo: String(alg.Algorithm ?? ''),
+      hps: Number(alg.Total_Performance ?? 0) * 1e6,
+      accepted: Number(alg.Total_Accepted ?? 0),
+      rejected: Number(alg.Total_Rejected ?? 0),
+      uptime: Math.round(Number(j.Session?.Uptime ?? 0) / 60),
+    };
+  }
+  // SRBMiner: hashrate in H/s under a window key, shares nested, mining_time in seconds
+  const hr = alg.hashrate ?? {};
+  const hps = Number(hr['1min'] ?? hr['15min'] ?? hr.total ?? 0);
+  const sh = alg.shares ?? {};
+  return {
+    algo: String(alg.name ?? ''),
+    hps,
+    accepted: Number(sh.accepted ?? 0),
+    rejected: Number(sh.rejected ?? 0),
+    uptime: Math.round(Number(j.mining_time ?? 0) / 60),
+  };
+}
+
 async function ask(port) {
   const ctl = new AbortController();
   const t = setTimeout(() => ctl.abort(), 5000);
@@ -61,16 +88,9 @@ async function ask(port) {
     const r = await fetch(`http://127.0.0.1:${port}/`, { signal: ctl.signal });
     if (!r.ok) return { ok: false, why: `http ${r.status}` };
     const j = await r.json();
-    const a = Array.isArray(j.Algorithms) ? j.Algorithms[0] : null;
-    if (!a) return { ok: false, why: 'no algorithm in the answer' };
-    return {
-      ok: true,
-      algo: String(a.Algorithm ?? ''),
-      rate: Number(a.Total_Performance ?? 0),
-      accepted: Number(a.Total_Accepted ?? 0),
-      rejected: Number(a.Total_Rejected ?? 0),
-      uptime: Math.round(Number(j.Session?.Uptime ?? 0) / 60),
-    };
+    const s = shape(j);
+    if (!s) return { ok: false, why: 'no algorithm in the answer' };
+    return { ok: true, ...s };
   } catch (e) {
     return { ok: false, why: e.name === 'AbortError' ? 'timed out' : (e.message || 'unreachable') };
   } finally {
@@ -95,7 +115,14 @@ async function card(kind, title, text) {
   }
 }
 
-const money = (n) => (Number.isFinite(n) ? n.toFixed(2) : '0.00');
+/** 87875409 -> "87.88 MH/s". The miner's own figure, only scaled — never a factor invented on the way. */
+function human(hps) {
+  if (!Number.isFinite(hps) || hps <= 0) return '0 H/s';
+  for (const [div, unit] of [[1e9, 'GH/s'], [1e6, 'MH/s'], [1e3, 'kH/s']]) {
+    if (hps >= div) return `${(hps / div).toFixed(2)} ${unit}`;
+  }
+  return `${Math.round(hps)} H/s`;
+}
 
 async function main() {
   let node;
@@ -121,16 +148,16 @@ async function main() {
   for (;;) {
     const r = await ask(node.port);
     if (r.ok) {
-      const line = `${money(r.rate)} MH/s · A${r.accepted} R${r.rejected} · up ${r.uptime} min`;
-      const resumed = !last || misses > 0;
-      const share = r.accepted > lastAccepted && lastAccepted >= 0;
-      const moved = Math.abs(r.rate - lastRate) >= RATE_STEP;
+      const line = `${human(r.hps)} · A${r.accepted} R${r.rejected} · up ${r.uptime} min`;
+      const resumed = misses > 0 || lastAccepted < 0;
+      const share = lastAccepted >= 0 && r.accepted > lastAccepted;
+      const moved = lastRate > 0 && Math.abs(r.hps - lastRate) / lastRate >= RATE_STEP;
       const beat = (Date.now() - lastPost) / 60000 >= HEARTBEAT_MIN;
 
       if (resumed) {
         await card('output', `${node.ref} · mining`, `${r.algo} ${line}`);
       } else if (share) {
-        await card('output', `${node.ref} · share accepted #${r.accepted}`, `${money(r.rate)} MH/s · A${r.accepted} R${r.rejected} · up ${r.uptime} min`);
+        await card('output', `${node.ref} · share accepted #${r.accepted}`, `${human(r.hps)} · A${r.accepted} R${r.rejected} · up ${r.uptime} min`);
       } else if (moved) {
         await card('output', `${node.ref} · rate`, line);
       } else if (beat) {
@@ -139,9 +166,10 @@ async function main() {
       if (resumed || share || moved || beat) {
         lastPost = Date.now();
         lastAccepted = r.accepted;
-        lastRate = r.rate;
+        lastRate = r.hps;
       }
-      last = r; misses = 0; saidStopped = false;
+      misses = 0;
+      saidStopped = false;
     } else {
       misses += 1;
       if (misses >= 3 && !saidStopped) {
