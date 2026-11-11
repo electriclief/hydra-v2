@@ -148,7 +148,18 @@ export function createApiServer(options: ApiServerOptions): ApiServer {
         if (answer.code === 'ambiguous') {
           sendError(res, 409, 'ambiguous', `ambiguous: ${answer.name} matches ${(answer.candidates ?? []).join(', ')} — extend the suffix until unique`);
         } else {
-          sendError(res, 404, 'no_such_entry', `no such entry: ${answer.name} — GET /api/state for the active set`);
+          // A TYPED ABSENCE CARRIES ITS REASON. Flattening every failure into `no_such_entry` made an app that had
+          // exited look like a path nobody had registered — the caller could not tell `gone` from `absent` from
+          // `timeout`, and every one of those needs a different response. The code stays 404; the typology rides along.
+          sendJson(res, 404, {
+            ok: false,
+            error: { code: 'no_such_entry', message: `no such entry: ${answer.name} — GET /api/state for the active set` },
+            name: answer.name,
+            why: answer.why ?? 'absent',
+            via: answer.via ?? [],
+            hops: answer.hops ?? 0,
+            ...(answer.source ? { source: answer.source } : {}),
+          });
         }
         return;
       }
@@ -327,6 +338,11 @@ export async function runTests(): Promise<void> {
 
   const miss = await fetch(base + '/api/state/pull?name=nope');
   ok('an unknown entry answers 404 no_such_entry', miss.status === 404 && (await jsonOf<{ error: { code: string } }>(miss)).error.code === 'no_such_entry');
+
+  // a refusal must say WHY it refused: an app that exited (gone) and a path nobody registered (absent) are different
+  // facts and callers respond differently, so the typology has to survive the trip over HTTP
+  const missBody = await jsonOf<{ ok: boolean; why?: string; name?: string }>(await fetch(base + '/api/state/pull?name=nope'));
+  ok('a 404 carries the typed reason, not just a code', missBody.ok === false && typeof missBody.why === 'string', JSON.stringify(missBody));
 
   state.register('Alt.demo', { x: 1 });
   state.register('Other.demo', { x: 1 });

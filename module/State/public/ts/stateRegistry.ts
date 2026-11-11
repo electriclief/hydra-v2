@@ -122,6 +122,9 @@ export interface PullRefusal {
   /** For 'ambiguous': the full paths that matched — extend the suffix until unique. */
   candidates?: string[];
   at: string;
+  /** How far the walk got before it gave up, and where it stopped — carried so a caller can see the shape of the failure. */
+  hops?: number;
+  source?: string | null;
 }
 
 export type PullAnswer = PullReply | PullRefusal;
@@ -356,7 +359,7 @@ export class State {
     const via = options.via ?? [];
     const hops = options.hops ?? 0;
     if (hops >= MAX_LINK_HOPS) {
-      return { ok: false, code: 'no_such_entry', name: query, at: new Date().toISOString(), why: 'cycle', via };
+      return { ok: false, code: 'no_such_entry', name: query, at: new Date().toISOString(), why: 'cycle', via, hops, source: null };
     }
     const parts = query.split('.');
     for (let i = parts.length - 1; i >= 1; i -= 1) {
@@ -397,7 +400,7 @@ export class State {
           via: relayed.via,
         };
       }
-      return { ok: false, code: 'no_such_entry', name: query, at: new Date().toISOString(), why: relayed ? relayed.why : 'absent', via: relayed ? relayed.via : via };
+      return { ok: false, code: 'no_such_entry', name: query, at: new Date().toISOString(), why: relayed ? relayed.why : 'absent', via: relayed ? relayed.via : via, hops: relayed?.hops ?? hops, source: relayed?.source ?? null };
     }
     return null;
   }

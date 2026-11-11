@@ -1,0 +1,12 @@
+{
+  "name": "appplug",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "AppPlug: runs an app that only knows how to print, parses its console into paths, publishes one link into State, and answers /api/resolve live.",
+  "scripts": {
+    "start": "node src/main.js --port 8156",
+    "selftest": "node selftest.mjs",
+    "test": "node selftest.mjs"
+  }
+}

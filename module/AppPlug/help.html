@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AppPlug — the plug for apps that only know how to print</title>
+<style>
+ :root { color-scheme: dark; --bg:#111318; --border:#303541; --text:#e5e7eb; --muted:#a1a8b7; }
+ * { box-sizing: border-box; }
+ body { margin:0; padding:32px; background:var(--bg); color:var(--text); font:15px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif; max-width:78ch; }
+ h1 { margin:0 0 4px; font-size:24px; font-weight:600; }
+ h2 { margin:30px 0 10px; font-size:13px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; color:var(--muted); }
+ .kicker { margin:0 0 26px; color:var(--muted); font-size:13px; }
+ code { font:13px/1.5 ui-monospace,Consolas,monospace; background:#0b0d11; border:1px solid var(--border); border-radius:5px; padding:1px 5px; }
+ pre { background:#0b0d11; border:1px solid var(--border); border-radius:7px; padding:12px 14px; overflow-x:auto; font:12.5px/1.6 ui-monospace,Consolas,monospace; }
+ table { width:100%; border-collapse:collapse; margin:6px 0 14px; font-size:14px; }
+ th, td { text-align:left; padding:7px 10px; border-bottom:1px solid var(--border); vertical-align:top; }
+ th { color:var(--muted); font-size:12px; text-transform:uppercase; letter-spacing:.06em; }
+</style></head><body>
+<header><h1>AppPlug</h1>
+<p class="kicker">one app, one namespace · door on :8156 · a manifest per app</p></header>
+
+<section id="summary">
+<p>AppPlug is the plug for programs that only know how to print. It runs the app, reads its console, turns the lines a
+manifest names into paths, and publishes <b>one link</b> into State — <code>foo_bar -&gt; http://127.0.0.1:8156</code>. From
+then on the LAN asks <code>foo_bar.progress</code> and gets the app's own live number, with the moment it was seen,
+without the app knowing Hydra exists.</p>
+</section>
+
+<section id="concepts">
+<h2>Three rules that keep it honest</h2>
+<table>
+<tr><th>rule</th><th>what it prevents</th></tr>
+<tr><td><b>freshness travels:</b> every value carries <code>at</code>; silence past <code>staleMs</code> answers
+<code>{ok:false, why:'stale'}</code></td><td>last week's percentage presented as live</td></tr>
+<tr><td><b>death is typed:</b> an exited app answers <code>gone</code> with its exit code</td>
+<td>0 % — which reads as "the work reset" instead of "the work ended"</td></tr>
+<tr><td><b>the namespace is locked:</b> a second adapter for a namespace a live one holds refuses to start</td>
+<td>two answers for one name, and a node claiming progress for an app it is not running</td></tr>
+</table>
+<p>The adapter also <b>owns its child</b>: kill the adapter and the app goes with it, so nothing is ever left running
+that the ProcessWrapper table cannot see.</p>
+</section>
+
+<section id="wiring">
+<h2>The manifest is the plug</h2>
+<pre>{
+  "app": "foo_bar",
+  "namespace": "foo_bar",
+  "command": "C:/Path/To/foo_bar.exe",
+  "args": ["--steps", "100"],
+  "adapter": {
+    "kind": "console",
+    "staleMs": 5000,
+    "patterns": [
+      { "match": "^work:\\s*(?&lt;pct&gt;\\d+)%", "paths": { "progress": "pct" } },
+      { "match": "^phase:\\s*(?&lt;phase&gt;.+)$", "paths": { "phase": "phase" } }
+    ]
+  }
+}</pre>
+<p>A pattern maps a named group to a path (<code>{"progress": "pct"}</code>), a match position to a path
+(<code>{"code": 1}</code>), or several groups at once. Every adapter also gets <code>line</code>, <code>lines</code>,
+and a <code>status</code> object, whether or not the manifest asks for them.</p>
+<table>
+<tr><th>needs</th><th>from</th><th>required</th></tr>
+<tr><td>a registry to publish into</td><td>State <code>:8127</code></td><td>yes</td></tr>
+<tr><td>a manifest</td><td><code>--app apps/&lt;name&gt;.json</code></td><td>yes</td></tr>
+</table>
+<table>
+<tr><th>gives</th><th>to</th><th>shape</th></tr>
+<tr><td><code>GET /api/resolve?name=</code></td><td>any resolver</td><td><code>{ok, name, content:{value,at}}</code> or <code>{ok:false, why}</code></td></tr>
+<tr><td><code>GET /api/values</code></td><td>an operator</td><td>every path held, with age</td></tr>
+<tr><td><code>GET /api/log</code></td><td>an operator</td><td>the last forty console lines</td></tr>
+<tr><td><code>POST /api/restart</code> · <code>/api/stop</code></td><td>an operator</td><td>control the child</td></tr>
+</table>
+</section>
+
+<script type="application/json" id="contract">
+{
+  "module": "AppPlug",
+  "port": 8156,
+  "kind": "door",
+  "needs": [
+    { "name": "state", "from": "State :8127", "required": true },
+    { "name": "manifest", "from": "--app", "required": true }
+  ],
+  "gives": [
+    { "name": "foo_bar (the link)", "to": "State", "kind": "entry" },
+    { "name": "/api/resolve", "to": "any resolver", "kind": "http" },
+    { "name": "/api/values", "to": "operator", "kind": "http" },
+    { "name": "/health", "to": "the LAN", "kind": "http" }
+  ]
+}
+</script>
+</body></html>

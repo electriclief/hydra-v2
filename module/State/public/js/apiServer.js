@@ -94,7 +94,15 @@ function createApiServer(options) {
         if (answer.code === "ambiguous") {
           sendError(res, 409, "ambiguous", `ambiguous: ${answer.name} matches ${(answer.candidates ?? []).join(", ")} \u2014 extend the suffix until unique`);
         } else {
-          sendError(res, 404, "no_such_entry", `no such entry: ${answer.name} \u2014 GET /api/state for the active set`);
+          sendJson(res, 404, {
+            ok: false,
+            error: { code: "no_such_entry", message: `no such entry: ${answer.name} \u2014 GET /api/state for the active set` },
+            name: answer.name,
+            why: answer.why ?? "absent",
+            via: answer.via ?? [],
+            hops: answer.hops ?? 0,
+            ...answer.source ? { source: answer.source } : {}
+          });
         }
         return;
       }
@@ -253,6 +261,8 @@ async function runTests() {
   ok("a marked pull reads the delta", delta.full === false && delta.content.log === "p2\np3");
   const miss = await fetch(base + "/api/state/pull?name=nope");
   ok("an unknown entry answers 404 no_such_entry", miss.status === 404 && (await jsonOf(miss)).error.code === "no_such_entry");
+  const missBody = await jsonOf(await fetch(base + "/api/state/pull?name=nope"));
+  ok("a 404 carries the typed reason, not just a code", missBody.ok === false && typeof missBody.why === "string", JSON.stringify(missBody));
   state.register("Alt.demo", { x: 1 });
   state.register("Other.demo", { x: 1 });
   const ambiguous = await fetch(base + "/api/state/pull?name=demo");

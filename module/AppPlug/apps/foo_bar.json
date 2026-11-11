@@ -1,0 +1,37 @@
+{
+  "app": "foo_bar",
+  "namespace": "foo_bar",
+  "command": "C:/Users/User/AppData/Local/hermes/node/node.exe",
+  "args": [
+    "C:/AI/hydra-local/module/AppPlug/apps/foo_bar.js",
+    "--steps",
+    "100",
+    "--delay-ms",
+    "300"
+  ],
+  "cwd": "C:/AI/hydra-local/module/AppPlug/apps",
+  "adapter": {
+    "kind": "console",
+    "staleMs": 5000,
+    "patterns": [
+      {
+        "match": "^phase:\\s*(?<phase>.+)$",
+        "paths": {
+          "phase": "phase"
+        }
+      },
+      {
+        "match": "^work:\\s*(?<pct>\\d+)%",
+        "paths": {
+          "progress": "pct"
+        }
+      },
+      {
+        "match": "^(?<msg>error:.*)$",
+        "paths": {
+          "error": "msg"
+        }
+      }
+    ]
+  }
+}

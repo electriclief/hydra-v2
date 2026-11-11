@@ -28,6 +28,7 @@ function recordAsserts(consoleLike = console) {
 async function defaultModules() {
   return [
     { name: "stateRegistry", load: () => import("./stateRegistry.js") },
+    { name: "relay", load: () => import("./relay.js") },
     { name: "mcpTools", load: () => import("./mcpTools.js") },
     { name: "mcpServer", load: () => import("./mcpServer.js") },
     { name: "staticFiles", load: () => import("./staticFiles.js") },
