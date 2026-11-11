@@ -9,6 +9,7 @@
 import { cycleEntry, doorsEntry, entryNames, idEntry, linkEntry, linkRefOf, refOf, serviceEntries, slugOf } from './src/self.js';
 import { leaks, minimal } from './src/broadcast.js';
 import { classify, observation, standbyOf } from './src/verdict.js';
+import { claimEntry, decide, isLive, lowerRef } from './src/claim.js';
 
 let pass = 0;
 let fail = 0;
@@ -102,5 +103,31 @@ ok('leaks catches a stray service field', leaks({ ...proj, services: { a: { name
   ok('an observation without a report still says null', observation({ verdict: 'alive', cycle: 4, misses: 0 }, 5000).standby === null);
 }
 
-console.log(`\nState Resolver - the gate: ${pass} passed / ${fail} failed`);
+// ── the root role: who holds the pointer table ──
+{
+  const now = 1_000_000;
+  const live = (ref, extra = {}) => ({ ref, token: 't', since: new Date(now - 1000).toISOString(), leaseUntil: now + 10000, ...extra });
+
+  ok('no claim at all -> this node takes the role', decide({ claim: null, me: '123', now, leaseMs: 15000 }).action === 'claim');
+  ok('a claim with no ref is not a holder', decide({ claim: { leaseUntil: now + 1000 }, me: '123', now, leaseMs: 15000 }).action === 'claim');
+  ok('a claim with no lease cannot be trusted as live', decide({ claim: { ref: 'robert' }, me: '123', now, leaseMs: 15000 }).action === 'claim');
+  const expired = decide({ claim: { ref: 'robert', leaseUntil: now - 1 }, me: '123', now, leaseMs: 15000 });
+  ok('an expired lease is taken back', expired.action === 'claim' && /expired/.test(expired.why), expired.why);
+  ok('holding it means renewing it', decide({ claim: live('123'), me: '123', now, leaseMs: 15000 }).action === 'renew');
+  const lower = decide({ claim: live('123'), me: 'robert', now, leaseMs: 15000 });
+  ok('someone lower holds it -> yield', lower.action === 'yield' && lower.holder === '123', lower.why);
+  const higher = decide({ claim: live('xpsw'), me: '123', now, leaseMs: 15000 });
+  ok('someone higher holds it -> takeover by tiebreak', higher.action === 'takeover' && higher.holder === 'xpsw', higher.why);
+  ok('a node with no ref never takes the role', decide({ claim: null, me: '', now, leaseMs: 15000 }).action === 'yield');
+
+  ok('the tiebreak is lexicographic, not numeric', lowerRef('10', '9') === '10', 'numeric order would pick 9');
+  ok('the tiebreak is case-insensitive', lowerRef('ROBERT', 'gvtx980') === 'gvtx980');
+
+  const entry = claimEntry({ me: '123', token: 'abc', now, leaseMs: 15000 });
+  ok('the claim carries a lease into the future', entry.leaseUntil === now + 15000 && entry.ref === '123');
+  ok('the claim carries a token so a stale hold is visible', entry.token === 'abc');
+  ok('a live claim reads as live, an expired one does not', isLive(entry, now) === true && isLive(entry, now + 15001) === false);
+}
+
+console.log('\nState Resolver - the gate: ' + pass + ' passed / ' + fail + ' failed');
 process.exit(fail === 0 ? 0 : 1);

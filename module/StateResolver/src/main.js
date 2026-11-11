@@ -24,26 +24,45 @@
 import fs from 'node:fs';
 import os from 'node:os';
 import http from 'node:http';
+import { randomUUID } from 'node:crypto';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { cycleEntry, doorsEntry, entryNames, idEntry, linkEntry, refOf, serviceEntries } from './self.js';
 import { classify, observation, standbyOf } from './verdict.js';
 import { minimal } from './broadcast.js';
+import { decide, claimEntry, isLive } from './claim.js';
 import { activeSet, drop, getJson, pull, register } from './stateClient.js';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const MODULE = path.resolve(HERE, '..');
 const ROOT = path.resolve(MODULE, '..');
+
+/** One flag, read from argv: `--name value`. Absent flag and absent value both fall back. */
+const argOf = (name, fallback = null) => {
+  const i = process.argv.indexOf('--' + name);
+  return i > -1 && process.argv[i + 1] ? process.argv[i + 1] : fallback;
+};
 const argPort = (() => {
   const i = process.argv.indexOf('--port');
   return i > -1 ? Number(process.argv[i + 1]) : null;
 })();
 const PORT = Number(process.env.CORE_PORT || argPort || 8136);
+// the bind address is a flag, not a constant: a test door has no business being reachable from the LAN
+const HOST = process.env.CORE_HOST || argOf('host', null) || '0.0.0.0';
 const TICK_MS = Number(process.env.CORE_TICK_MS || 5000);
-const STATE = process.env.CORE_STATE || 'http://127.0.0.1:8127';
-const JOIN = process.env.CORE_JOIN || 'http://127.0.0.1:8131';
-const SERVICES = process.env.CORE_SERVICES || 'http://127.0.0.1:8128';
-const REF = process.env.HYDRA_REF || null;
+// --state lets one door be pointed at a different registry without a second process tree (and lets a test run against a
+// throwaway State instead of the LAN's).
+const STATE = (process.env.CORE_STATE || argOf('state', null) || 'http://127.0.0.1:8127').replace(/\/$/, '');
+const JOIN = process.env.CORE_JOIN || argOf('join', null) || 'http://127.0.0.1:8131';
+const SERVICES = process.env.CORE_SERVICES || argOf('services', null) || 'http://127.0.0.1:8128';
+const REF = process.env.HYDRA_REF || argOf('node-ref', null) || null;
+
+// THE ROOT CLAIM — off unless asked for. A role that moves between machines by itself must be switched on
+// deliberately on a fleet that is still being trusted node by node; with the flag absent this door behaves exactly as
+// it did before the claim existed.
+const ROOT_CLAIM = process.argv.includes('--root-claim') || process.env.ROOT_CLAIM === '1';
+const CLAIM_LEASE_MS = Number(process.env.CLAIM_LEASE_MS || 15000);
+const CLAIM_KEY = process.env.CLAIM_KEY || 'root.claim';
 
 function readJson(file, fallback = null) {
   try {
@@ -58,9 +77,18 @@ function nodeJson() {
 }
 
 const node = nodeJson();
-const ref = refOf({ ...node, ref: node.ref || REF }, os.hostname().toLowerCase());
+// an explicit --node-ref wins over the file: a test (or a second door on one box) has to be able to say who it is
+const ref = refOf({ ...node, ref: REF || node.ref }, os.hostname().toLowerCase());
 const N = entryNames(ref);
 const startedAt = Date.now();
+
+/** The root role's local view of itself. `off` until --root-claim is passed, so nothing moves by surprise. */
+const claimState = {
+  role: ROOT_CLAIM ? 'member' : 'off',
+  claim: null,
+  token: randomUUID(),
+  note: ROOT_CLAIM ? 'claiming on the first tick' : 'claim disabled (start with --root-claim)',
+};
 
 const state = {
   cycle: 0,
@@ -228,6 +256,9 @@ async function tick() {
   const reg = await register(STATE, N.cycle, cycleEntry(state, state.lastTickAt), { serving: { cycle: 'delta' } }, 700);
   state.lastRegisterError = reg.ok ? null : reg.error || `status ${reg.status}`;
 
+  // the root role steps on the same clock as the heartbeat: one pull, and a write only when the answer moves
+  await stepClaim();
+
   // identity and doors change rarely: refresh them every 12th tick (a minute at 5s)
   if (state.cycle === 1 || state.cycle % 12 === 0) {
     await readDoors();
@@ -246,6 +277,44 @@ async function tick() {
 }
 
 const RESOLVE_TIMEOUT = Number(process.env.CORE_RESOLVE_TIMEOUT_MS || 900);
+
+/** What the registry currently says about the root role. A malformed entry reads as no claim, never as a holder. */
+async function readClaim() {
+  const got = await pull(STATE, CLAIM_KEY, null, 700);
+  const value = got.ok ? (got.body?.content ?? null) : null;
+  return value && typeof value === 'object' && value.ref ? value : null;
+}
+
+/**
+ * One step of the root role. Cheap by design: a pull and, when the answer changes, a write.
+ *
+ * The rule it implements is the operator's: no live claim -> this node becomes the root; a live claim held by someone
+ * else -> yield unless this node wins the tiebreak; a lease that expired -> take it. The root's content is a pointer
+ * table, so the "rebuild" a survivor performs is a handful of POSTs, not a restore.
+ */
+async function stepClaim() {
+  if (!ROOT_CLAIM) return;
+  const now = Date.now();
+  const claim = await readClaim();
+  claimState.claim = claim;
+
+  const decision = decide({ claim, me: ref, now, leaseMs: CLAIM_LEASE_MS });
+  claimState.note = decision.why;
+
+  if (decision.action === 'yield') {
+    claimState.role = 'member';
+    return;
+  }
+  const entry = claimEntry({ me: ref, token: claimState.token, now, leaseMs: CLAIM_LEASE_MS });
+  const res = await register(STATE, CLAIM_KEY, entry, {}, 700);
+  if (!res.ok) {
+    claimState.role = 'member';
+    claimState.note = `claim write failed: ${res.error || `status ${res.status}`}`;
+    return;
+  }
+  claimState.role = 'root';
+  claimState.claim = entry;
+}
 
 /**
  * Resolve a path — by asking the State registry, which owns the walk.
@@ -354,7 +423,8 @@ const server = http.createServer(async (req, res) => {
     res.end(text);
   };
 
-  if (url.pathname === '/health') return send(200, { ok: true, door: 'state-resolver', ref, cycle: state.cycle, tickMs: state.tickMs, peers: state.peers.size, links: state.links.size, state: STATE });
+  if (url.pathname === '/health') return send(200, { ok: true, door: 'state-resolver', ref, cycle: state.cycle, tickMs: state.tickMs, peers: state.peers.size, links: state.links.size, state: STATE, role: claimState.role, root: claimState.claim, claimNote: claimState.note });
+  if (url.pathname === '/api/root') return send(200, { ok: true, ref, role: claimState.role, claim: claimState.claim, note: claimState.note, key: CLAIM_KEY, leaseMs: CLAIM_LEASE_MS, enabled: ROOT_CLAIM });
   if (url.pathname === '/api/tree') return send(200, tree());
   if (url.pathname === '/api/links') return send(200, await linkTable(url.searchParams.get('q') || 'node'));
   if (url.pathname === '/api/resolve') {
@@ -370,11 +440,18 @@ const server = http.createServer(async (req, res) => {
   return send(404, { ok: false, error: 'nothing here', paths: ['/health', '/api/tree', '/api/self'] });
 });
 
-server.listen(PORT, '0.0.0.0', async () => {
-  console.log(`[core] ${ref} on :${PORT} - state ${STATE}, join ${JOIN}, tick ${TICK_MS}ms`);
+// A door that cannot bind its port must say so and stop — a resolver that cannot be asked a question has no business
+// holding the root role, and a silent EADDRINUSE is how two instances end up fighting over one address.
+server.on('error', (error) => {
+  console.error(`[state-resolver] cannot serve on :${PORT} - ${error.code || error.message}`);
+  process.exit(1);
+});
+
+server.listen(PORT, HOST, async () => {
+  console.log(`[state-resolver] ${ref} on ${HOST}:${PORT} - state ${STATE}, join ${JOIN}, tick ${TICK_MS}ms, claim ${ROOT_CLAIM ? `on (lease ${CLAIM_LEASE_MS}ms)` : 'off'}`);
   await tick();
   setInterval(() => {
-    tick().catch((error) => console.error('[core] tick failed:', error.message));
+    tick().catch((error) => console.error('[state-resolver] tick failed:', error.message));
   }, TICK_MS);
 });
 
