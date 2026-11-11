@@ -199,11 +199,16 @@ async function ensureDoors() {
     console.log('[doors] ProcessWrapper already up on 8125 — adopting it');
   } else {
     console.log('[doors] ProcessWrapper down — starting it hidden (no console window)');
+    const pwStart = Date.now();
     pwChild = spawnDoorHidden('ProcessWrapper', 8125);
-    if (!(await waitDoor(8125, '/api/processes', 25000))) {
-      throw new Error('ProcessWrapper never answered on 8125');
+    // 120 s, not 25: measured on a cold boot of a fresh Windows node, Defender's first scan of a 105 MB node.exe
+    // plus the module tree can hold the first bind past 25 s, and the old budget threw 'ProcessWrapper never
+    // answered on 8125' while the wrapper was still starting — the app then gave up and the node came up with no
+    // doors at all, which on screen looks like "Hydra did not start".
+    if (!(await waitDoor(8125, '/api/processes', 120000))) {
+      throw new Error(`ProcessWrapper never answered on 8125 (waited ${Math.round((Date.now() - pwStart) / 1000)}s)`);
     }
-    console.log('[doors] ProcessWrapper up on 8125');
+    console.log(`[doors] ProcessWrapper up on 8125 after ${Math.round((Date.now() - pwStart) / 1000)}s`);
   }
   for (const d of DOOR_TABLE) {
     if (await doorUp(d.port)) {
