@@ -1,2 +1,0 @@
-
-Core - the gate: 45 passed / 0 failed

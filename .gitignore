@@ -43,6 +43,15 @@ module/Core/data/*.log
 module/Echidna/data/thread.jsonl
 module/Echidna/data/agent.json
 module/Echidna/data/prompts/
+module/Echidna/data/monitor.json
+
+# ---- this LAN's data, by the operator's rule: the repo carries the code that stores the data, never the data ----
+# (the one deliberate exception is a service definition, library/<name>/service.json, which is a contract)
+fleet/
+.shelf/
+library/api-index.json
+module/TrainOfThought/data/
+module/Phoenix/data/
 
 # Tell Mom receipts are this node's runtime history, not the repo's
 module/TellMom/data/told.jsonl
