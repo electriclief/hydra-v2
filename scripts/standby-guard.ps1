@@ -170,11 +170,7 @@ function Get-DeclaredApiPort {
 # Nothing found means null - the display then says "mining" without inventing an algorithm or a rate.
 function Get-MinerDetail {
   # Follow the declaration, not a brand: the manager can run SRBMiner, lolMiner, or anything else a node names.
-  $p = $null
-  foreach ($n in (Get-MinerProcessNames)) {
-    $p = Get-Process -Name $n -ErrorAction SilentlyContinue | Select-Object -First 1
-    if ($p) { break }
-  }
+  $p = Get-MinerProcesses | Select-Object -First 1
   if (-not $p) { return $null }
 
   # Candidate ports: the declaration first, then every listener held by the launcher OR by a child it started.
@@ -268,11 +264,23 @@ function Get-MinerProcessNames {
   return $names
 }
 
+# Process matching must tolerate the version suffix: a node declares "SRBMiner-MULTI-380" while the binary it
+# actually runs is "SRBMiner-MULTI". An exact-name lookup then reports miner=false while the card is hashing,
+# and the guard starts a SECOND miner on top of a live one. Exact first, then a prefix match, never the reverse.
+function Get-MinerProcesses {
+  $found = @()
+  foreach ($n in (Get-MinerProcessNames)) {
+    $p = @(Get-Process -Name $n -ErrorAction SilentlyContinue)
+    if ($p.Count -eq 0) { $p = @(Get-Process -Name ($n + '*') -ErrorAction SilentlyContinue) }
+    $found += $p
+  }
+  return @($found | Sort-Object Id -Unique)
+}
+
 function Get-MinerRunning {
   # Process presence is the truth. A scheduled task that still says "Running" with no children is a wrapper that
   # outlived its miner, and trusting it made the footer claim "mining" with nothing hashing.
-  $names = Get-MinerProcessNames
-  $procs = @(Get-Process -Name $names -ErrorAction SilentlyContinue)
+  $procs = @(Get-MinerProcesses)
   if ($procs.Count -gt 0) { return $true }
   $t = schtasks /query /tn $MinerTask /fo list 2>$null | Out-String
   if ($t -match 'Running') {
@@ -322,8 +330,8 @@ function Sync-StandbyToPw {
   if (-not (Test-PwUp)) { return $false }
   $known = @(Get-PwStandby | ForEach-Object { [int]$_.pid })
   $wrapped = 0
-  foreach ($n in (Get-StandbyNames)) {
-    foreach ($p in @(Get-Process -Name $n -ErrorAction SilentlyContinue)) {
+  foreach ($p in @(Get-MinerProcesses)) {
+    if ($p) {
       if ($known -contains $p.Id) { continue }
       $cmd = $null
       try { $cmd = $p.Path } catch { }
@@ -471,6 +479,7 @@ function Test-StandbyUp {
   if ($Policy -and $Policy.verify -and $Policy.verify.processes) {
     foreach ($n in @($Policy.verify.processes)) {
       if (Get-Process -Name $n -ErrorAction SilentlyContinue) { return $true }
+      if (Get-Process -Name ($n + '*') -ErrorAction SilentlyContinue) { return $true }
     }
     return $false
   }
