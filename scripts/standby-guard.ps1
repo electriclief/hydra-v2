@@ -636,6 +636,11 @@ while ($true) {
   }
   $pinned = Test-Path $PinFile
   if ($Policy -and $null -ne $Policy.pinned) { if ($Policy.pinned) { $pinned = $true } }
+  # WHO took the card matters: a service lease carries service:true, a person's pin does not. The grace period exists
+  # so the guard does not steal a card mid-render; a service that has finished with the card should hand it back now.
+  $pinKind = 'operator'
+  if ($pinned) { try { $pj = Get-Content $PinFile -Raw | ConvertFrom-Json; if ($pj.service) { $pinKind = 'service' } } catch { } }
+  $servicePinNow = ($pinned -and $pinKind -eq 'service')
   $ai = @(Get-AiWork)
   $miner = Get-MinerRunning
 
@@ -663,7 +668,12 @@ while ($true) {
   }
   else {
     $busySince = $null
-    if ($null -eq $freeSince) { $freeSince = Get-Date }
+    if ($script:servicePinWas -and -not $pinned) {
+      # the lease was released: resume at once instead of serving a grace owed to a human
+      $freeSince = (Get-Date).AddSeconds(-($ResumeGraceSeconds + 5))
+      LogIt "service lease released - miner resumes now"
+    }
+    elseif ($null -eq $freeSince) { $freeSince = Get-Date }
 
     # the deadline belongs to the book; this guard only waits for it. With no idle branch (Scheduler not running,
     # or a node that does not have one yet) the guard falls back to its own grace so it cannot stall forever.
@@ -800,6 +810,7 @@ while ($true) {
   }
   # ...and check the book in slices rather than once at the end: a queued job can be over in five seconds, and a
   # miner that only yields every fifteen is contention the operator never learns about.
+  $script:servicePinWas = $servicePinNow
   $slept = 0
   $slice = [math]::Max(2, [int][math]::Floor($nap / 3))
   while ($slept -lt $nap) {

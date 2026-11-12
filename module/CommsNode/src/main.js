@@ -50,6 +50,7 @@ const WHISPER = comms.whisper ?? '';
 const MODEL = comms.whisperModel ?? '';
 const CAPTURE = Number(comms.listenSeconds ?? 6);
 const AGENT = comms.answerUrl ?? '';
+const PIN_FILE = path.join(ROOT, 'data', 'standby', 'standby.pin');
 
 const TMP = path.join(os.tmpdir(), 'hydra-comms');
 fs.mkdirSync(TMP, { recursive: true });
@@ -152,13 +153,17 @@ const readBody = (req) => new Promise((resolve) => {
   req.on('end', () => { try { resolve(JSON.parse(raw || '{}')); } catch { resolve({}); } });
 });
 
+let extraLease = null;
+function publishExtra(fields) { if (fields && 'lease' in fields) extraLease = fields.lease; publish(); }
+async function here() { return { ref: REF, lease: extraLease }; }
+
 /** Publish what this node is, as a link plus a fact block, into its own State. A failed publish is reported, not hidden. */
 async function publish() {
   const body = {
     ref: REF, at: new Date().toISOString(),
     doors: { audioIn: AUDIOIN, videoIn: VIDEOIN, audioOut: AUDIOOUT, wakeWord: WAKEWORD },
     listenSeconds: CAPTURE, stt: whisperExe() ? 'whisper.cpp' : (comms.sttUrl || 'none'),
-    agent: AGENT || null, hits, last,
+    agent: AGENT || null, lease: extraLease, hits, last,
   };
   return j(`${STATE}/api/state/register`, {
     method: 'POST', headers: { 'content-type': 'application/json' },
@@ -185,11 +190,20 @@ async function listen({ seconds = CAPTURE, wav = null, sttUrl = null, speak = tr
 
   let answer = null;
   if (ask && AGENT) {
-    const a = await j(AGENT, {
-      method: 'POST', headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ text: stt.transcript, ref: REF, at: new Date().toISOString() }),
-    }, 180000);
-    answer = a.ok ? (a.body.answer || a.body.text || a.body) : { ok: false, why: 'agent_failed', detail: a.body };
+    // Two shapes: an OpenAI-compatible local server (llama-server on this node's GPU), or any endpoint that takes
+    // {text} and answers {answer}. The card is the node's own, so the answer never leaves the machine.
+    const openai = /\/v1\/(chat\/completions|completions)/.test(AGENT);
+    const payload = openai
+      ? { model: comms.answerModel ?? 'local', stream: false, max_tokens: Number(comms.answerTokens ?? 120),
+          messages: [
+            { role: 'system', content: comms.answerPrompt ?? 'You are a node on a home LAN. Answer the spoken question in one or two short sentences, plainly, and never invent a number you were not given.' },
+            { role: 'user', content: stt.transcript },
+          ] }
+      : { text: stt.transcript, ref: REF, at: new Date().toISOString() };
+    const a = await j(AGENT, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(payload) }, 180000);
+    if (!a.ok) answer = { ok: false, why: 'agent_failed', detail: a.body };
+    else if (openai) answer = (a.body.choices?.[0]?.message?.content ?? '').trim() || { ok: false, why: 'agent_empty' };
+    else answer = a.body.answer || a.body.text || a.body;
   }
 
   const spoken = answer && typeof answer === 'string' ? answer : null;
@@ -266,6 +280,38 @@ const server = http.createServer(async (req, res) => {
     if (!ready.ok) return send(res, 503, ready);
     const r = await j(`${WAKEWORD}/api/arm`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}' }, 30000);
     return send(res, r.status || 502, r.body);
+  }
+
+  /**
+   * GPU LEASE. A resident model server holds the card even while it is idle - on a 2 GB card a 1.5B model leaves no
+   * room for a miner, so "parked, not working" would be a promise the hardware cannot keep. The lease is the guard's
+   * own pin file, written with service:true so the guard knows a service (not a person) took the card and resumes
+   * the moment it is released.
+   */
+  if (p === '/api/gpu/lease' && req.method === 'POST') {
+    const body = await readBody(req);
+    if (body.on === false || body.release === true) {
+      try { fs.unlinkSync(PIN_FILE); } catch { }
+      const st = await here();
+      st.lease = null;
+      publishExtra(st);
+      return send(res, 200, { ok: true, lease: null, pin: PIN_FILE, released: true });
+    }
+    const lease = {
+      service: true, owner: 'comms', why: String(body.why ?? 'local model resident'),
+      at: new Date().toISOString(),
+      until: new Date(Date.now() + Math.max(1, Number(body.minutes ?? 60)) * 60000).toISOString(),
+    };
+    fs.mkdirSync(path.dirname(PIN_FILE), { recursive: true });
+    fs.writeFileSync(PIN_FILE, JSON.stringify(lease, null, 2), 'utf8');
+    publishExtra({ lease });
+    return send(res, 200, { ok: true, lease, pin: PIN_FILE });
+  }
+
+  if (p === '/api/gpu/lease') {
+    let lease = null;
+    try { lease = JSON.parse(fs.readFileSync(PIN_FILE, 'utf8')); } catch { }
+    return send(res, 200, { ok: true, lease, pin: PIN_FILE, exists: fs.existsSync(PIN_FILE) });
   }
 
   if (p === '/api/state') return send(res, 200, { ok: true, ref: REF, hits, last, doors: { audioIn: AUDIOIN, videoIn: VIDEOIN, audioOut: AUDIOOUT, wakeWord: WAKEWORD } });
