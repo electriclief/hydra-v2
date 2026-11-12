@@ -38,7 +38,7 @@ const PORT = Number(argOf('port', process.env.AUDIOOUT_PORT ?? 8163));
 const HOST = argOf('host', process.env.AUDIOOUT_HOST ?? '127.0.0.1');
 const PIPER = argOf('piper', comms.piper ?? '');
 const VOICE = argOf('voice', comms.voice ?? '');
-const FFPLAY = argOf('ffplay', comms.ffplay ?? 'ffplay');
+const FFPLAY = argOf('ffplay', comms.ffplay ?? '');
 const TMP = path.join(os.tmpdir(), 'hydra-comms');
 fs.mkdirSync(TMP, { recursive: true });
 
@@ -69,11 +69,18 @@ function piperSay(text, wav) {
 }
 
 function play(file) {
+  // ffplay if the node has it; otherwise Windows' own SoundPlayer, which needs no binary at all for a wav
+  const useFfplay = FFPLAY && (FFPLAY === 'ffplay' || fs.existsSync(FFPLAY));
   try {
-    const c = spawn(FFPLAY, ['-nodisp', '-autoexit', '-loglevel', 'error', file], { windowsHide: true, detached: false });
-    return { ok: true, pid: c.pid };
+    if (useFfplay) {
+      const c = spawn(FFPLAY, ['-nodisp', '-autoexit', '-loglevel', 'error', file], { windowsHide: true, detached: false });
+      return { ok: true, pid: c.pid, player: 'ffplay' };
+    }
+    const ps = `(New-Object System.Media.SoundPlayer '${file.replace(/\\/g, '\\\\')}').PlaySync()`;
+    const c = spawn('powershell.exe', ['-NoProfile', '-Command', ps], { windowsHide: true, detached: false });
+    return { ok: true, pid: c.pid, player: 'soundplayer' };
   } catch (e) {
-    return { ok: false, why: 'ffplay_failed', detail: e.message };
+    return { ok: false, why: 'play_failed', detail: e.message };
   }
 }
 
@@ -124,7 +131,7 @@ const server = http.createServer(async (req, res) => {
     return send(res, 200, {
       ok: true, provider: out.provider, fellBackFrom: out.fellBackFrom, text, wav,
       bytes, audioSeconds: Number(seconds.toFixed(2)), rtf: out.rtf,
-      wallMs: Date.now() - started, played: played.ok, player: played.ok ? 'ffplay' : played.why,
+      wallMs: Date.now() - started, played: played.ok, player: played.ok ? played.player : played.why,
     });
   }
 
