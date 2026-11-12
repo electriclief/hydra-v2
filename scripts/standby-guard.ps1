@@ -644,6 +644,15 @@ while ($true) {
   $ai = @(Get-AiWork)
   $miner = Get-MinerRunning
 
+  # A SERVICE LEASE STOPS THE MINER, it does not merely forbid starting one. On a 2 GB card a resident 1.5B model
+  # leaves no room for a miner, so "pinned" has to mean "the card is taken" - otherwise the lease protects a card
+  # that is already over-committed. A person's pin still only blocks a start: it is a promise, not an order.
+  if ($servicePinNow -and $miner) {
+    Stop-Miner
+    Send-Event 'standby.lease' @{ ref = $Ref; why = 'service lease holds the card'; at = (Get-Date).ToString('s') }
+    $miner = $false
+  }
+
   # Keep the table complete as the miner's own launcher spawns children: unMiner starts one SRBMiner after it comes
   # up, and a child nobody wrapped is exactly the invisible process this is meant to end.
   if ($miner -and ($tick % 2 -eq 0) -and (Test-PwUp)) { [void](Sync-StandbyToPw) }
