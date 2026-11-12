@@ -244,10 +244,25 @@ async function handoff(text) {
  * ONE TURN. Destiny answers the trigger; if the person wants the agent, the turn is handed to Kate instead of being
  * answered locally - the local model never pretends to be her, and the agent is never started twice.
  */
-async function exchange({ seconds = CAPTURE } = {}) {
+async function exchange({ seconds = CAPTURE, wav = null } = {}) {
   const t0 = Date.now();
   setPhase('thinking', 'Destiny greeting');
-  const greet = await sayText(GREETING);
+  const greet = wav ? { ok: true, skipped: 'given wav' } : await sayText(GREETING);
+
+  if (wav) {   // a caller handed in the request: no greeting, no microphone
+    setPhase('thinking', 'transcribing the given wav');
+    const stt = transcribe(wav);
+    if (!stt.ok) { setPhase('awaiting', 'stt failed'); return { ok: false, step: 'stt', ...stt }; }
+    const heard = stt.transcript || '';
+    if (PASS_TO_KATE.test(heard)) {
+      const h = await handoff(heard);
+      last = { at: new Date().toISOString(), seconds: null, level: null, heard, engine: stt.engine,
+        transcript: heard, answer: { to: 'kate', handoff: h }, spoke: null, ms: Date.now() - t0 };
+      setPhase('awaiting', 'handed to Kate'); publish();
+      return { ok: true, handedToKate: true, heard, handoff: h, ms: last.ms };
+    }
+    return listen({ wav, speak: true, ask: true });
+  }
 
   setPhase('listening', 'awaiting the request');
   const ready = await up('AudioIn');
@@ -391,7 +406,7 @@ const server = http.createServer(async (req, res) => {
 
   if (p === '/api/turn' && req.method === 'POST') {
     const body = await readBody(req);
-    const r = await withMic(() => exchange({ seconds: body.seconds ?? CAPTURE }));
+    const r = await withMic(() => exchange({ seconds: body.seconds ?? CAPTURE, wav: body.wav ?? null }));
     return send(res, r.ok ? 200 : 503, r);
   }
 
