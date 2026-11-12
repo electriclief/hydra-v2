@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Monitor — the board you can read, and the agent you can reach</title>
+<style>
+ :root { color-scheme: dark; --bg:#111318; --border:#303541; --text:#e5e7eb; --muted:#a1a8b7; }
+ * { box-sizing: border-box; }
+ body { margin:0; padding:32px; background:var(--bg); color:var(--text); font:15px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif; max-width:78ch; }
+ h1 { margin:0 0 4px; font-size:24px; font-weight:600; }
+ h2 { margin:30px 0 10px; font-size:13px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; color:var(--muted); }
+ .kicker { margin:0 0 26px; color:var(--muted); font-size:13px; }
+ code { font:13px/1.5 ui-monospace,Consolas,monospace; background:#0b0d11; border:1px solid var(--border); border-radius:5px; padding:1px 5px; }
+ pre { background:#0b0d11; border:1px solid var(--border); border-radius:7px; padding:12px 14px; overflow-x:auto; font:12.5px/1.6 ui-monospace,Consolas,monospace; }
+ table { width:100%; border-collapse:collapse; margin:6px 0 14px; font-size:14px; }
+ th, td { text-align:left; padding:7px 10px; border-bottom:1px solid var(--border); vertical-align:top; }
+ th { color:var(--muted); font-size:12px; text-transform:uppercase; letter-spacing:.06em; }
+</style></head><body>
+<header><h1>Monitor</h1>
+<p class="kicker">one slide per topic · dots for every topic · a click that reaches a live agent · door on :8157</p></header>
+
+<section id="summary">
+<p>Monitor is the page that answers "what is the fleet working on, and what is still unanswered" without asking anyone.
+It reads the train of thought (<code>module/TrainOfThought/data/thoughts.json</code>) and turns each topic into one slide:
+state, intent, the questions still open, and the last key messages. Every topic gets a dot. And every slide carries one
+button that does not link anywhere — it <b>runs the agent</b> on that topic and shows the answer in place.</p>
+</section>
+
+<section id="concepts">
+<h2>Three rules</h2>
+<table>
+<tr><th>rule</th><th>why</th></tr>
+<tr><td><b>A click reaches a live agent, or says it cannot.</b></td>
+<td>The agent door is probed every ten seconds. If nothing answers on :8642 the button is disabled and names the reason,
+so the page never offers a link that goes nowhere.</td></tr>
+<tr><td><b>The key is read, never stored.</b></td>
+<td>The gateway key comes from <code>API_SERVER_KEY</code> in the owner's <code>.env</code>, is read at the moment of a
+call, and is never logged, cached to disk, or sent to the browser. Absent key is a typed refusal (<code>no_key</code>),
+not a guess.</td></tr>
+<tr><td><b>An unreadable board is a refusal.</b></td>
+<td>If <code>thoughts.json</code> is missing or torn, <code>/api/topics</code> answers <b>503</b> with the path. An empty
+board would look like a quiet fleet; it is not the same thing.</td></tr>
+</table>
+
+<h2>What a slide shows</h2>
+<table>
+<tr><th>field</th><th>source</th></tr>
+<tr><td>state, ref, tags, trail count</td><td>the topic's own record</td></tr>
+<tr><td>unanswered</td><td><code>next[]</code> — the topic's own list of what is still open</td></tr>
+<tr><td>key messages</td><td>the last two trail entries, each with its <code>kind</code></td></tr>
+</table>
+</section>
+
+<section id="wiring">
+<h2>Endpoints</h2>
+<table>
+<tr><td><code>GET /</code></td><td>the page</td></tr>
+<tr><td><code>GET /api/topics</code></td><td><code>{ok, counts, topics:[{ref,title,state,intent,questions,messages}]}</code>, 503 when unreadable</td></tr>
+<tr><td><code>GET /api/agent</code></td><td><code>{alive, door, platform, version, key:"present"|"absent", why}</code>, cached 5 s</td></tr>
+<tr><td><code>POST /api/ask</code></td><td><code>{ref, question?}</code> → <code>{ok, answer, ms, usage}</code> · 502 with <code>why</code> when the agent cannot answer</td></tr>
+<tr><td><code>GET /health</code></td><td>door, port, thoughts path, agent liveness</td></tr>
+</table>
+
+<h2>Run it</h2>
+<pre>node src/main.js --port 8157 --host 0.0.0.0
+  --thoughts C:/AI/hydra-local/module/TrainOfThought/data/thoughts.json
+  --gateway  http://127.0.0.1:8642
+  --env      C:/Users/User/AppData/Local/hermes/.env</pre>
+<p>Raised as a ProcessWrapper row named <code>monitor-8157</code>, so it is visible in the app and can be closed like
+any other door. Depend on <code>TrainOfThought</code> for the data and on the Hermes gateway for the agent.</p>
+</section>
+</body></html>

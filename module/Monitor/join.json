@@ -1,0 +1,11 @@
+{
+  "name": "Monitor",
+  "kind": "door",
+  "port": 8157,
+  "start": "\"%LOCALAPPDATA%\\hermes\\node\\node.exe\" src/main.js",
+  "wiredAtBoot": false,
+  "deps": [
+    "TrainOfThought"
+  ],
+  "what": "The board you can read and the agent you can reach. One slide per Train of Thought topic: state, intent, the unanswered questions, the last key messages - and dots for every topic. A click on 'Ask an agent' runs the agent on that topic (Hermes gateway 8642) and returns the answer inline; if the agent is not there the button says so rather than linking somewhere dead. The gateway key is read per call from the owner's .env, never stored, never sent to the page."
+}

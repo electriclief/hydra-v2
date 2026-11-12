@@ -1,0 +1,10 @@
+{
+  "name": "monitor",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Monitor: one slide per train-of-thought topic, unanswered questions and key messages, and a button that runs a real agent on it.",
+  "scripts": {
+    "start": "node src/main.js --port 8157"
+  }
+}
