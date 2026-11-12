@@ -57,6 +57,8 @@ let loopTimer = null;
 let armedAt = 0;
 let hits = 0;
 let lastHit = null;
+let lastHeard = null;
+let chunks = 0;
 let failure = null;
 
 const norm = (s) => String(s || '').toLowerCase().replace(/[^a-z0-9 ]+/g, ' ').replace(/\s+/g, ' ').trim();
@@ -125,6 +127,9 @@ function arm() {
       if (capBody.ok) {
         const r = spawnSync(whisperExe(), ['-m', MODEL, '-f', capBody.file, '-nt'], { timeout: 120000, encoding: 'utf8' });
         heard = String(r.stdout || '').trim();
+        chunks++;
+        // what the loop is actually hearing, so "it never fires" can be read instead of guessed at
+        lastHeard = { text: heard, at: new Date().toISOString(), chunk: chunks };
         fs.unlink(capBody.file, () => { });
         if (heard && matches(heard)) hit(heard, null);
       } else {
@@ -200,7 +205,7 @@ const server = http.createServer(async (req, res) => {
   if (p === '/health') return send(res, 200, { ok: true, door: 'WakeWord', port: PORT, phrase: PHRASE, state: (child || loopTimer) ? 'armed' : (failure ? 'failed' : 'sleeping'), mode: MODE });
   if (p === '/api/status') return send(res, 200, {
     ok: true, state: (child || loopTimer) ? 'armed' : (failure ? 'failed' : 'sleeping'), mode: MODE, phrase: PHRASE,
-    pid: child ? child.pid : null, armedForMs: child ? Date.now() - armedAt : 0, hits, lastHit, failure,
+    pid: child ? child.pid : null, armedForMs: child ? Date.now() - armedAt : 0, hits, lastHit, lastHeard, chunks, failure,
   });
   if (p === '/api/arm' && req.method === 'POST') { const r = arm(); return send(res, r.ok ? 200 : 500, r); }
   if (p === '/api/disarm' && req.method === 'POST') return send(res, 200, disarm());
