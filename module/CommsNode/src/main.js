@@ -50,6 +50,11 @@ const WHISPER = comms.whisper ?? '';
 const MODEL = comms.whisperModel ?? '';
 const CAPTURE = Number(comms.listenSeconds ?? 6);
 const AGENT = comms.answerUrl ?? '';
+const GREETING = comms.greeting ?? 'This is Destiny. Can I help you, or should I pass you to Kate?';
+const TELLMOM = comms.tellmom ?? '';
+const ECHIDNA = comms.echidna ?? '';
+// "pass me to Kate", "get me Kate", "let me talk to the agent" - the words a person actually uses
+const PASS_TO_KATE = /\b(pass|kate|echidna|agent|transfer|switch)\b/i;
 const PIN_FILE = path.join(ROOT, 'data', 'standby', 'standby.pin');
 
 const TMP = path.join(os.tmpdir(), 'hydra-comms');
@@ -200,6 +205,78 @@ function setPhase(next, why) {
   publish().catch(() => { });
 }
 
+/** Speak a line through the node's own voice - piper first, SAPI if piper cannot. */
+async function sayText(text) {
+  await up('AudioOut');
+  const r = await j(`${AUDIOOUT}/api/say`, {
+    method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ text }),
+  }, 180000);
+  return r.ok ? r.body : { ok: false, why: 'say_failed', detail: r.body };
+}
+
+/**
+ * HAND OFF TO KATE, WHO IS ECHIDNA. The rule from the operator: a handoff goes to the agent session that already
+ * exists - never a new instance. Tell Mom is the protocol that inserts into a live session, so the portal tells it and
+ * then asks Echidna to speak in its own pane; if either is unreachable the answer says so instead of pretending.
+ */
+async function handoff(text) {
+  const out = { text, at: new Date().toISOString(), tellmom: null, echidna: null };
+  if (!TELLMOM) { out.why = 'no_tellmom_configured'; return out; }
+  const t = await j(`${TELLMOM}/api/tell`, {
+    method: 'POST', headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      severity: 'note', subject: 'Kate portal - jims', body: text, wants: 'answer',
+      dedupeKey: `kate-${Date.now()}`, channels: ['pane'],
+    }),
+  }, 20000);
+  out.tellmom = t.ok ? 'queued' : { why: 'tellmom_failed', detail: t.body };
+  if (ECHIDNA) {
+    const e = await j(`${ECHIDNA}/api/say`, {
+      method: 'POST', headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ text, from: 'jims-portal', via: 'kate' }),
+    }, 20000);
+    out.echidna = e.ok ? 'told' : { why: 'echidna_failed', detail: e.body };
+  }
+  return out;
+}
+
+/**
+ * ONE TURN. Destiny answers the trigger; if the person wants the agent, the turn is handed to Kate instead of being
+ * answered locally - the local model never pretends to be her, and the agent is never started twice.
+ */
+async function exchange({ seconds = CAPTURE } = {}) {
+  const t0 = Date.now();
+  setPhase('thinking', 'Destiny greeting');
+  const greet = await sayText(GREETING);
+
+  setPhase('listening', 'awaiting the request');
+  const ready = await up('AudioIn');
+  if (!ready.ok) { setPhase('off', 'no microphone door'); return { ok: false, step: 'audioin', ...ready }; }
+  const cap = await j(`${AUDIOIN}/api/capture`, {
+    method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ seconds }),
+  }, (Number(seconds) + 30) * 1000);
+  if (!cap.ok) { setPhase('awaiting', 'capture failed'); return { ok: false, step: 'capture', ...cap.body }; }
+
+  setPhase('thinking', 'microphone closed');
+  const stt = transcribe(cap.body.file);
+  if (!stt.ok) { setPhase('awaiting', 'stt failed'); return { ok: false, step: 'stt', ...stt }; }
+  const heard = stt.transcript || '';
+
+  if (PASS_TO_KATE.test(heard)) {
+    const h = await handoff(heard);
+    const spoke = await sayText('Passing you to Kate.');
+    last = {
+      at: new Date().toISOString(), seconds, level: { rms: cap.body.rms, peak: cap.body.peak, silent: cap.body.silent, device: cap.body.device },
+      heard, engine: stt.engine, transcript: heard, answer: { to: 'kate', handoff: h }, spoke, ms: Date.now() - t0,
+    };
+    setPhase('awaiting', 'handed to Kate'); publish();
+    return { ok: true, greetedWith: GREETING, handedToKate: true, heard, handoff: h, ms: last.ms };
+  }
+
+  const r = await listen({ wav: cap.body.file, speak: true, ask: true });
+  return { ...r, greetedWith: GREETING, greeted: greet.ok !== false };
+}
+
 /** The full loop. `wav` lets a caller hand in audio instead of using the microphone - that is how it is tested. */
 async function listen({ seconds = CAPTURE, wav = null, sttUrl = null, speak = true, ask = true } = {}) {
   const startedPhase = wav ? 'thinking' : 'listening';
@@ -216,7 +293,7 @@ async function listen({ seconds = CAPTURE, wav = null, sttUrl = null, speak = tr
     if (!cap.ok) { last = { at: new Date().toISOString(), error: cap.body }; setPhase('awaiting', 'capture failed'); return { ok: false, step: 'capture', ...cap.body }; }
     file = cap.body.file; level = { rms: cap.body.rms, peak: cap.body.peak, silent: cap.body.silent, device: cap.body.device };
   }
-  if (!wav) setPhase('thinking', 'microphone closed');
+  setPhase('thinking', 'microphone closed');
   const stt = transcribe(file, sttUrl || comms.sttUrl || null);
   if (!stt.ok) { last = { at: new Date().toISOString(), error: stt }; setPhase('awaiting', 'stt failed'); return { ok: false, step: 'stt', ...stt }; }
 
@@ -307,9 +384,15 @@ const server = http.createServer(async (req, res) => {
     const body = await readBody(req);
     hits++;
     console.log('[comms] wake', JSON.stringify(body));
-    // answer asynchronously so the recogniser is not blocked while a capture runs
-    withMic(() => listen({ seconds: CAPTURE })).then((r) => console.log('[comms] wake loop ->', r.ok ? r.transcript : r.why)).catch(() => { });
+    // answer asynchronously so the recogniser is not blocked while a turn runs
+    withMic(() => exchange({ seconds: CAPTURE })).then((r) => console.log('[comms] turn ->', JSON.stringify(r).slice(0, 300))).catch(() => { });
     return send(res, 202, { ok: true, accepted: 'wake', capture: CAPTURE, at: new Date().toISOString() });
+  }
+
+  if (p === '/api/turn' && req.method === 'POST') {
+    const body = await readBody(req);
+    const r = await withMic(() => exchange({ seconds: body.seconds ?? CAPTURE }));
+    return send(res, r.ok ? 200 : 503, r);
   }
 
   if (p === '/api/say' && req.method === 'POST') {
