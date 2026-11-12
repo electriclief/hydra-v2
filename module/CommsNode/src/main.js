@@ -551,7 +551,10 @@ const server = http.createServer(async (req, res) => {
         ]);
         return {
           ok: true, at: new Date().toISOString(), phase,
-          level: lvl.ok ? { rms: lvl.body.rms ?? null, peak: lvl.body.peak ?? null, silent: lvl.body.silent ?? null, device: lvl.body.device ?? null } : { error: 'audioin_down' },
+          level: lvl.ok ? { rms: lvl.body.rms ?? null, peak: lvl.body.peak ?? null, silent: lvl.body.silent ?? null, device: lvl.body.device ?? null }
+            : (LIVE.body && LIVE.body.level && Date.now() - LIVE.at < 4000
+                ? { ...LIVE.body.level, stale: true }          // one missed sample must not blank the meter
+                : { error: 'audioin_down' }),
           heard: wake.ok ? { text: wake.body.lastHeard?.text ?? null, at: wake.body.lastHeard?.at ?? null, chunks: wake.body.chunks ?? null, state: wake.body.state ?? null } : { error: 'wakeword_down' },
         };
       })().then((b) => { LIVE.body = b; LIVE.at = Date.now(); LIVE.busy = null; return b; })

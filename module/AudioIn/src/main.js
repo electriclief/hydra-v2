@@ -99,7 +99,13 @@ function capture(seconds, device, outName) {
   const file = path.join(OUT, outName || `mic-${Date.now()}.wav`);
   const args = ['-hide_banner', '-loglevel', 'error', '-y', '-f', 'dshow', '-i', `audio=${dev}`,
                 '-t', String(secs), '-ac', '1', '-ar', '16000', '-c:a', 'pcm_s16le', file];
-  const r = spawnSync(FFMPEG, args, { timeout: Math.ceil(secs * 1000) + 20000, encoding: 'utf8' });
+  let r = spawnSync(FFMPEG, args, { timeout: Math.ceil(secs * 1000) + 20000, encoding: 'utf8' });
+  // THE DEVICE IS SHARED WITH THE WAKE LOOP. A capture that lands while the trigger is recording fails with a busy
+  // device; that is a collision, not a broken microphone, so try once more before reporting anything.
+  if (r.status !== 0 || !fs.existsSync(file)) {
+    Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 250);
+    r = spawnSync(FFMPEG, args, { timeout: Math.ceil(secs * 1000) + 20000, encoding: 'utf8' });
+  }
   lastUsed = Date.now();
   if (r.status !== 0 || !fs.existsSync(file)) {
     return { ok: false, why: 'capture_failed', device: dev, detail: (r.stderr || '').trim().slice(-400), exit: r.status };
