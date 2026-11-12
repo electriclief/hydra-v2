@@ -130,7 +130,7 @@ footer{position:fixed;left:0;right:0;bottom:0;background:rgba(252,252,251,.94);b
       agent = a;
       bulb.className = 'bulb ' + (a.alive ? 'live' : (a.why === 'no_key' ? 'warn' : 'dead'));
       agentText.textContent = a.alive
-        ? 'agent live · ' + (a.platform || 'hermes') + ' :8642'
+        ? 'agent live · tell mom → echidna · session ' + String(a.session || 'new').slice(0, 12) + '…'
         : 'no agent (' + (a.why || 'down') + ')';
       document.querySelectorAll('button.act').forEach(b => {
         b.disabled = !a.alive;
@@ -162,8 +162,8 @@ footer{position:fixed;left:0;right:0;bottom:0;background:rgba(252,252,251,.94);b
         </div>
       </div>
       <div class="ask">
-        <button class="act" data-ref="${esc(t.ref)}" ${agent.alive ? '' : 'disabled'}>Ask an agent about this</button>
-        <span class="hint">goes to the agent on :8642 — a real run, not a link</span>
+        <button class="act" data-ref="${esc(t.ref)}" ${agent.alive ? '' : 'disabled'}>Tell Mom about this</button>
+        <span class="hint">Tell Mom → Echidna's agent · the note and the question land in its own session, and the answer comes back here</span>
       </div>
       <div class="answer"><div class="meta"></div><div class="body"></div></div>`;
     el.querySelector('button.act').addEventListener('click', ev => ask(el, ev.currentTarget));
@@ -202,7 +202,8 @@ footer{position:fixed;left:0;right:0;bottom:0;background:rgba(252,252,251,.94);b
       });
       const j = await r.json();
       if (j.ok) {
-        meta.textContent = 'agent answered in ' + (j.ms / 1000).toFixed(1) + 's · ' + (j.usage ? j.usage.total_tokens + ' tokens' : 'no usage');
+        const told = j.told ? (j.told.ok ? 'told: pane + discord' : 'tell ' + (j.told.why || 'failed')) : '';
+        meta.textContent = 'answered in ' + (j.ms / 1000).toFixed(1) + 's' + (told ? ' · ' + told : '') + (j.sessionId ? ' · session ' + String(j.sessionId).slice(0, 12) + '…' : '');
         bodyEl.textContent = j.answer || '(empty answer)';
       } else {
         meta.textContent = 'agent did not answer · ' + (j.why || 'unknown');

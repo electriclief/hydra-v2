@@ -5,7 +5,9 @@
   "start": "\"%LOCALAPPDATA%\\hermes\\node\\node.exe\" src/main.js",
   "wiredAtBoot": false,
   "deps": [
-    "TrainOfThought"
+    "TrainOfThought",
+    "TellMom",
+    "Echidna"
   ],
-  "what": "The board you can read and the agent you can reach. One slide per Train of Thought topic: state, intent, the unanswered questions, the last key messages - and dots for every topic. A click on 'Ask an agent' runs the agent on that topic (Hermes gateway 8642) and returns the answer inline; if the agent is not there the button says so rather than linking somewhere dead. The gateway key is read per call from the owner's .env, never stored, never sent to the page."
+  "what": "The board you can read and the agent you can reach. One slide per Train of Thought topic - state, intent, the unanswered questions, the last key messages - with a dot for every topic. A click is a Tell Mom tell: it posts to Tell Mom (:8139), whose pane channel inserts a note into Echidna's thread, and then asks Echidna's own agent (:8138) so the reply is a turn in the same session the pane is showing. If either door is down the button says which, rather than linking somewhere dead."
 }

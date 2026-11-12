@@ -21,7 +21,8 @@
 <p>Monitor is the page that answers "what is the fleet working on, and what is still unanswered" without asking anyone.
 It reads the train of thought (<code>module/TrainOfThought/data/thoughts.json</code>) and turns each topic into one slide:
 state, intent, the questions still open, and the last key messages. Every topic gets a dot. And every slide carries one
-button that does not link anywhere — it <b>runs the agent</b> on that topic and shows the answer in place.</p>
+button that does not link anywhere — it <b>tells Mom</b>: a Tell Mom tell goes to :8139, whose pane channel inserts the
+note into Echidna's thread, and Echidna's own agent (:8138) answers in its own continuing session.</p>
 </section>
 
 <section id="concepts">
@@ -29,12 +30,12 @@ button that does not link anywhere — it <b>runs the agent</b> on that topic an
 <table>
 <tr><th>rule</th><th>why</th></tr>
 <tr><td><b>A click reaches a live agent, or says it cannot.</b></td>
-<td>The agent door is probed every ten seconds. If nothing answers on :8642 the button is disabled and names the reason,
-so the page never offers a link that goes nowhere.</td></tr>
-<tr><td><b>The key is read, never stored.</b></td>
-<td>The gateway key comes from <code>API_SERVER_KEY</code> in the owner's <code>.env</code>, is read at the moment of a
-call, and is never logged, cached to disk, or sent to the browser. Absent key is a typed refusal (<code>no_key</code>),
-not a guess.</td></tr>
+<td>Tell Mom (:8139) and Echidna (:8138) are probed every ten seconds. If either is down, or the pane channel is not
+configured, the button is disabled and names which door is missing — never a link that goes nowhere.</td></tr>
+<tr><td><b>No credential lives here.</b></td>
+<td>Tell Mom and Echidna own their own keys; this door holds none, reads none, and forwards none. A door that cannot reach
+the agent returns a typed reason (<code>tellmom_down</code>, <code>echidna_down</code>, <code>no_pane</code>, <code>busy</code>)
+instead of an empty answer.</td></tr>
 <tr><td><b>An unreadable board is a refusal.</b></td>
 <td>If <code>thoughts.json</code> is missing or torn, <code>/api/topics</code> answers <b>503</b> with the path. An empty
 board would look like a quiet fleet; it is not the same thing.</td></tr>
@@ -54,17 +55,17 @@ board would look like a quiet fleet; it is not the same thing.</td></tr>
 <table>
 <tr><td><code>GET /</code></td><td>the page</td></tr>
 <tr><td><code>GET /api/topics</code></td><td><code>{ok, counts, topics:[{ref,title,state,intent,questions,messages}]}</code>, 503 when unreadable</td></tr>
-<tr><td><code>GET /api/agent</code></td><td><code>{alive, door, platform, version, key:"present"|"absent", why}</code>, cached 5 s</td></tr>
-<tr><td><code>POST /api/ask</code></td><td><code>{ref, question?}</code> → <code>{ok, answer, ms, usage}</code> · 502 with <code>why</code> when the agent cannot answer</td></tr>
+<tr><td><code>GET /api/agent</code></td><td><code>{alive, why, tellmom, echidna:{session}, pane, discord}</code>, cached 5 s</td></tr>
+<tr><td><code>POST /api/ask</code></td><td><code>{ref, question?}</code> → <code>{ok, answer, ms, sessionId, told}</code> · 502 with <code>why</code> when the agent cannot answer</td></tr>
 <tr><td><code>GET /health</code></td><td>door, port, thoughts path, agent liveness</td></tr>
 </table>
 
 <h2>Run it</h2>
 <pre>node src/main.js --port 8157 --host 0.0.0.0
   --thoughts C:/AI/hydra-local/module/TrainOfThought/data/thoughts.json
-  --gateway  http://127.0.0.1:8642
-  --env      C:/Users/User/AppData/Local/hermes/.env</pre>
+  --tellmom  http://127.0.0.1:8139
+  --echidna  http://127.0.0.1:8138</pre>
 <p>Raised as a ProcessWrapper row named <code>monitor-8157</code>, so it is visible in the app and can be closed like
-any other door. Depend on <code>TrainOfThought</code> for the data and on the Hermes gateway for the agent.</p>
+any other door. Depends on <code>TrainOfThought</code> for the data, <code>TellMom</code> for the protocol, and <code>Echidna</code> for the agent session.</p>
 </section>
 </body></html>
