@@ -46,6 +46,9 @@ const HUB = String(argOf('hub', comms.hub ?? 'http://127.0.0.1:8160')).replace(/
 const PHRASE = String(argOf('phrase', comms.wakePhrase ?? 'are you listening')).toLowerCase();
 const WHISPER = argOf('whisper', comms.whisper ?? '');
 const MODEL = argOf('model', comms.whisperModel ?? '');
+// The trigger earns the cheap model: it only has to recognise one word, and it runs every three seconds all day.
+// The question that follows earns the accurate one. comms.wakeModel names the first, comms.whisperModel the second.
+const WAKE_MODEL = comms.wakeModel ?? MODEL;
 const AUTO = String(argOf('auto', comms.wakeAuto ?? 'false')) === 'true';
 const SCRIPT = path.join(HERE, '..', 'scripts', 'wake.ps1');
 const AUDIOIN = String(argOf('audioin', comms.audioIn ?? 'http://127.0.0.1:8161')).replace(/\/$/, '');
@@ -83,7 +86,7 @@ function matches(text) {
  */
 function arm() {
   if (child || loopTimer) return { ok: true, already: true, pid: child ? child.pid : null };
-  const mode = MODE === 'auto' ? (whisperExe() && MODEL && fs.existsSync(MODEL) ? 'stt' : 'grammar') : MODE;
+  const mode = MODE === 'auto' ? (whisperExe() && WAKE_MODEL && fs.existsSync(WAKE_MODEL) ? 'stt' : 'grammar') : MODE;
   armedAt = Date.now();
   failure = null;
   if (mode === 'grammar') {
@@ -125,7 +128,7 @@ function arm() {
       clearTimeout(timer);
       const capBody = await cap.json();
       if (capBody.ok) {
-        const r = spawnSync(whisperExe(), ['-m', MODEL, '-f', capBody.file, '-nt'], { timeout: 120000, encoding: 'utf8' });
+        const r = spawnSync(whisperExe(), ['-m', WAKE_MODEL, '-f', capBody.file, '-nt'], { timeout: 120000, encoding: 'utf8' });
         heard = String(r.stdout || '').trim();
         chunks++;
         // what the loop is actually hearing, so "it never fires" can be read instead of guessed at
