@@ -56,6 +56,18 @@ const TMP = path.join(os.tmpdir(), 'hydra-comms');
 fs.mkdirSync(TMP, { recursive: true });
 
 /**
+ * THE PORTAL'S ONE MICROPHONE. The wake loop captures a chunk every few seconds and a triggered listen captures six
+ * more; run those at the same time and the second ffmpeg opens a device that is already busy, which surfaces as a
+ * capture failure nobody can explain from the outside. Every listen and every test goes through this queue.
+ */
+let micQueue = Promise.resolve();
+const withMic = (fn) => {
+  const next = micQueue.then(fn, fn);
+  micQueue = next.catch(() => { });
+  return next;
+};
+
+/**
  * LAZY LOAD. Only this hub is raised at boot; the four capability doors are started on first use, through
  * ProcessWrapper, so they appear in the app with a close button like everything else. A node that is never asked to
  * listen never spawns ffmpeg, and a door that was closed on purpose comes back the next time something needs it.
@@ -196,7 +208,14 @@ async function listen({ seconds = CAPTURE, wav = null, sttUrl = null, speak = tr
     const payload = openai
       ? { model: comms.answerModel ?? 'local', stream: false, max_tokens: Number(comms.answerTokens ?? 120),
           messages: [
-            { role: 'system', content: comms.answerPrompt ?? 'You are a node on a home LAN. Answer the spoken question in one or two short sentences, plainly, and never invent a number you were not given.' },
+            { role: 'system', content: comms.answerPrompt ?? [
+              'You are Kate, the voice of this machine on a home network. You are speaking out loud in a room.',
+              'Your body: the microphone works (you just heard the question), the speakers work, and there is NO camera.',
+              'Answer in at most two short spoken sentences. Plain words, no lists, no markdown, no emoji.',
+              'Never claim you cannot hear the person - you transcribed them, that is how you got the question.',
+              'If the question is unclear, ask them to say it again in one sentence.',
+              'Never invent numbers or facts about other machines; if you do not know, say so in one sentence.',
+            ].join(' ') },
             { role: 'user', content: stt.transcript },
           ] }
       : { text: stt.transcript, ref: REF, at: new Date().toISOString() };
@@ -224,9 +243,22 @@ async function listen({ seconds = CAPTURE, wav = null, sttUrl = null, speak = tr
   return { ok: true, ...last };
 }
 
+const VISUAL = path.join(path.dirname(new URL(import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1')), '..', 'public', 'visual.html');
+
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, 'http://x');
   const p = url.pathname;
+
+  // the visual half of the portal: a full-screen page for the room, so the person talking can read what was heard
+  if (p === '/' || p === '/visual') {
+    try {
+      const html = fs.readFileSync(VISUAL, 'utf8');
+      res.writeHead(200, { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store' });
+      return res.end(html);
+    } catch (e) {
+      return send(res, 500, { ok: false, why: 'no_visual_page', lookedFor: VISUAL, detail: e.message });
+    }
+  }
 
   if (p === '/health') return send(res, 200, { ok: true, door: 'CommsNode', ref: REF, port: PORT });
 
@@ -245,7 +277,7 @@ const server = http.createServer(async (req, res) => {
 
   if (p === '/api/listen' && req.method === 'POST') {
     const body = await readBody(req);
-    const r = await listen(body);
+    const r = await withMic(() => listen(body));
     return send(res, r.ok ? 200 : 503, r);
   }
 
@@ -255,7 +287,7 @@ const server = http.createServer(async (req, res) => {
     hits++;
     console.log('[comms] wake', JSON.stringify(body));
     // answer asynchronously so the recogniser is not blocked while a capture runs
-    listen({ seconds: CAPTURE }).then((r) => console.log('[comms] wake loop ->', r.ok ? r.transcript : r.why)).catch(() => { });
+    withMic(() => listen({ seconds: CAPTURE })).then((r) => console.log('[comms] wake loop ->', r.ok ? r.transcript : r.why)).catch(() => { });
     return send(res, 202, { ok: true, accepted: 'wake', capture: CAPTURE, at: new Date().toISOString() });
   }
 

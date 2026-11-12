@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kate</title>
+<style>
+  /* The visual half of the portal: what the node heard, what it answered. One screen, no chrome, readable at 3 metres. */
+  :root { --ink:#0d0d0d; --paper:#ffffff; --dim:#8a8a8a; --line:#e2e2e2; --live:#0d0d0d; }
+  @media (prefers-color-scheme: dark) { :root { --ink:#f2f2f2; --paper:#0b0b0b; --dim:#7d7d7d; --line:#222; --live:#f2f2f2; } }
+  * { box-sizing: border-box; }
+  html, body { height:100%; margin:0; background:var(--paper); color:var(--ink);
+    font: 400 clamp(18px, 2.1vw, 30px)/1.45 "Segoe UI", system-ui, -apple-system, sans-serif; }
+  body { display:grid; grid-template-rows: auto 1fr auto; padding: clamp(24px, 4vh, 56px) clamp(28px, 5vw, 84px); }
+  header { display:flex; align-items:baseline; justify-content:space-between; gap:24px; }
+  h1 { font-size: clamp(40px, 7vw, 104px); letter-spacing:-0.03em; font-weight:700; margin:0; line-height:0.95; }
+  .state { display:flex; align-items:center; gap:12px; font-size: clamp(13px, 1.1vw, 17px);
+    letter-spacing:0.18em; text-transform:uppercase; color:var(--dim); }
+  .dot { width:12px; height:12px; border-radius:50%; background:var(--dim); }
+  .dot.armed { background:var(--live); animation: pulse 2s ease-in-out infinite; }
+  .dot.failed { background:transparent; border:2px solid var(--ink); }
+  @keyframes pulse { 0%,100% { opacity:1; transform:scale(1);} 50% { opacity:.35; transform:scale(.82);} }
+  main { display:grid; align-content:center; gap: clamp(18px, 3.4vh, 40px); padding: clamp(20px,4vh,54px) 0; }
+  .heard { font-size: clamp(22px, 3.2vw, 52px); line-height:1.25; letter-spacing:-0.01em; }
+  .heard small, .answer small { display:block; font-size: clamp(11px, 0.95vw, 14px); letter-spacing:0.2em;
+    text-transform:uppercase; color:var(--dim); margin-bottom:12px; }
+  .answer { font-size: clamp(26px, 4.1vw, 68px); line-height:1.18; letter-spacing:-0.02em; font-weight:600; }
+  .answer.idle { color:var(--dim); font-weight:400; }
+  footer { display:flex; flex-wrap:wrap; gap:10px 30px; border-top:1px solid var(--line); padding-top:16px;
+    font-size: clamp(11px, 0.95vw, 14px); letter-spacing:0.06em; color:var(--dim); font-variant-numeric: tabular-nums; }
+  footer b { color:var(--ink); font-weight:600; }
+  .rule { height:1px; background:var(--line); }
+</style>
+</head>
+<body>
+  <header>
+    <h1>Kate</h1>
+    <div class="state"><span class="dot" id="dot"></span><span id="stateText">connecting</span></div>
+  </header>
+
+  <main>
+    <div class="heard"><small>heard</small><span id="heard">&mdash;</span></div>
+    <div class="answer idle" id="answer"><small>answer</small><span id="answerText">Say &ldquo;Kate&rdquo; and then your question.</span></div>
+  </main>
+
+  <footer>
+    <span>node <b id="ref">jims</b></span>
+    <span>mic <b id="mic">&mdash;</b></span>
+    <span>camera <b id="cam">&mdash;</b></span>
+    <span>model <b id="model">&mdash;</b></span>
+    <span>round trip <b id="ms">&mdash;</b></span>
+    <span>leased card <b id="lease">&mdash;</b></span>
+    <span id="clock"></span>
+  </footer>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const HUB = location.origin;
+let lastAt = null;
+
+async function tick() {
+  try {
+    const s = await (await fetch(HUB + '/api/state', { cache: 'no-store' })).json();
+    const lease = await (await fetch(HUB + '/api/gpu/lease', { cache: 'no-store' })).json().catch(() => ({}));
+    const wake = await (await fetch(HUB.replace(/:\\d+$/, ':8164') + '/api/status', { cache: 'no-store' })).json().catch(() => ({}));
+    $('ref').textContent = s.ref || 'jims';
+    const armed = (wake.state || '') === 'armed';
+    $('dot').className = 'dot ' + (s.last && s.last.error ? 'failed' : (armed ? 'armed' : ''));
+    $('stateText').textContent = s.last && s.last.error ? 'error' : (armed ? 'listening' : 'idle');
+
+    const last = s.last || {};
+    if (last.transcript) {
+      $('heard').textContent = last.transcript;
+      const a = typeof last.answer === 'string' ? last.answer : (last.answer && last.answer.answer) || null;
+      $('answerText').textContent = a || (last.answer && last.answer.why) || 'heard you, but had nothing to say';
+      $('answer').className = 'answer';
+    }
+    $('mic').textContent = last.level ? (last.level.silent ? 'silent' : 'working') : (wake.state === 'armed' ? 'working' : 'unknown');
+    $('cam').textContent = 'none';
+    $('model').textContent = s.agent ? 'local qwen' : 'not wired';
+    $('ms').textContent = last.ms ? (last.ms / 1000).toFixed(1) + ' s' : '\u2014';
+    $('lease').textContent = lease.lease ? 'yes' : 'no';
+    $('clock').textContent = new Date().toLocaleTimeString();
+  } catch (e) {
+    $('stateText').textContent = 'no hub';
+  }
+}
+tick(); setInterval(tick, 1500);
+</script>
+</body>
+</html>
