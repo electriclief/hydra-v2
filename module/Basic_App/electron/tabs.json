@@ -1,11 +1,40 @@
 {
   "_note": "Extra tabs for the Hydra window, opened between Basic and Process. path = host:port (no scheme), as the wrapper expects.",
   "tabs": [
-    { "name": "Menu", "path": "localhost:8133", "note": "the way in: tree · advert on hover · inputs on click · books a job" },
-    { "name": "Diaries", "path": "localhost:8134", "note": "session diary: every Hermes session as a page · ask the dead · fork/restart" },
-    { "name": "Thoughts", "path": "localhost:8135", "note": "train of thought: long-term intentions as a DAG · the frontier answers what is next · archive keeps the closing sentence" },
-    { "name": "Join", "path": "localhost:8131", "note": "the shelf's self-description: kinds, registered members, resolve, plan" },
-    { "name": "Scheduler", "path": "localhost:8132", "note": "the book of jobs, one at a time" },
-    { "name": "LLM chat", "path": "localhost:8080", "service": "llama-chat" }
+    {
+      "name": "Menu",
+      "path": "localhost:8133",
+      "note": "the way in: tree \u00b7 advert on hover \u00b7 inputs on click \u00b7 books a job"
+    },
+    {
+      "name": "Kate",
+      "path": "localhost:8160",
+      "note": "the communication portal: what the node heard, what it answered, and the card it holds"
+    },
+    {
+      "name": "Diaries",
+      "path": "localhost:8134",
+      "note": "session diary: every Hermes session as a page \u00b7 ask the dead \u00b7 fork/restart"
+    },
+    {
+      "name": "Thoughts",
+      "path": "localhost:8135",
+      "note": "train of thought: long-term intentions as a DAG \u00b7 the frontier answers what is next \u00b7 archive keeps the closing sentence"
+    },
+    {
+      "name": "Join",
+      "path": "localhost:8131",
+      "note": "the shelf's self-description: kinds, registered members, resolve, plan"
+    },
+    {
+      "name": "Scheduler",
+      "path": "localhost:8132",
+      "note": "the book of jobs, one at a time"
+    },
+    {
+      "name": "LLM chat",
+      "path": "localhost:8080",
+      "service": "llama-chat"
+    }
   ]
 }
