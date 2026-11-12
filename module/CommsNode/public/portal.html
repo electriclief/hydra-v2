@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kate — communication portal</title>
+<style>
+  /* THE PUBLIC FACE OF THE LAN. A guest walks up, says one word, and the screen tells them everything: whether it is
+     listening, what it heard, what it answered. Colour is doing the work - calm paper, one warm accent, no decoration. */
+  :root{
+    --paper:#faf7f2; --card:#ffffff; --ink:#17130f; --muted:#8a8079; --hair:#e8e0d6;
+    --accent:#b45309; --accent-soft:#fdf1e3; --ok:#0f766e; --dim:#b8aea4;
+    --shadow:0 1px 2px rgba(23,19,15,.04), 0 8px 40px rgba(23,19,15,.06);
+  }
+  @media (prefers-color-scheme: dark){
+    :root{ --paper:#0d0c0b; --card:#151310; --ink:#f5f0e9; --muted:#8d857c; --hair:#26221d;
+           --accent:#f0a35e; --accent-soft:#20160e; --ok:#5eead4; --dim:#4a443e;
+           --shadow:0 1px 2px rgba(0,0,0,.5), 0 10px 50px rgba(0,0,0,.45); }
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%;margin:0;background:var(--paper);color:var(--ink);overflow:hidden;
+    font-family:"Segoe UI Variable","Segoe UI",system-ui,-apple-system,sans-serif;-webkit-font-smoothing:antialiased}
+  body{display:grid;grid-template-rows:auto auto 1fr auto;gap:clamp(10px,1.8vh,22px);
+    padding:clamp(18px,3vh,38px) clamp(22px,3.6vw,60px)}
+
+  /* ---------- header ---------- */
+  header{display:flex;align-items:flex-end;justify-content:space-between;gap:20px;
+    padding-bottom:clamp(8px,1.4vh,16px);border-bottom:1px solid var(--hair)}
+  .brand{display:flex;align-items:baseline;gap:clamp(10px,1.2vw,18px)}
+  .brand h1{margin:0;font-size:clamp(24px,3.2vw,44px);font-weight:650;letter-spacing:-.02em}
+  .brand .dot{width:8px;height:8px;border-radius:50%;background:var(--accent);display:inline-block;transform:translateY(-6px)}
+  .brand .tag{font-size:clamp(10px,.95vw,13px);letter-spacing:.26em;text-transform:uppercase;color:var(--muted)}
+  .meta{display:flex;align-items:center;gap:clamp(10px,1.4vw,22px);font-size:clamp(10px,.9vw,12px);
+    letter-spacing:.18em;text-transform:uppercase;color:var(--muted);font-variant-numeric:tabular-nums}
+  .pill{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--hair);border-radius:999px;
+    padding:7px 14px;background:var(--card);color:var(--ink);letter-spacing:.14em}
+  .pill .led{width:7px;height:7px;border-radius:50%;background:var(--dim)}
+  body[data-phase="awaiting"] .pill .led{background:var(--ok)}
+  body[data-phase="listening"] .pill .led{background:var(--accent);animation:breathe 1s ease-in-out infinite}
+  body[data-phase="thinking"] .pill .led{background:var(--muted);animation:breathe 1.4s ease-in-out infinite}
+
+  /* ---------- the state ---------- */
+  .stage{display:grid;grid-template-columns:1fr auto;align-items:center;gap:clamp(14px,2vw,32px);padding-top:clamp(4px,1vh,10px)}
+  .stage .word{font-size:clamp(42px,8.6vw,132px);font-weight:700;letter-spacing:-.04em;line-height:.9;
+    background:linear-gradient(180deg,var(--ink),color-mix(in srgb,var(--ink) 62%,var(--paper)));
+    -webkit-background-clip:text;background-clip:text;color:transparent}
+  body[data-phase="listening"] .stage .word{background:linear-gradient(180deg,var(--accent),color-mix(in srgb,var(--accent) 55%,var(--paper)));
+    -webkit-background-clip:text;background-clip:text;color:transparent}
+  body[data-phase="off"] .stage .word{background:none;color:var(--dim)}
+  .stage .hint{font-size:clamp(12px,1.25vw,19px);color:var(--muted);max-width:28ch;line-height:1.35;text-align:right}
+
+  /* ---------- the microphone ---------- */
+  .mic{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:clamp(10px,1.4vw,20px);
+    background:var(--card);border:1px solid var(--hair);border-radius:14px;box-shadow:var(--shadow);
+    padding:clamp(9px,1.3vh,15px) clamp(12px,1.4vw,20px)}
+  .mic .label{font-size:clamp(9px,.82vw,11px);letter-spacing:.26em;text-transform:uppercase;color:var(--muted)}
+  .mic canvas{width:100%;height:clamp(28px,5vh,64px);display:block}
+  .mic .known{font-size:clamp(9px,.82vw,11px);letter-spacing:.2em;text-transform:uppercase;
+    border:1px solid var(--hair);border-radius:999px;padding:5px 12px;color:var(--muted);white-space:nowrap;transition:.2s}
+  .mic .known.here{color:#fff;background:var(--accent);border-color:var(--accent)}
+
+  /* ---------- the conversation ---------- */
+  .talk{display:grid;grid-template-rows:auto 1fr auto;gap:clamp(8px,1.3vh,16px);min-height:0}
+  .live{font-size:clamp(15px,1.7vw,26px);line-height:1.32;color:var(--muted);min-height:1.35em;
+    font-style:italic;letter-spacing:-.005em}
+  .live b{font-style:normal;font-weight:600;color:var(--ink)}
+  .cards{display:grid;grid-template-columns:1fr 1fr;gap:clamp(10px,1.4vw,22px);min-height:0}
+  .card{background:var(--card);border:1px solid var(--hair);border-radius:16px;box-shadow:var(--shadow);
+    padding:clamp(14px,2vh,26px) clamp(16px,1.6vw,26px);display:grid;grid-template-rows:auto 1fr;gap:10px;overflow:hidden}
+  .card.answer{background:var(--accent-soft);border-color:color-mix(in srgb,var(--accent) 22%,var(--hair))}
+  .card .label{font-size:clamp(9px,.85vw,12px);letter-spacing:.26em;text-transform:uppercase;color:var(--muted)}
+  .card .value{font-size:clamp(17px,2vw,32px);line-height:1.28;letter-spacing:-.01em;overflow:hidden}
+  .card.answer .value{font-weight:600;font-size:clamp(19px,2.4vw,40px)}
+  .card .value.empty{color:var(--dim);font-weight:400;font-style:italic}
+
+  .history{display:grid;gap:2px;font-size:clamp(10px,.86vw,13px);color:var(--muted);line-height:1.4}
+  .history div{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .history b{color:var(--ink);font-weight:600}
+  .history .t{color:var(--dim);font-variant-numeric:tabular-nums;margin-right:8px}
+
+  /* ---------- footer ---------- */
+  footer{display:flex;flex-wrap:wrap;align-items:center;gap:8px clamp(14px,2vw,32px);
+    border-top:1px solid var(--hair);padding-top:clamp(8px,1.2vh,14px);
+    font-size:clamp(9px,.86vw,12px);letter-spacing:.14em;text-transform:uppercase;color:var(--muted);font-variant-numeric:tabular-nums}
+  footer b{color:var(--ink);font-weight:600;letter-spacing:.04em}
+  footer .cue{display:inline-flex;align-items:center;gap:7px}
+  footer .chip{width:16px;height:8px;border-radius:2px;background:var(--hair)}
+  footer .chip.up{background:var(--accent)}
+  footer .chip.down{background:var(--ok)}
+  @keyframes breathe{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.35;transform:scale(.8)}}
+</style>
+</head>
+<body data-phase="off">
+  <header>
+    <div class="brand">
+      <h1>Kate</h1><span class="dot"></span>
+      <span class="tag">communication portal &middot; <span id="ref">jims</span></span>
+    </div>
+    <div class="meta">
+      <span class="pill"><span class="led"></span><span id="pill">connecting</span></span>
+      <span id="clock"></span>
+    </div>
+  </header>
+
+  <div class="stage">
+    <div class="word" id="word">Off</div>
+    <div class="hint" id="hint">connecting to the node</div>
+  </div>
+
+  <div class="mic">
+    <span class="label">microphone</span>
+    <canvas id="wave" width="1400" height="120"></canvas>
+    <span class="known" id="known">checking</span>
+  </div>
+
+  <div class="talk">
+    <div class="live" id="live">&nbsp;</div>
+    <div class="cards">
+      <div class="card"><span class="label">you said</span><span class="value empty" id="heard">nothing yet</span></div>
+      <div class="card answer"><span class="label">kate answered</span><span class="value empty" id="answer">say &ldquo;Kate&rdquo;</span></div>
+    </div>
+    <div class="history" id="history"></div>
+  </div>
+
+  <footer>
+    <span>voice <b id="voice">piper</b></span>
+    <span>model <b id="model">local</b></span>
+    <span>device <b id="dev">&mdash;</b></span>
+    <span>turn <b id="ms">&mdash;</b></span>
+    <span class="cue"><span class="chip up"></span> rising chime &middot; listening</span>
+    <span class="cue"><span class="chip down"></span> falling chime &middot; done, back to waiting</span>
+    <span style="margin-left:auto">camera <b id="cam">none</b></span>
+  </footer>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const HUB = location.origin;
+const PHASES = {
+  awaiting:  { word:'Say Kate',  pill:'waiting',   hint:'Waiting for the word. Nothing is being recorded.' },
+  listening: { word:'Listening', pill:'listening', hint:'Speak now — the microphone is open.' },
+  thinking:  { word:'Thinking',  pill:'thinking',  hint:'Not listening. Working it out, then she speaks.' },
+  off:       { word:'Off',       pill:'off',       hint:'The trigger is not armed. Nothing is being heard.' },
+};
+
+// ---- the wave: the last ~30 seconds of the room, newest on the right
+const wave = $('wave'), ctx = wave.getContext('2d');
+const BARS = 140, levels = new Array(BARS).fill(0);
+let hotUntil = 0;
+
+function accent() { return getComputedStyle(document.body).getPropertyValue('--accent').trim() || '#b45309'; }
+function faint() { return getComputedStyle(document.body).getPropertyValue('--dim').trim() || '#b8aea4'; }
+
+function drawWave() {
+  const w = wave.width, h = wave.height, mid = h / 2;
+  ctx.clearRect(0, 0, w, h);
+  const bw = w / BARS;
+  for (let i = 0; i < BARS; i++) {
+    const v = levels[i];
+    const bh = Math.max(1.5, v * h * 0.9);
+    const fresh = i > BARS - 10;
+    ctx.fillStyle = fresh ? accent() : faint();
+    ctx.globalAlpha = fresh ? 1 : 0.55 + 0.45 * v;
+    const x = i * bw + bw * 0.22, y = mid - bh / 2, r = Math.min(bw * 0.34, 3);
+    ctx.beginPath();
+    if (ctx.roundRect) ctx.roundRect(x, y, bw * 0.56, bh, r); else ctx.rect(x, y, bw * 0.56, bh);
+    ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+}
+
+let lastLive = null, lastState = null, lastChunk = null;
+
+async function tickLive() {
+  try {
+    const live = await (await fetch(HUB + '/api/live', { cache:'no-store' })).json();
+    const rms = (live.level && typeof live.level.rms === 'number') ? live.level.rms : 0;
+    levels.push(Math.min(1, rms / 0.10)); levels.shift();
+    drawWave();
+
+    if (rms > 0.012) hotUntil = Date.now() + 1100;
+    const here = Date.now() < hotUntil;
+    const k = $('known');
+    const phase = (lastState && lastState.phase) || live.phase;
+    k.textContent = phase === 'off' ? 'off' : (here ? 'hearing you' : (phase === 'listening' ? 'open' : 'ready'));
+    k.classList.toggle('here', here);
+    if (live.level && live.level.device) $('dev').textContent = live.level.device;
+
+    // the trigger door's own reading of the last three seconds
+    const hd = live.heard || {};
+    if (hd.text && hd.at !== lastChunk && !/^\(|BLANK_AUDIO/i.test(hd.text)) {
+      lastChunk = hd.at;
+      $('live').innerHTML = '&ldquo;<b>' + hd.text.replace(/</g,'&lt;') + '</b>&rdquo;';
+    }
+  } catch (e) { }
+}
+
+async function tickState() {
+  try {
+    const s = await (await fetch(HUB + '/api/state', { cache:'no-store' })).json();
+    lastState = s;
+    const phase = (s.last && s.last.error) ? 'off' : (s.phase || 'off');
+    document.body.dataset.phase = phase;
+    $('word').textContent = (PHASES[phase] || PHASES.off).word;
+    $('hint').textContent = (s.last && s.last.error) ? 'Fault — see the footer' : (PHASES[phase] || PHASES.off).hint;
+    $('pill').textContent = (PHASES[phase] || PHASES.off).pill;
+    $('ref').textContent = s.ref || 'jims';
+    $('model').textContent = s.agent ? 'local qwen · Destiny' : 'none';
+
+    const last = s.last || {};
+    if (last.transcript) { $('heard').textContent = last.transcript; $('heard').classList.remove('empty'); }
+    const a = typeof last.answer === 'string' ? last.answer
+      : (last.answer && last.answer.handoff ? 'Passing you to Kate — the agent has the thread.'
+      : (last.answer && (last.answer.answer || last.answer.why)) || null);
+    if (a) { $('answer').textContent = a; $('answer').classList.remove('empty'); }
+    if (last.spoke && last.spoke.provider) $('voice').textContent = last.spoke.provider;
+    $('ms').textContent = last.ms ? (last.ms / 1000).toFixed(1) + ' s' : '\u2014';
+    $('clock').textContent = new Date().toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' });
+
+    // the thread so far, so a guest can see what was being discussed
+    try {
+      const log = await (await fetch(HUB + '/api/log?n=4', { cache:'no-store' })).json();
+      const rows = (log.turns || []).slice(-3, -1).map((t) => {
+        const ans = typeof t.answer === 'string' ? t.answer
+          : (t.answer && (t.answer.answer || (t.answer.to === 'kate' ? '→ Kate' : ''))) || '';
+        return '<div><span class="t">' + String(t.at || '').slice(11,16) + '</span><b>' +
+          String(t.heard || '').replace(/</g,'&lt;').slice(0,64) + '</b> — ' +
+          String(ans).replace(/</g,'&lt;').slice(0,64) + '</div>';
+      });
+      $('history').innerHTML = rows.join('');
+    } catch (e) { }
+  } catch (e) {
+    document.body.dataset.phase = 'off';
+    $('word').textContent = 'Off'; $('hint').textContent = 'No answer from the hub.'; $('pill').textContent = 'offline';
+  }
+}
+
+drawWave();
+tickState(); tickLive();
+setInterval(tickLive, 320);
+setInterval(tickState, 900);
+</script>
+</body>
+</html>

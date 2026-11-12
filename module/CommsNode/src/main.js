@@ -225,11 +225,26 @@ async function publish() {
  *   off       the trigger is not armed (no wake door, no microphone) - nothing is being heard
  */
 let liveAudioReady = null;
+const LIVE = { body: null, at: 0, busy: null };
 let phase = 'awaiting';
 let phaseAt = new Date().toISOString();
+const CUES = comms.cuesDir ?? 'C:\\AI\\comms\\cues';
+function cue(kind) {
+  const file = path.join(CUES, `cue-${kind}.wav`);
+  if (!fs.existsSync(file)) return;
+  // fire and forget: a chime must never delay the loop it announces
+  up('AudioOut')
+    .then(() => j(`${AUDIOOUT}/api/play`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ file }) }, 15000))
+    .catch(() => { });
+}
+
 function setPhase(next, why) {
   if (phase === next) return;
+  const prev = phase;
   phase = next; phaseAt = new Date().toISOString();
+  if (next === 'listening') cue('listen');
+  else if (next === 'thinking' && prev === 'listening') cue('think');
+  else if (next === 'awaiting' && (prev === 'listening' || prev === 'thinking')) cue('done');
   console.log('[comms] phase ->', next, why ? `(${why})` : '');
   publish().catch(() => { });
 }
@@ -394,7 +409,7 @@ async function listen({ seconds = CAPTURE, wav = null, sttUrl = null, speak = tr
   return { ok: true, ...last };
 }
 
-const VISUAL = path.join(path.dirname(new URL(import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1')), '..', 'public', 'visual.html');
+const VISUAL = path.join(path.dirname(new URL(import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1')), '..', 'public', 'portal.html');
 
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, 'http://x');
@@ -526,10 +541,28 @@ const server = http.createServer(async (req, res) => {
     // the door that owns the microphone is lazy; the live view is the one caller that needs it awake
     if (!liveAudioReady) { liveAudioReady = up('AudioIn').then(() => true).catch(() => false); }
     await liveAudioReady;
-    const [lvl, wake] = await Promise.all([
-      j(`${AUDIOIN}/api/level`, {}, 4000).catch(() => ({ ok: false })),   // the door samples for a moment; be generous
-      j(`${WAKEWORD}/api/status`, {}, 4000).catch(() => ({ ok: false })),
-    ]);
+    const now = Date.now();
+    if (LIVE.body && now - LIVE.at < 350) return send(res, 200, { ...LIVE.body, cached: true });
+    if (!LIVE.busy) {
+      LIVE.busy = (async () => {
+        const [lvl, wake] = await Promise.all([
+          j(`${AUDIOIN}/api/level`, {}, 4000).catch(() => ({ ok: false })),   // the door samples for a moment
+          j(`${WAKEWORD}/api/status`, {}, 4000).catch(() => ({ ok: false })),
+        ]);
+        return {
+          ok: true, at: new Date().toISOString(), phase,
+          level: lvl.ok ? { rms: lvl.body.rms ?? null, peak: lvl.body.peak ?? null, silent: lvl.body.silent ?? null, device: lvl.body.device ?? null } : { error: 'audioin_down' },
+          heard: wake.ok ? { text: wake.body.lastHeard?.text ?? null, at: wake.body.lastHeard?.at ?? null, chunks: wake.body.chunks ?? null, state: wake.body.state ?? null } : { error: 'wakeword_down' },
+        };
+      })().then((b) => { LIVE.body = b; LIVE.at = Date.now(); LIVE.busy = null; return b; })
+        .catch((e) => { LIVE.busy = null; return { ok: false, why: 'live_failed', detail: e.message }; });
+    }
+    const body = await LIVE.busy;
+    return send(res, 200, body);
+  }
+
+  if (p === '/api/live-old') {
+    const [lvl, wake] = await Promise.all([{ ok: false }, { ok: false }]);
     return send(res, 200, {
       ok: true, at: new Date().toISOString(), phase,
       level: lvl.ok ? { rms: lvl.body.rms ?? null, peak: lvl.body.peak ?? null, silent: lvl.body.silent ?? null, device: lvl.body.device ?? null } : { error: 'audioin_down' },
