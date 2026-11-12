@@ -12,7 +12,9 @@ const DEFAULT_POLICY = {
   dedupeWindowSec: 900,
   maxPerHour: 6,
   quiet: null,
-  channels: ["discord", "pane"]
+  channels: ["discord", "pane"],
+  senders: {},
+  mutedSubjects: []
 };
 function sendJson(res, status, body) {
   res.writeHead(status, { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" });
@@ -32,17 +34,33 @@ function readBody(req) {
 function loadPolicy(file) {
   try {
     const raw = JSON.parse(fs.readFileSync(file, "utf8"));
+    const senders = {};
+    if (raw.senders && typeof raw.senders === "object" && !Array.isArray(raw.senders)) {
+      for (const [name, value] of Object.entries(raw.senders)) {
+        const v = value ?? {};
+        senders[name] = {
+          ...typeof v.perHour === "number" ? { perHour: v.perHour } : {},
+          ...Array.isArray(v.severities) ? { severities: v.severities.filter((s) => ["info", "note", "warn", "alert"].includes(String(s))) } : {}
+        };
+      }
+    }
     return {
       dedupeWindowSec: typeof raw.dedupeWindowSec === "number" ? raw.dedupeWindowSec : DEFAULT_POLICY.dedupeWindowSec,
       maxPerHour: typeof raw.maxPerHour === "number" ? raw.maxPerHour : DEFAULT_POLICY.maxPerHour,
       quiet: raw.quiet && typeof raw.quiet.from === "string" && typeof raw.quiet.to === "string" ? raw.quiet : null,
-      channels: Array.isArray(raw.channels) && raw.channels.length ? raw.channels.map(String) : [...DEFAULT_POLICY.channels]
+      channels: Array.isArray(raw.channels) && raw.channels.length ? raw.channels.map(String) : [...DEFAULT_POLICY.channels],
+      senders,
+      mutedSubjects: Array.isArray(raw.mutedSubjects) ? raw.mutedSubjects.map(String) : []
     };
   } catch {
     fs.mkdirSync(path.dirname(file), { recursive: true });
     fs.writeFileSync(file, JSON.stringify(DEFAULT_POLICY, null, 2));
-    return { ...DEFAULT_POLICY, channels: [...DEFAULT_POLICY.channels] };
+    return { ...DEFAULT_POLICY, channels: [...DEFAULT_POLICY.channels], senders: {}, mutedSubjects: [] };
   }
+}
+function savePolicy(file, policy) {
+  fs.mkdirSync(path.dirname(file), { recursive: true });
+  fs.writeFileSync(file, JSON.stringify(policy, null, 2));
 }
 function minutesOf(clock) {
   const m = /^(\d{1,2}):(\d{2})$/.exec(clock.trim());
@@ -64,7 +82,22 @@ function inQuietHours(quiet, now = /* @__PURE__ */ new Date()) {
 function createServer(options) {
   const policyFile = path.join(options.dataDir, "policy.json");
   const toldFile = path.join(options.dataDir, "told.jsonl");
-  const policy = loadPolicy(policyFile);
+  let policy = loadPolicy(policyFile);
+  let policyMtime = 0;
+  try {
+    policyMtime = fs.statSync(policyFile).mtimeMs;
+  } catch {
+  }
+  const reloadPolicyIfChanged = () => {
+    try {
+      const mtime = fs.statSync(policyFile).mtimeMs;
+      if (mtime !== policyMtime) {
+        policy = loadPolicy(policyFile);
+        policyMtime = mtime;
+      }
+    } catch {
+    }
+  };
   const recent = [];
   try {
     for (const line of fs.readFileSync(toldFile, "utf8").split("\n")) {
@@ -89,8 +122,10 @@ function createServer(options) {
             at: record.at,
             severity: record.severity,
             subject: record.subject,
+            by: record.by ?? "hand",
             channels: record.delivered.map((d) => `${d.channel}:${d.ok ? "ok" : "fail"}`),
             deduped: record.deduped ?? null,
+            reachedSomething: record.delivered.some((d) => d.ok),
             count1h: recent.filter((r) => Date.parse(r.at) > Date.now() - 36e5).length
           }
         }),
@@ -112,8 +147,17 @@ function createServer(options) {
       const url = new URL(req.url ?? "/", `http://${req.headers.host ?? "127.0.0.1"}`);
       const method = (req.method ?? "GET").toUpperCase();
       const p = url.pathname;
+      reloadPolicyIfChanged();
       if (p === "/health") {
-        sendJson(res, 200, { ok: true, door: "tellmom", policy, channels: channelState(), tells: recent.length });
+        sendJson(res, 200, {
+          ok: true,
+          door: "tellmom",
+          policy,
+          channels: channelState(),
+          tells: recent.length,
+          senders: Object.keys(policy.senders).length,
+          muted: policy.mutedSubjects.length
+        });
         return;
       }
       if (p === "/api/channels" && method === "GET") {
@@ -123,6 +167,36 @@ function createServer(options) {
       if (p === "/api/told" && method === "GET") {
         const limit = Math.min(200, Math.max(1, Number(url.searchParams.get("limit") ?? 20) || 20));
         sendJson(res, 200, { tells: recent.slice(-limit) });
+        return;
+      }
+      if (p === "/api/policy" && method === "GET") {
+        const tallies = recent.filter((r) => !r.deduped && Date.now() - Date.parse(r.at) < 36e5).reduce((acc, r) => {
+          const key = r.by ?? "hand";
+          acc[key] = (acc[key] ?? 0) + 1;
+          return acc;
+        }, {});
+        sendJson(res, 200, { ok: true, policy, senders: policy.senders, mutedSubjects: policy.mutedSubjects, lastHourBy: tallies });
+        return;
+      }
+      if ((p === "/api/mute" || p === "/api/unmute") && method === "POST") {
+        let body;
+        try {
+          body = JSON.parse(await readBody(req) || "{}");
+        } catch {
+          sendJson(res, 400, { ok: false, error: "body must be JSON" });
+          return;
+        }
+        const subject = String(body.subject ?? "").trim();
+        if (!subject) {
+          sendJson(res, 400, { ok: false, error: 'a subject is required - use "*" to mute everything' });
+          return;
+        }
+        const on = p === "/api/mute";
+        const present = policy.mutedSubjects.some((m) => m.toLowerCase() === subject.toLowerCase());
+        if (on && !present) policy.mutedSubjects.push(subject);
+        if (!on && present) policy.mutedSubjects = policy.mutedSubjects.filter((m) => m.toLowerCase() !== subject.toLowerCase());
+        savePolicy(policyFile, policy);
+        sendJson(res, 200, { ok: true, changed: on !== present, mutedSubjects: policy.mutedSubjects });
         return;
       }
       if (p === "/api/tell" && method === "POST") {
@@ -142,6 +216,7 @@ function createServer(options) {
         const severity = ["info", "note", "warn", "alert"].includes(String(body.severity)) ? String(body.severity) : "note";
         const dedupeKey = body.dedupeKey ? String(body.dedupeKey) : null;
         const now = Date.now();
+        const by = body.by ? String(body.by) : "hand";
         const record = {
           id: `tell-${now.toString(36)}-${Math.floor(Math.random() * 1296).toString(36)}`,
           at: new Date(now).toISOString(),
@@ -150,32 +225,61 @@ function createServer(options) {
           body: text,
           wants: body.wants ? String(body.wants) : null,
           dedupeKey,
+          by,
           delivered: []
         };
+        const muted = (reason, status = 200) => {
+          record.deduped = reason;
+          appendTold(toldFile, record);
+          recent.push(record);
+          while (recent.length > 500) recent.shift();
+          void publish(record);
+          sendJson(res, status, { ok: status === 200, deduped: reason, record });
+        };
+        const sender = policy.senders[by] ?? {};
+        if (typeof sender.perHour === "number" && sender.perHour <= 0) {
+          record.deduped = `sender '${by}' is declared with perHour 0 - this module may not tell`;
+          appendTold(toldFile, record);
+          recent.push(record);
+          while (recent.length > 500) recent.shift();
+          void publish(record);
+          sendJson(res, 403, {
+            ok: false,
+            error: `sender '${by}' is declared with perHour 0 - this module may not tell. Edit data/policy.json senders.`,
+            deduped: record.deduped,
+            record
+          });
+          return;
+        }
+        if (sender.severities && !sender.severities.includes(severity)) {
+          muted(`sender '${by}' may only tell ${sender.severities.join("/")} - ${severity} is outside its declaration`);
+          return;
+        }
+        const muteKey = policy.mutedSubjects.find((m) => m === "*" || subject.toLowerCase().startsWith(m.toLowerCase()));
+        if (muteKey) {
+          muted(`subject muted by policy (${muteKey}) - the module is still free to tell other subjects`);
+          return;
+        }
         if (dedupeKey) {
           const prior = recent.filter((r) => r.dedupeKey === dedupeKey && now - Date.parse(r.at) < policy.dedupeWindowSec * 1e3);
           if (prior.length) {
-            record.deduped = `same dedupeKey told ${prior.length}x inside ${policy.dedupeWindowSec}s`;
-            appendTold(toldFile, record);
-            recent.push(record);
-            sendJson(res, 200, { ok: true, deduped: record.deduped, record });
+            muted(`same dedupeKey told ${prior.length}x inside ${policy.dedupeWindowSec}s`);
             return;
           }
         }
-        const lastHour = recent.filter((r) => !r.deduped && now - Date.parse(r.at) < 36e5).length;
-        if (lastHour >= policy.maxPerHour) {
-          record.deduped = `hourly ceiling reached (${lastHour}/${policy.maxPerHour})`;
-          appendTold(toldFile, record);
-          recent.push(record);
-          sendJson(res, 200, { ok: true, deduped: record.deduped, record });
+        const sentBySender = recent.filter((r) => !r.deduped && (r.by ?? "hand") === by && now - Date.parse(r.at) < 36e5).length;
+        const senderCeiling = typeof sender.perHour === "number" ? sender.perHour : policy.maxPerHour;
+        if (sentBySender >= senderCeiling) {
+          muted(`sender '${by}' ceiling reached (${sentBySender}/${senderCeiling} this hour)`);
           return;
         }
-        const quiet = inQuietHours(policy.quiet);
-        if (quiet && severity !== "alert") {
-          record.deduped = "quiet hours";
-          appendTold(toldFile, record);
-          recent.push(record);
-          sendJson(res, 200, { ok: true, deduped: record.deduped, record });
+        const lastHour = recent.filter((r) => !r.deduped && now - Date.parse(r.at) < 36e5).length;
+        if (lastHour >= policy.maxPerHour) {
+          muted(`hourly ceiling reached (${lastHour}/${policy.maxPerHour})`);
+          return;
+        }
+        if (inQuietHours(policy.quiet) && severity !== "alert") {
+          muted("quiet hours");
           return;
         }
         const wanted = Array.isArray(body.channels) && body.channels.length ? body.channels.map(String) : policy.channels;
@@ -212,6 +316,7 @@ export {
   createServer,
   inQuietHours,
   loadPolicy,
-  readEnvFile
+  readEnvFile,
+  savePolicy
 };
 //# sourceMappingURL=server.js.map

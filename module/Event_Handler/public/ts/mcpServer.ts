@@ -258,7 +258,11 @@ export async function runTests(): Promise<void> {
 
   const list = await call({ jsonrpc: '2.0', id: 2, method: 'tools/list' }, { 'mcp-session-id': String(session) });
   const tools = (list.body as { result?: { tools?: Array<{ name: string }> } }).result?.tools ?? [];
-  ok('tools/list advertises the registry', tools.length === 4 && tools.some((t) => t.name === 'event_trigger'), tools.map((t) => t.name).join(','));
+  ok(
+    'tools/list advertises the registry',
+    tools.length === 8 && tools.some((t) => t.name === 'event_trigger') && tools.some((t) => t.name === 'hydra_tot'),
+    tools.map((t) => t.name).join(','),
+  );
 
   const callRes = await call({ jsonrpc: '2.0', id: 3, method: 'tools/call', params: { name: 'event_trigger', arguments: { name: 'ping-demo' } } }, { 'mcp-session-id': String(session) });
   const callBody = callRes.body as { result?: { content?: Array<{ text?: string }>; isError?: boolean } };

@@ -197,7 +197,11 @@ async function runTests() {
   ok("a notification answers 202 with no body", note.status === 202, String(note.status));
   const list = await call({ jsonrpc: "2.0", id: 2, method: "tools/list" }, { "mcp-session-id": String(session) });
   const tools = list.body.result?.tools ?? [];
-  ok("tools/list advertises the registry", tools.length === 4 && tools.some((t) => t.name === "event_trigger"), tools.map((t) => t.name).join(","));
+  ok(
+    "tools/list advertises the registry",
+    tools.length === 8 && tools.some((t) => t.name === "event_trigger") && tools.some((t) => t.name === "hydra_tot"),
+    tools.map((t) => t.name).join(",")
+  );
   const callRes = await call({ jsonrpc: "2.0", id: 3, method: "tools/call", params: { name: "event_trigger", arguments: { name: "ping-demo" } } }, { "mcp-session-id": String(session) });
   const callBody = callRes.body;
   ok("tools/call fires an event", callBody.result?.content?.[0]?.text?.includes('"ok": true') === true, JSON.stringify(callBody).slice(0, 160));

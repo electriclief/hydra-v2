@@ -10,6 +10,7 @@
 
 import type { EventHandler } from './eventHandler.js';
 import type { LogSource } from './logStore.js';
+import { buildEasyTools } from './easyTools.js';
 
 // --- Interface Definitions ---
 
@@ -121,6 +122,11 @@ export function buildTools(handler: EventHandler): McpTool[] {
       inputSchema: { type: 'object', properties: {} },
       run: async () => jsonResult(handler.purge()),
     },
+    // ── THE EASY BUTTONS ────────────────────────────────────────────────────────────────────────
+    // Four zero-argument tools over the doors that already own the truth. They live on THIS door because this is the
+    // MCP door every agent inherits; they compose, they never recompute, and an unreachable dependency is a refusal
+    // that names its address. A tiny local model needs no brief when it can ask these four questions.
+    ...buildEasyTools(),
   ];
 }
 
@@ -158,8 +164,17 @@ export async function runTests(): Promise<void> {
   const registry = createMcpRegistry(handler);
 
   const advertised = registry.list();
+  const generic = advertised.filter((t) => t.name.startsWith('event_'));
+  const easy = advertised.filter((t) => t.name.startsWith('hydra_'));
   ok('registry names its module', registry.module === 'event-handler');
-  ok('four generic verbs are advertised', advertised.length === 4, advertised.map((t) => t.name).join(','));
+  ok('four generic verbs are advertised', generic.length === 4, generic.map((t) => t.name).join(','));
+  // The easy buttons exist for a small model: no arguments means nothing to get wrong. They are NOT invoked here —
+  // they read other doors, and a unit test that needs the LAN is a test that fails for the wrong reason.
+  ok(
+    'four zero-argument easy buttons are advertised',
+    easy.length === 4 && easy.every((t) => Object.keys(t.inputSchema.properties).length === 0 && !t.inputSchema.required),
+    easy.map((t) => t.name).join(','),
+  );
   ok('the palette tool is there', advertised.some((t) => t.name === 'event_list'));
   ok('advertised tools carry no run hand', advertised.every((t) => !('run' in t)));
   ok('every advertised tool has a description and schema', advertised.every((t) => t.description.length > 20 && t.inputSchema.type === 'object'));

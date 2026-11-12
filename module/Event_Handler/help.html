@@ -79,8 +79,8 @@
   through <code>loadShelf</code>, registering unknown names on first fire. Its own port <code>8126</code>
   (<code>wiredAtBoot: false</code> in <code>join.json</code>) is the module's standalone life — the same code
   with a door for a test, a tool, or a box that wants to watch the bus from outside.</p>
-  <p><b>Nothing here knows a project word.</b> The three events ProcessWrapper registers, the four MCP tools,
-  the four sources: all generic. The module holds no opinion about what an event means, which is why the same
+  <p><b>Nothing here knows a project word.</b> The three events ProcessWrapper registers, the four generic MCP
+  verbs, the four sources: all generic. The module holds no opinion about what an event means, which is why the same
   file can be the wrapper's console palette and an app's own event sink without a fork.</p>
 </section>
 
@@ -109,7 +109,7 @@
       <tr><td><code>GET /api/events/log</code></td><td>a page, an agent</td><td><code>{ok, matched, fileBytes, lines[]}</code>, filtered by <code>limit, sinceHours, name, source</code></td></tr>
       <tr><td><code>GET /api/events/stream</code></td><td>a live reader</td><td>SSE: <code>ready</code>, then <code>event</code> per line, <code>: beat</code> every 15 s</td></tr>
       <tr><td><code>POST /api/events/purge</code></td><td>an operator</td><td><code>{ok, ...purge}</code> — trim by age, then by bytes</td></tr>
-      <tr><td><code>POST /mcp</code></td><td>an agent</td><td>tools <code>event_list</code>, <code>event_trigger</code>, <code>event_log</code>, <code>event_purge</code></td></tr>
+      <tr><td><code>POST /mcp</code></td><td>an agent</td><td>tools <code>event_list</code>, <code>event_trigger</code>, <code>event_log</code>, <code>event_purge</code> — and four zero-argument easy buttons: <code>hydra_tot</code>, <code>hydra_phoenix</code>, <code>hydra_monitor</code>, <code>hydra_doors</code></td></tr>
       <tr><td><code>GET /</code></td><td>a browser</td><td>the palette page: registered events, a payload box, the live log, filters, purge</td></tr>
     </tbody>
   </table>
@@ -117,6 +117,16 @@
   <code>public/ts/apiServer.ts</code>, the wrap in <code>eventHandler.ts</code>, the file in
   <code>logStore.ts</code>; if this page and those files disagree, the files are right and the page is a
   bug.</p>
+  <h2>The easy buttons</h2>
+  <p>A small local model cannot be taught the fleet by lecture, so the same <code>/mcp</code> door advertises four tools
+  whose schemas take <b>no arguments at all</b>: <code>hydra_tot</code> (the train of thought as bullets),
+  <code>hydra_phoenix</code> (what upkeep is due and how each entry last ended), <code>hydra_monitor</code> (Echidna's
+  board: where the work stands, what is next, what waits on the operator) and <code>hydra_doors</code> (what is up, read
+  from the process table that owns it). Each is a <i>surface</i>: it composes a door that already owns the truth and
+  never recomputes it. A door that does not answer comes back as <code>isError</code> <b>naming the address</b> — never
+  an empty list, because a 200 carrying <code>[]</code> reads as "nothing to do". They live here because this is the MCP
+  door every agent inherits: the server is registered in Hermes as <code>hydra</code>, so a spawned agent gets the fleet
+  by calling tools instead of by reading a brief.</p>
 </section>
 
 <footer>
@@ -147,6 +157,10 @@
     { "name": "/api/events/stream", "to": "a live reader", "kind": "sse" },
     { "name": "/api/events/purge", "to": "an operator", "kind": "http" },
     { "name": "/mcp", "to": "an agent", "kind": "mcp" },
+    { "name": "hydra_tot", "to": "an agent", "kind": "mcp-tool" },
+    { "name": "hydra_phoenix", "to": "an agent", "kind": "mcp-tool" },
+    { "name": "hydra_monitor", "to": "an agent", "kind": "mcp-tool" },
+    { "name": "hydra_doors", "to": "an agent", "kind": "mcp-tool" },
     { "name": "/", "to": "a browser", "kind": "html" },
     { "name": "/health", "to": "a monitor", "kind": "json" }
   ]

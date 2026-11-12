@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Phoenix — the upkeep registry</title>
+<style>
+ :root { color-scheme: dark; --bg:#111318; --panel:#191c23; --border:#303541; --text:#e5e7eb; --muted:#a1a8b7; }
+ * { box-sizing: border-box; }
+ body { margin:0; padding:32px; background:var(--bg); color:var(--text); font:15px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif; max-width:78ch; }
+ h1 { margin:0 0 4px; font-size:24px; font-weight:600; }
+ h2 { margin:30px 0 10px; font-size:13px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; color:var(--muted); }
+ .kicker { margin:0 0 26px; color:var(--muted); font-size:13px; }
+ code { font:13px/1.5 ui-monospace,Consolas,monospace; background:#0b0d11; border:1px solid var(--border); border-radius:5px; padding:1px 5px; }
+ table { width:100%; border-collapse:collapse; margin:6px 0 14px; font-size:14px; }
+ th, td { text-align:left; padding:7px 10px; border-bottom:1px solid var(--border); vertical-align:top; }
+ th { color:var(--muted); font-size:12px; text-transform:uppercase; letter-spacing:.06em; }
+ .note { color:var(--muted); font-size:14px; }
+</style></head><body>
+<header><h1>Phoenix</h1>
+<p class="kicker">the upkeep registry · door on :8146 · a beat every 10 minutes, entries raised by their owners</p></header>
+
+<section id="summary">
+<p>Phoenix does not know what maintenance is. It is a registry that runs entries their owners register, the same way
+Event_Handler dispatches events and the Process Manager owns processes: the module that knows a piece of upkeep is due
+declares it once, and the beat finds it. An empty registry is correct on a fresh install — a node with nothing
+registered has nothing to do, and says so instead of inventing work.</p>
+</section>
+
+<section id="concepts">
+<h2>Phoenix is not the Scheduler</h2>
+<table>
+<tr><th>Phoenix answers</th><th>The Scheduler answers</th></tr>
+<tr><td>what upkeep is due — probes, receipts, dead leases, docs drift</td><td>what this node should be doing with its GPU right now</td></tr>
+<tr><td>runs on a clock, cheap by default</td><td>runs on leases and priorities, can evict</td></tr>
+<tr><td>never starts AI work</td><td>is the only thing allowed to</td></tr>
+</table>
+<p>Each entry carries both surfaces on purpose: the beat is its trigger, and the same door answers for it over HTTP. A
+thread-only entry would be an invisible background process (forbidden here) and a port-only entry needs a caller to
+remember it, which is the thing this module removes.</p>
+<h2>What an entry is</h2>
+<table>
+<tr><th>field</th><th>meaning</th></tr>
+<tr><td><code>id</code>, <code>owner</code>, <code>title</code></td><td>a lowercase slug, the module responsible, and a sentence for a person</td></tr>
+<tr><td><code>kind</code></td><td><code>code</code> runs an action; <code>nag</code> files a train-of-thought node (tag <code>nag</code>)</td></tr>
+<tr><td><code>trigger</code></td><td>exactly one of <code>every</code> (<code>30m</code>, <code>6h</code>, <code>90s</code>) or <code>on</code> (an event name). <code>cron</code> and <code>after</code> are understood and <b>refused</b> at the door in this build.</td></tr>
+<tr><td><code>action.http</code></td><td>call a URL, with optional <code>method</code>, <code>ifChanged</code> (sha256 the body, move nothing when it did not change) and <code>publish</code>.</td></tr>
+<tr><td><code>action.tell</code></td><td>ask Tell Mom to tell the operator: <code>{severity, subject, body, wants, dedupeKey, by, channels}</code>. Phoenix holds no token and no transport — the policy door decides whether the message is sent, throttled or muted.</td></tr>
+<tr><td><code>lease_s</code></td><td>5–3600 seconds, default 120. An overrun is aborted and recorded as <code>cancelled</code>, never left hanging.</td></tr>
+<tr><td><code>enabled</code></td><td><code>false</code> keeps the declaration and stops the work — how an entry is parked without being lost</td></tr>
+</table>
+<h2>Receipts, not silence</h2>
+<p>Every run appends one line to <code>data/receipts/&lt;id&gt;.jsonl</code>: start, end, ms, outcome
+(<code>ok</code> · <code>failed</code> · <code>cancelled</code> · <code>skipped</code> · <code>refused</code>), detail and
+error. The clock in <code>data/clock.json</code> is what makes <code>every</code> mean anything across a restart; the
+hashes in <code>data/hashes.json</code> are what make <code>ifChanged</code> mean anything at all. A refused entry is a
+receipt too — a bad trigger does not disappear at 3am, it shows up as the reason it never ran.</p>
+</section>
+
+<section id="wiring">
+<h2>Wiring, for humans</h2>
+<table>
+<tr><th>needs</th><th>from</th><th>required</th></tr>
+<tr><td>its own registry file</td><td><code>data/registry.json</code></td><td>yes — an empty file is normal</td></tr>
+<tr><td>a clock and a receipt per entry</td><td><code>data/clock.json</code>, <code>data/receipts/</code></td><td>yes, written by the door</td></tr>
+<tr><td>the DAG, for <code>nag</code> entries</td><td>TrainOfThought <code>:8135</code></td><td>only for <code>kind: nag</code></td></tr>
+<tr><td>the things its entries call</td><td>whatever URL an owner registers</td><td>per entry</td></tr>
+<tr><td>Tell Mom, for <code>action.tell</code> and for a failed beat</td><td>TellMom <code>:8139</code></td><td>only if something must be said out loud</td></tr>
+</table>
+<table>
+<tr><th>gives</th><th>to</th><th>shape</th></tr>
+<tr><td><code>GET /health</code></td><td>the LAN, Echidna's board</td><td>interval, entries, beats, <code>nextBeatInMs</code>, last beat</td></tr>
+<tr><td><code>GET /api/entries</code></td><td>a display</td><td>every entry with its last receipt</td></tr>
+<tr><td><code>POST /api/register</code></td><td>an owning module</td><td>validated entry; unknown triggers refused with a reason</td></tr>
+<tr><td><code>POST /api/tick</code></td><td>an operator</td><td>fires the due list now, without waiting for the beat</td></tr>
+<tr><td><code>GET /api/receipts</code></td><td>an operator</td><td>all entries' last receipt, or <code>?id=</code> for the history</td></tr>
+</table>
+<p class="note">Started by the shell as a door (<code>Basic_App/electron/main.cjs</code>, key <code>phoenix</code>): one
+ProcessWrapper row, visible and closeable, nothing loose on the desktop. A startup beat fires two seconds after the
+port binds, because a beat that only starts counting after the first interval looks dead to the first reader.</p>
+<h2>A beat that fails is told, once</h2>
+<p>When a beat runs an entry whose outcome is <code>failed</code>, <code>refused</code> or <code>cancelled</code>, Phoenix
+calls Tell Mom once with <code>by: "phoenix"</code> and the dedupe key <code>phoenix.upkeep.failed</code> — a red beat
+is a message, not a line in a receipt file nobody opens. Silence is correct for an idle beat: no run, nothing to say.
+If Tell Mom is down the beat still completes and records <code>told: {ok:false}</code>; a notification door being
+unreachable must never turn into a failed cycle.</p>
+</section>
+
+<script type="application/json" id="contract">
+{
+  "module": "Phoenix",
+  "port": 8146,
+  "kind": "door",
+  "needs": [
+    { "name": "registry", "from": "data/registry.json", "required": true },
+    { "name": "tot", "from": "TrainOfThought :8135", "required": false }
+  ],
+  "gives": [
+    { "name": "/health", "to": "the LAN", "kind": "http" },
+    { "name": "/api/entries", "to": "display", "kind": "http" },
+    { "name": "/api/register", "to": "owner modules", "kind": "http" },
+    { "name": "/api/tick", "to": "operator", "kind": "http" },
+    { "name": "/api/receipts", "to": "operator", "kind": "http" }
+  ]
+}
+</script>
+</body></html>

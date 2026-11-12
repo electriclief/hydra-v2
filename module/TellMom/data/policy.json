@@ -5,5 +5,26 @@
   "channels": [
     "discord",
     "pane"
-  ]
+  ],
+  "senders": {
+    "hand": {
+      "perHour": 6
+    },
+    "phoenix": {
+      "perHour": 4
+    },
+    "echidna": {
+      "perHour": 4
+    },
+    "monitor": {
+      "perHour": 4,
+      "severities": [
+        "info",
+        "note",
+        "warn",
+        "alert"
+      ]
+    }
+  },
+  "mutedSubjects": []
 }

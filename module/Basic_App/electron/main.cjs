@@ -77,6 +77,11 @@ const DOOR_TABLE = [
   { key: 'tellmom', dir: 'TellMom', port: 8139 },
   // speech is a service any node can host: Kokoro with the cast's voices, Windows SAPI when no GPU is free
   { key: 'tts', dir: 'TTS', port: 8144, script: 'server/main.js' },
+  // Phoenix is the upkeep BEAT: a registry of entries their owners raised, run every 10 minutes, and its own door so
+  // the beat has an address. It was written in November and left out of this table, so every relaunch quietly left the
+  // node with no upkeep and Echidna's board said "phoenix is not answering" forever. A beat is a process like any
+  // other: declared here, raised through ProcessWrapper, visible in the Process tab, closed with the window.
+  { key: 'phoenix', dir: 'Phoenix', port: 8146, script: 'server/main.js' },
 ];
 
 // ── THE WATCHDOGS ARE PROCESSES TOO ────────────────────────────────────────────

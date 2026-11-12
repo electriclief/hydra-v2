@@ -42,6 +42,10 @@ const argOf = (name, fallback) => {
 const PORT = Number(argOf('port', process.env.PHOENIX_PORT ?? 8146));
 const HOST = argOf('host', '127.0.0.1');
 const EVERY_MIN = Math.max(1, Number(argOf('every', process.env.PHOENIX_EVERY_MIN ?? 10)) || 10);
+// Tell Mom is a CLIENT relationship: Phoenix does not own a transport, it calls the one door that does. A cycle that
+// fails an entry is a thing that happened, so it is told once (deduped by TellMom's own window) instead of scrolling
+// past in a receipt file nobody opens.
+const TELLMOM = (argOf('tellmom', process.env.PHOENIX_TELLMOM ?? 'http://127.0.0.1:8139')).replace(/\/$/, '');
 
 const log = (...parts) => process.stdout.write(`[phoenix] ${parts.join(' ')}\n`);
 const nowIso = () => new Date().toISOString();
@@ -81,7 +85,7 @@ function validate(entry) {
   if (keys[0] === 'on' && typeof trigger.on !== 'string') bad('on must name an event');
   if (entry.kind === 'code') {
     const action = entry.action || {};
-    if (!action.http && !action.func) bad('a code entry needs action.http or action.func');
+    if (!action.http && !action.func && !action.tell) bad('a code entry needs action.http, action.func or action.tell');
   }
   if (entry.kind === 'nag' && !entry.title) bad('a nag entry needs a title to show a person');
   return { ...entry, lease_s: Math.max(5, Math.min(3600, Number(entry.lease_s) || 120)) };
@@ -127,6 +131,37 @@ async function withLease(entry, fn) {
 
 async function runCode(entry, signal) {
   const action = entry.action || {};
+  if (action.tell) {
+    // A declared TELL: the entry says what to say, Tell Mom decides whether the operator hears it. Phoenix holds no
+    // transport and no token — it sends the sender's name and lets the policy door do the throttling.
+    const started = Date.now();
+    const payload = {
+      severity: action.tell.severity || 'note',
+      subject: action.tell.subject || entry.title || entry.id,
+      body: action.tell.body || `raised by ${entry.owner} (${entry.id})`,
+      wants: action.tell.wants || null,
+      dedupeKey: action.tell.dedupeKey || `phoenix:${entry.id}`,
+      by: action.tell.by || entry.owner || 'phoenix',
+      ...(Array.isArray(action.tell.channels) ? { channels: action.tell.channels } : {}),
+    };
+    const res = await fetch(`${TELLMOM}/api/tell`, {
+      method: 'POST',
+      signal,
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    const body = await res.text();
+    const detail = { tell: TELLMOM, status: res.status, ms: Date.now() - started, subject: payload.subject };
+    try {
+      const parsed = JSON.parse(body);
+      detail.deduped = parsed.deduped ?? null;
+      if (parsed.record?.delivered) detail.delivered = parsed.record.delivered.map((d) => `${d.channel}:${d.ok ? 'ok' : 'fail'}`);
+    } catch { /* a non-JSON answer is still an answer */ }
+    // 403 is a policy refusal, which is a SUCCESSFUL cycle outcome: the door did its job. Transport failure is not.
+    if (res.status === 403) return { outcome: 'ok', detail: { ...detail, refused: 'sender not permitted' } };
+    if (!res.ok) return { outcome: 'failed', detail, error: `tellmom HTTP ${res.status}` };
+    return { outcome: 'ok', detail };
+  }
   if (action.http) {
     const started = Date.now();
     const res = await fetch(action.http, { signal, method: action.method || 'GET' });
@@ -235,6 +270,36 @@ async function runEntry(entry) {
   return receipt;
 }
 
+/**
+ * A cycle that fails an entry is a thing that happened, so it is TOLD once — through Tell Mom, with Phoenix as the
+ * declared sender. Dedupe lives at the door (`phoenix.upkeep.failed`), so a beat that fails every ten minutes cannot
+ * page every ten minutes. Nothing here is allowed to throw: a Tell Mom outage must not turn into a failed beat.
+ */
+async function tellOnFailure(receipts) {
+  const bad = receipts.filter((r) => ['failed', 'refused', 'cancelled'].includes(r.outcome));
+  if (!bad.length) return null;
+  const lines = bad.map((r) => `${r.id}=${r.outcome}${r.error ? ` (${r.error})` : ''}`);
+  const payload = {
+    severity: 'warn',
+    subject: `Phoenix upkeep failed: ${bad.length} ${bad.length === 1 ? 'entry' : 'entries'}`,
+    body: lines.join('\n'),
+    wants: 'a look at the receipts on :8146',
+    dedupeKey: 'phoenix.upkeep.failed',
+    by: 'phoenix',
+  };
+  try {
+    const res = await fetch(`${TELLMOM}/api/tell`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    const body = await res.json().catch(() => null);
+    return { ok: res.status < 400, status: res.status, deduped: body?.deduped ?? null };
+  } catch (error) {
+    return { ok: false, error: error.message };
+  }
+}
+
 async function beat(reason = 'timer') {
   const entries = loadRegistry().filter((e) => e.enabled !== false);
   const clock = readClock();
@@ -258,6 +323,11 @@ async function beat(reason = 'timer') {
   lastBeatAt = Date.now();
   beatCount += 1;
   if (ran.length) log(`beat ${beatCount}: ${ran.map((r) => `${r.id}=${r.outcome}`).join(' ')}`);
+  // Only a beat that actually ran something can have something to say; an idle beat stays silent.
+  if (ran.some((r) => ['failed', 'refused', 'cancelled'].includes(r.outcome))) {
+    lastBeat.told = await tellOnFailure(ran);
+    if (lastBeat.told) log(`beat ${beatCount}: told the operator (${lastBeat.told.ok ? 'sent' : 'not sent'}${lastBeat.told.deduped ? `, ${lastBeat.told.deduped}` : ''})`);
+  }
   return lastBeat;
 }
 

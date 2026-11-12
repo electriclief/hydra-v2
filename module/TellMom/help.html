@@ -1,38 +1,105 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Tell Mom</title>
+<title>Tell Mom — one verb, a policy, a receipt</title>
 <style>
- body{margin:0;background:#0f1115;color:#e6e8ef;font:16px/1.6 "Segoe UI",system-ui,sans-serif}
- main{max-width:46em;margin:0 auto;padding:48px 24px 96px}
- h1{font-size:32px;margin:0 0 6px} h2{font-size:14px;letter-spacing:.1em;text-transform:uppercase;color:#8b93a7;margin:36px 0 10px}
- .lead{font-size:19px} code{background:#191c23;border:1px solid #2a2f3a;border-radius:5px;padding:1px 5px;font-size:14px}
- table{width:100%;border-collapse:collapse} th,td{text-align:left;padding:8px 10px;border-bottom:1px solid #2a2f3a}
- th{color:#8b93a7;font-size:12px;letter-spacing:.08em;text-transform:uppercase;font-weight:500}
- .banner{border-left:3px solid #e7c84b;padding:10px 14px;background:#15181e;margin:22px 0}
-</style></head><body><main>
-<h1>Tell Mom</h1>
-<p class="lead">One verb for telling the operator something, wherever they are — with a policy so it cannot become a
-shout, and a receipt so a message that reached nobody is a fact you can see.</p>
-<div class="banner"><strong>No Telegram.</strong> The operator does not want it, and there is no adapter for it here.
+ :root { color-scheme: dark; --bg:#111318; --panel:#191c23; --border:#303541; --text:#e5e7eb; --muted:#a1a8b7; }
+ * { box-sizing: border-box; }
+ body { margin:0; padding:32px; background:var(--bg); color:var(--text); font:15px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif; max-width:78ch; }
+ h1 { margin:0 0 4px; font-size:24px; font-weight:600; }
+ h2 { margin:30px 0 10px; font-size:13px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; color:var(--muted); }
+ .kicker { margin:0 0 26px; color:var(--muted); font-size:13px; }
+ code { font:13px/1.5 ui-monospace,Consolas,monospace; background:#0b0d11; border:1px solid var(--border); border-radius:5px; padding:1px 5px; }
+ table { width:100%; border-collapse:collapse; margin:6px 0 14px; font-size:14px; }
+ th, td { text-align:left; padding:7px 10px; border-bottom:1px solid var(--border); vertical-align:top; }
+ th { color:var(--muted); font-size:12px; text-transform:uppercase; letter-spacing:.06em; }
+ .note { color:var(--muted); font-size:14px; }
+ .banner { border-left:3px solid #e7c84b; padding:10px 14px; background:#15181e; margin:18px 0; }
+</style></head><body>
+<header><h1>Tell Mom</h1>
+<p class="kicker">one verb for telling the operator · door on :8139 · a declaration per sender, a mute per subject, a receipt per tell</p></header>
+
+<section id="summary">
+<p>Every module eventually has something to say to the operator, and the worst way to say it is a transport of its own:
+five modules, five tokens, five loops that can page a phone at 3am. This door owns the one verb — <code>tell</code> —
+the policy that governs it, and the receipt that proves what happened. A caller names itself, says what it wants to
+say, and gets back a verdict: sent to which channels, or muted for which reason. Nothing is ever silently dropped,
+because the whole point of a receipt is that "I told the operator" and "nothing happened" are different sentences.</p>
+<div class="banner"><strong>No Telegram.</strong> The operator does not want it and there is no adapter for it here.
 Discord is the phone channel because this rig already has a token — used <em>outbound only</em>: one HTTPS POST per
-message, no gateway process, nothing that stays connected between messages.</div>
-<h2>What it is</h2>
+message, no gateway, nothing that stays connected between messages.</div>
+</section>
+
+<section id="concepts">
+<h2>The policy is a file, and a hand edit lands on the next request</h2>
+<p><code>data/policy.json</code> is stat-ed on every tell and reloaded when its mtime moves, so "I muted that subject"
+becomes true the moment the file is saved. A policy cached until restart would leave the operator arguing with a door
+that cannot hear them.</p>
 <table>
-<tr><th>Piece</th><th>What</th></tr>
-<tr><td><code>POST /api/tell</code></td><td><code>{severity, subject, body, wants, dedupeKey, channels}</code> → delivers, records, returns the receipt.</td></tr>
-<tr><td>policy</td><td><code>data/policy.json</code>: dedupe window (900s), hourly ceiling (6), quiet hours that <code>alert</code> may cross.</td></tr>
-<tr><td>channels</td><td><code>pane</code> always (a note turn in Echidna's thread) and <code>discord</code> when a token exists.</td></tr>
-<tr><td>receipts</td><td><code>data/told.jsonl</code>, and <code>node.&lt;ref&gt;.told</code> in State.</td></tr>
+<tr><th>key</th><th>what it does</th></tr>
+<tr><td><code>dedupeWindowSec</code></td><td>the same <code>dedupeKey</code> inside this window is muted, and says so (900 s)</td></tr>
+<tr><td><code>maxPerHour</code></td><td>the door's floor across all senders, measured on what was actually sent (6)</td></tr>
+<tr><td><code>quiet</code></td><td><code>{from,to}</code> local hours; everything is muted except <code>alert</code></td></tr>
+<tr><td><code>channels</code></td><td>which transports a tell tries, in order — <code>pane</code>, <code>discord</code></td></tr>
+<tr><td><code>senders</code></td><td>a declaration per module: <code>{"phoenix": {"perHour": 4}}</code>. <b>perHour 0 = this module may not tell at all</b> (403, with the reason). A <code>severities</code> list caps what it may send.</td></tr>
+<tr><td><code>mutedSubjects</code></td><td>subject prefixes the operator has silenced. <code>"Phoenix upkeep"</code> mutes that subject while the module still tells others; <code>"*"</code> mutes everything. Alerts do not cross a mute — the operator's word outranks the severity.</td></tr>
 </table>
-<h2>The rule</h2>
-<p>A loop that fails every ten minutes must not ring the phone every ten minutes. So: the same <code>dedupeKey</code>
-inside the window is muted and says so; the hourly ceiling is measured on what was actually sent; quiet hours mute
-everything except <code>alert</code>.</p>
+<h2>Why a sender declaration, not a rate limit alone</h2>
+<p>A runaway loop is not a policy problem until the module has a name. Once it does, the loop's own declaration is the
+throttle: four an hour is four an hour no matter how often the beat fires, and a module that should never page is
+declared at zero rather than trusted to behave.</p>
 <h2>Receipts, not silence</h2>
-<p>Every tell is written whether or not a transport took it — including the muted ones, with the reason
-(<code>same dedupeKey …</code>, <code>hourly ceiling reached</code>, <code>quiet hours</code>). A channel that is not
-configured fails with the exact variable it wants; it never pretends to have delivered.</p>
-<h2>Broker, later</h2>
-<p>Discord is also the operator's free answer to ISP double NAT between nodes. That inbound side — reading messages,
-node-to-node brokering — belongs to a broker module that owns the one connection; Tell Mom stays a sender.</p>
-</main></body></html>
+<p>Every tell is written to <code>data/told.jsonl</code> whether or not a transport took it — including refusals, with
+the reason: <code>subject muted by policy (…)</code>, <code>sender 'x' ceiling reached (2/4 this hour)</code>,
+<code>same dedupeKey told 1x inside 900s</code>, <code>quiet hours</code>. The same verdict is republished to State as
+<code>node.&lt;ref&gt;.told</code> with <code>by</code>, <code>reachedSomething</code> and <code>count1h</code>, so the LAN
+row shows a tell that reached nobody instead of burying it in a log. A channel that is not configured fails naming the
+exact variable it wants.</p>
+</section>
+
+<section id="wiring">
+<h2>Wiring, for humans</h2>
+<table>
+<tr><th>needs</th><th>from</th><th>required</th></tr>
+<tr><td>the policy and the ledger</td><td><code>data/policy.json</code>, <code>data/told.jsonl</code></td><td>yes — written on first boot</td></tr>
+<tr><td>the pane channel</td><td>Echidna <code>:8138</code> (<code>/api/note</code>)</td><td>no — a tell still records without it</td></tr>
+<tr><td>the phone channel</td><td><code>DISCORD_BOT_TOKEN</code> in the Hermes <code>.env</code>, read at runtime and never echoed</td><td>no — absent means the channel says which variable it wants</td></tr>
+<tr><td>a place to publish the verdict</td><td>State <code>:8127</code></td><td>no — a State outage does not undo a delivered message</td></tr>
+</table>
+<table>
+<tr><th>gives</th><th>to</th><th>shape</th></tr>
+<tr><td><code>POST /api/tell</code></td><td>any module</td><td><code>{severity, subject, body, wants, dedupeKey, by, channels}</code> → <code>{ok, deduped?, record}</code>; 403 when the sender is declared at 0</td></tr>
+<tr><td><code>GET /api/told?limit=</code></td><td>an operator</td><td>the ledger, newest last</td></tr>
+<tr><td><code>GET /api/policy</code></td><td>an operator</td><td>policy, senders, muted subjects, and who told how often in the last hour</td></tr>
+<tr><td><code>POST /api/mute</code> · <code>/api/unmute</code></td><td>an operator</td><td><code>{subject}</code> — a key, persisted to the file</td></tr>
+<tr><td><code>GET /api/channels</code></td><td>an operator</td><td>each channel's state and what it is missing</td></tr>
+<tr><td><code>GET /health</code></td><td>the LAN</td><td>door, policy, channels, tells, senders, muted counts</td></tr>
+</table>
+<p class="note">Phoenix is the first client: a beat that fails an entry calls this door with <code>by: "phoenix"</code>
+and the dedupe key <code>phoenix.upkeep.failed</code>, so a red beat is one message and not a stream of them. The
+inbound side — reading Discord messages, brokering node-to-node traffic through double NAT — belongs to a broker
+module that owns that one connection; Tell Mom stays a sender.</p>
+</section>
+
+<script type="application/json" id="contract">
+{
+  "module": "TellMom",
+  "port": 8139,
+  "kind": "door",
+  "needs": [
+    { "name": "policy", "from": "data/policy.json", "required": true },
+    { "name": "pane channel", "from": "Echidna :8138", "required": false },
+    { "name": "discord token", "from": "DISCORD_BOT_TOKEN in the Hermes .env", "required": false },
+    { "name": "state", "from": "State :8127", "required": false }
+  ],
+  "gives": [
+    { "name": "/api/tell", "to": "any module", "kind": "http" },
+    { "name": "/api/told", "to": "operator", "kind": "http" },
+    { "name": "/api/policy", "to": "operator", "kind": "http" },
+    { "name": "/api/mute", "to": "operator", "kind": "http" },
+    { "name": "/api/channels", "to": "operator", "kind": "http" },
+    { "name": "/health", "to": "the LAN", "kind": "http" },
+    { "name": "node.<ref>.told", "to": "State readers", "kind": "state" }
+  ]
+}
+</script>
+</body></html>
