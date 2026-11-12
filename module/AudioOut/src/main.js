@@ -39,6 +39,7 @@ const HOST = argOf('host', process.env.AUDIOOUT_HOST ?? '127.0.0.1');
 const PIPER = argOf('piper', comms.piper ?? '');
 const VOICE = argOf('voice', comms.voice ?? '');
 const FFPLAY = argOf('ffplay', comms.ffplay ?? '');
+const FFMEG = argOf('ffmpeg', comms.ffmpeg ?? 'ffmpeg');
 const TMP = path.join(os.tmpdir(), 'hydra-comms');
 fs.mkdirSync(TMP, { recursive: true });
 
@@ -101,7 +102,7 @@ const server = http.createServer(async (req, res) => {
   });
 
   if (p === '/api/devices') {
-    const r = spawnSync(FFPLAY.includes(path.sep) ? FFPLAY : 'ffmpeg', ['-hide_banner', '-list_devices', 'true', '-f', 'dshow', '-i', 'dummy'], { encoding: 'utf8', timeout: 15000 });
+    const r = spawnSync(FFMEG, ['-hide_banner', '-list_devices', 'true', '-f', 'dshow', '-i', 'dummy'], { encoding: 'utf8', timeout: 15000 });
     const text = (r.stderr || '') + (r.stdout || '');
     const audio = [];
     for (const line of text.split(/\r?\n/)) { const m = line.match(/"([^"]+)"\s*\(audio\)/i); if (m) audio.push(m[1]); }
