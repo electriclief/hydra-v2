@@ -542,11 +542,11 @@ const server = http.createServer(async (req, res) => {
     if (!liveAudioReady) { liveAudioReady = up('AudioIn').then(() => true).catch(() => false); }
     await liveAudioReady;
     const now = Date.now();
-    if (LIVE.body && now - LIVE.at < 350) return send(res, 200, { ...LIVE.body, cached: true });
+    if (LIVE.body && now - LIVE.at < 800) return send(res, 200, { ...LIVE.body, cached: true });
     if (!LIVE.busy) {
       LIVE.busy = (async () => {
         const [lvl, wake] = await Promise.all([
-          j(`${AUDIOIN}/api/level`, {}, 4000).catch(() => ({ ok: false })),   // the door samples for a moment
+          j(`${AUDIOIN}/api/level?seconds=0.5`, {}, 6000).catch(() => ({ ok: false })),   // the door samples for a moment
           j(`${WAKEWORD}/api/status`, {}, 4000).catch(() => ({ ok: false })),
         ]);
         return {
