@@ -175,7 +175,7 @@ async function publish() {
     ref: REF, at: new Date().toISOString(),
     doors: { audioIn: AUDIOIN, videoIn: VIDEOIN, audioOut: AUDIOOUT, wakeWord: WAKEWORD },
     listenSeconds: CAPTURE, stt: whisperExe() ? 'whisper.cpp' : (comms.sttUrl || 'none'),
-    agent: AGENT || null, lease: extraLease, hits, last,
+    agent: AGENT || null, lease: extraLease, hits, last, phase, phaseAt,
   };
   return j(`${STATE}/api/state/register`, {
     method: 'POST', headers: { 'content-type': 'application/json' },
@@ -183,22 +183,42 @@ async function publish() {
   }, 8000);
 }
 
+/**
+ * FOUR STATES, ONE AT A TIME. A person talking to a box has no other way to know where they are in the exchange, so the
+ * phase is a first-class fact of the node, not a guess made by the page:
+ *   awaiting  the trigger is armed and nobody is talking
+ *   listening the microphone is open right now - speak
+ *   thinking  the microphone is CLOSED: transcribing, asking the model, speaking the answer
+ *   off       the trigger is not armed (no wake door, no microphone) - nothing is being heard
+ */
+let phase = 'awaiting';
+let phaseAt = new Date().toISOString();
+function setPhase(next, why) {
+  if (phase === next) return;
+  phase = next; phaseAt = new Date().toISOString();
+  console.log('[comms] phase ->', next, why ? `(${why})` : '');
+  publish().catch(() => { });
+}
+
 /** The full loop. `wav` lets a caller hand in audio instead of using the microphone - that is how it is tested. */
 async function listen({ seconds = CAPTURE, wav = null, sttUrl = null, speak = true, ask = true } = {}) {
+  const startedPhase = wav ? 'thinking' : 'listening';
   const t0 = Date.now();
   let file = wav;
   let level = null;
   if (!file) {
+    setPhase('listening', 'capture open');
     const ready = await up('AudioIn');
-    if (!ready.ok) { last = { at: new Date().toISOString(), error: ready }; return { ok: false, step: 'audioin', ...ready }; }
+    if (!ready.ok) { last = { at: new Date().toISOString(), error: ready }; setPhase('off', 'no microphone door'); return { ok: false, step: 'audioin', ...ready }; }
     const cap = await j(`${AUDIOIN}/api/capture`, {
       method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ seconds }),
     }, (Number(seconds) + 30) * 1000);
-    if (!cap.ok) { last = { at: new Date().toISOString(), error: cap.body }; return { ok: false, step: 'capture', ...cap.body }; }
+    if (!cap.ok) { last = { at: new Date().toISOString(), error: cap.body }; setPhase('awaiting', 'capture failed'); return { ok: false, step: 'capture', ...cap.body }; }
     file = cap.body.file; level = { rms: cap.body.rms, peak: cap.body.peak, silent: cap.body.silent, device: cap.body.device };
   }
+  if (!wav) setPhase('thinking', 'microphone closed');
   const stt = transcribe(file, sttUrl || comms.sttUrl || null);
-  if (!stt.ok) { last = { at: new Date().toISOString(), error: stt }; return { ok: false, step: 'stt', ...stt }; }
+  if (!stt.ok) { last = { at: new Date().toISOString(), error: stt }; setPhase('awaiting', 'stt failed'); return { ok: false, step: 'stt', ...stt }; }
 
   let answer = null;
   if (ask && AGENT) {
@@ -239,6 +259,7 @@ async function listen({ seconds = CAPTURE, wav = null, sttUrl = null, speak = tr
     at: new Date().toISOString(), seconds, level, heard: stt.transcript, engine: stt.engine,
     transcript: stt.transcript, answer, spoke: said, ms: Date.now() - t0,
   };
+  setPhase('awaiting', 'turn finished');   // the microphone is the trigger's again
   publish();
   return { ok: true, ...last };
 }
