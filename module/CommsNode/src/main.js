@@ -527,8 +527,8 @@ const server = http.createServer(async (req, res) => {
     if (!liveAudioReady) { liveAudioReady = up('AudioIn').then(() => true).catch(() => false); }
     await liveAudioReady;
     const [lvl, wake] = await Promise.all([
-      j(`${AUDIOIN}/api/level`, {}, 1200).catch(() => ({ ok: false })),
-      j(`${WAKEWORD}/api/status`, {}, 1200).catch(() => ({ ok: false })),
+      j(`${AUDIOIN}/api/level`, {}, 4000).catch(() => ({ ok: false })),   // the door samples for a moment; be generous
+      j(`${WAKEWORD}/api/status`, {}, 4000).catch(() => ({ ok: false })),
     ]);
     return send(res, 200, {
       ok: true, at: new Date().toISOString(), phase,
