@@ -148,8 +148,25 @@ function Get-AlgoLabel([string]$algo) {
   }
 }
 
+# Where the miner's own API answers. The declaration wins (node.json miner.apiPort), because the port is not
+# necessarily owned by the process the guard found: unMiner starts SRBMiner as a CHILD and the child holds the
+# socket, so a listener lookup on the launcher alone found nothing and the panel said "mining" with no algo.
+function Get-DeclaredApiPort {
+  foreach ($f in @((Join-Path (Split-Path $PSScriptRoot -Parent) 'module\Menu\data\node.json'),
+                   (Join-Path (Split-Path $PSScriptRoot -Parent) 'module\Core\data\node.json'))) {
+    if (Test-Path $f) {
+      try {
+        $j = Get-Content $f -Raw | ConvertFrom-Json
+        if ($j.miner -and $j.miner.apiPort) { return [int]$j.miner.apiPort }
+        if ($j.standby -and $j.standby.apiport) { return [int]$j.standby.apiport }
+      } catch { }
+    }
+  }
+  return 0
+}
+
 # What the Idle Service is actually doing, asked of the miner rather than assumed. SRBMiner publishes a JSON
-# summary on its own listening port; the port is random per launch, so it is looked up from the process.
+# summary on its own listening port; lolMiner publishes another shape on the same idea. Both are read here.
 # Nothing found means null - the display then says "mining" without inventing an algorithm or a rate.
 function Get-MinerDetail {
   # Follow the declaration, not a brand: the manager can run SRBMiner, lolMiner, or anything else a node names.
@@ -159,53 +176,71 @@ function Get-MinerDetail {
     if ($p) { break }
   }
   if (-not $p) { return $null }
-  $port = 0
-  try {
-    $c = Get-NetTCPConnection -OwningProcess $p.Id -State Listen -ErrorAction Stop | Select-Object -First 1
-    $port = [int]$c.LocalPort
-  }
-  catch { return $null }
-  if ($port -le 0) { return $null }
-  try {
-    $j = Invoke-RestMethod -Uri ("http://127.0.0.1:" + $port + "/") -TimeoutSec 3
-    $a = @($j.algorithms) | Select-Object -First 1
-    if (-not $a) { return $null }
 
-    # lolMiner reports Algorithms[].Total_Performance already expressed in Performance_Unit (Mh/s, factor 1e6);
-    # SRBMiner reports algorithms[].hashrate.'1min' as raw H/s. Same panel, two shapes - read both, or the miner
-    # detail is blank on half the fleet.
-    if ($null -ne $a.Total_Performance) {
-      $factor = 1.0
-      if ($a.Performance_Factor) { $factor = [double]$a.Performance_Factor }
-      $rateL = [double]$a.Total_Performance * $factor
-      $fL = Format-Rate $rateL
-      $algoL = [string]$a.Algorithm
+  # Candidate ports: the declaration first, then every listener held by the launcher OR by a child it started.
+  $ports = New-Object System.Collections.ArrayList
+  $declared = Get-DeclaredApiPort
+  if ($declared -gt 0) { [void]$ports.Add($declared) }
+  $ids = @([int]$p.Id)
+  try {
+    foreach ($k in @(Get-CimInstance Win32_Process -Filter ("ParentProcessId=" + $p.Id) -ErrorAction Stop)) {
+      $ids += [int]$k.ProcessId
+    }
+  } catch { }
+  foreach ($id in $ids) {
+    try {
+      foreach ($c in @(Get-NetTCPConnection -OwningProcess $id -State Listen -ErrorAction Stop)) {
+        $lp = [int]$c.LocalPort
+        if ($ports -notcontains $lp) { [void]$ports.Add($lp) }
+      }
+    } catch { }
+  }
+  if ($ports.Count -eq 0) { return $null }
+
+  foreach ($port in $ports) {
+    $j = $null
+    try { $j = Invoke-RestMethod -Uri ("http://127.0.0.1:" + $port + "/") -TimeoutSec 3 } catch { continue }
+    $a = @($j.algorithms) | Select-Object -First 1
+    if (-not $a) { continue }
+    try {
+      # lolMiner reports Algorithms[].Total_Performance already expressed in Performance_Unit (Mh/s, factor 1e6);
+      # SRBMiner reports algorithms[].hashrate.'1min' as raw H/s. Same panel, two shapes - read both, or the miner
+      # detail is blank on half the fleet.
+      if ($null -ne $a.Total_Performance) {
+        $factor = 1.0
+        if ($a.Performance_Factor) { $factor = [double]$a.Performance_Factor }
+        $rateL = [double]$a.Total_Performance * $factor
+        $fL = Format-Rate $rateL
+        $algoL = [string]$a.Algorithm
+        return @{
+          algo     = $algoL
+          label    = (Get-AlgoLabel $algoL)
+          rate     = $fL[0]
+          unit     = $fL[1]
+          accepted = [int]$a.Total_Accepted
+          rejected = [int]$a.Total_Rejected
+          pool     = [string]$a.Pool
+          port     = $port
+          at       = (Get-Date).ToString('s')
+        }
+      }
+
+      $rate = [double]$a.hashrate.'1min'
+      $f = Format-Rate $rate
       return @{
-        algo     = $algoL
-        label    = (Get-AlgoLabel $algoL)
-        rate     = $fL[0]
-        unit     = $fL[1]
-        accepted = [int]$a.Total_Accepted
-        rejected = [int]$a.Total_Rejected
-        pool     = [string]$a.Pool
+        algo     = [string]$a.name
+        label    = (Get-AlgoLabel ([string]$a.name))
+        rate     = $f[0]
+        unit     = $f[1]
+        accepted = [int]$a.shares.accepted
+        rejected = [int]$a.shares.rejected
+        pool     = [string]$a.pool.pool
+        port     = $port
         at       = (Get-Date).ToString('s')
       }
-    }
-
-    $rate = [double]$a.hashrate.'1min'
-    $f = Format-Rate $rate
-    return @{
-      algo     = [string]$a.name
-      label    = (Get-AlgoLabel ([string]$a.name))
-      rate     = $f[0]
-      unit     = $f[1]
-      accepted = [int]$a.shares.accepted
-      rejected = [int]$a.shares.rejected
-      pool     = [string]$a.pool.pool
-      at       = (Get-Date).ToString('s')
-    }
+    } catch { continue }
   }
-  catch { return $null }
+  return $null
 }
 
 # The Scheduler owns "when is this node idle": it publishes node.<ref>.idle from its own book. This guard only
