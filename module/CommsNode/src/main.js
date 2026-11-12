@@ -234,7 +234,7 @@ async function handoff(text) {
     const e = await j(`${ECHIDNA}/api/say`, {
       method: 'POST', headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ text, from: 'jims-portal', via: 'kate' }),
-    }, 20000);
+    }, 6000);   // Echidna can be mid-session: a slow say must not hold the person standing there
     out.echidna = e.ok ? 'told' : { why: 'echidna_failed', detail: e.body };
   }
   return out;
@@ -278,8 +278,9 @@ async function exchange({ seconds = CAPTURE, wav = null } = {}) {
   const heard = stt.transcript || '';
 
   if (PASS_TO_KATE.test(heard)) {
-    const h = await handoff(heard);
+    // say it first: the person asked for Kate, so the room hears that the request landed before the handoff is attempted
     const spoke = await sayText('Passing you to Kate.');
+    const h = await handoff(heard);
     last = {
       at: new Date().toISOString(), seconds, level: { rms: cap.body.rms, peak: cap.body.peak, silent: cap.body.silent, device: cap.body.device },
       heard, engine: stt.engine, transcript: heard, answer: { to: 'kate', handoff: h }, spoke, ms: Date.now() - t0,
