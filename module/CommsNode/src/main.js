@@ -376,7 +376,10 @@ const server = http.createServer(async (req, res) => {
     return send(res, 200, { ok: true, lease, pin: PIN_FILE, exists: fs.existsSync(PIN_FILE) });
   }
 
-  if (p === '/api/state') return send(res, 200, { ok: true, ref: REF, hits, last, doors: { audioIn: AUDIOIN, videoIn: VIDEOIN, audioOut: AUDIOOUT, wakeWord: WAKEWORD } });
+  if (p === '/api/state') return send(res, 200, {
+    ok: true, ref: REF, hits, last, phase, phaseAt, agent: AGENT || null, lease: extraLease,
+    doors: { audioIn: AUDIOIN, videoIn: VIDEOIN, audioOut: AUDIOOUT, wakeWord: WAKEWORD },
+  });
 
   send(res, 404, { ok: false, why: 'no_such_endpoint', path: p });
 });
