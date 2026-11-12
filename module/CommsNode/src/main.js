@@ -57,6 +57,34 @@ const ECHIDNA = comms.echidna ?? '';
 const PASS_TO_KATE = /\b(pass|kate|echidna|agent|transfer|switch)\b/i;
 const PIN_FILE = path.join(ROOT, 'data', 'standby', 'standby.pin');
 
+/**
+ * THE RECORD OF THE CONVERSATION. Every turn is appended to a daily JSONL file on this node's own disk - no server, no
+ * database - so the thread survives a restart and anyone who comes later (the operator, Kate, another agent) can read
+ * the last exchanges and continue instead of starting from nothing. The in-memory ring is the fast path for the page.
+ */
+const LOG_DIR = path.join(ROOT, 'data', 'comms');
+const RING = [];
+const RING_MAX = 200;
+function logFile(d = new Date()) {
+  const p = (n) => String(n).padStart(2, '0');
+  return path.join(LOG_DIR, `transcript-${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}.jsonl`);
+}
+function appendTurn(entry) {
+  RING.push(entry);
+  while (RING.length > RING_MAX) RING.shift();
+  try {
+    fs.mkdirSync(LOG_DIR, { recursive: true });
+    fs.appendFileSync(logFile(), JSON.stringify(entry) + '\n', 'utf8');
+  } catch (e) { console.log('[comms] could not write the transcript:', e.message); }
+}
+function loadRecent() {
+  try {
+    const lines = fs.readFileSync(logFile(), 'utf8').trim().split('\n').filter(Boolean).slice(-RING_MAX);
+    for (const line of lines) { try { RING.push(JSON.parse(line)); } catch { } }
+    console.log(`[comms] loaded ${RING.length} earlier turn(s) from ${logFile()}`);
+  } catch { }
+}
+
 const TMP = path.join(os.tmpdir(), 'hydra-comms');
 fs.mkdirSync(TMP, { recursive: true });
 
@@ -225,7 +253,11 @@ async function handoff(text) {
   const t = await j(`${TELLMOM}/api/tell`, {
     method: 'POST', headers: { 'content-type': 'application/json' },
     body: JSON.stringify({
-      severity: 'note', subject: 'Kate portal - jims', body: text, wants: 'answer',
+      severity: 'note', subject: 'Kate portal - jims', wants: 'answer',
+      body: [text, '', '--- recent exchanges on this node (newest last) ---',
+        ...RING.slice(-6).map((r) => `${r.at}  heard: ${r.heard ?? '-'}  |  answered: ${
+          typeof r.answer === 'string' ? r.answer : (r.answer?.answer ?? r.answer?.to ?? JSON.stringify(r.answer ?? null))}`),
+      ].join('\n'),
       dedupeKey: `kate-${Date.now()}`, channels: ['pane'],
     }),
   }, 20000);
@@ -258,6 +290,7 @@ async function exchange({ seconds = CAPTURE, wav = null } = {}) {
       const h = await handoff(heard);
       last = { at: new Date().toISOString(), seconds: null, level: null, heard, engine: stt.engine,
         transcript: heard, answer: { to: 'kate', handoff: h }, spoke: null, ms: Date.now() - t0 };
+      appendTurn({ at: last.at, heard, answer: { to: 'kate', handoff: h }, spoke: null, ms: last.ms, seconds: null });
       setPhase('awaiting', 'handed to Kate'); publish();
       return { ok: true, handedToKate: true, heard, handoff: h, ms: last.ms };
     }
@@ -285,6 +318,7 @@ async function exchange({ seconds = CAPTURE, wav = null } = {}) {
       at: new Date().toISOString(), seconds, level: { rms: cap.body.rms, peak: cap.body.peak, silent: cap.body.silent, device: cap.body.device },
       heard, engine: stt.engine, transcript: heard, answer: { to: 'kate', handoff: h }, spoke, ms: Date.now() - t0,
     };
+    appendTurn({ at: last.at, heard, answer: { to: 'kate', handoff: h }, spoke: last.spoke?.provider ?? null, ms: last.ms, seconds });
     setPhase('awaiting', 'handed to Kate'); publish();
     return { ok: true, greetedWith: GREETING, handedToKate: true, heard, handoff: h, ms: last.ms };
   }
@@ -352,6 +386,8 @@ async function listen({ seconds = CAPTURE, wav = null, sttUrl = null, speak = tr
     at: new Date().toISOString(), seconds, level, heard: stt.transcript, engine: stt.engine,
     transcript: stt.transcript, answer, spoke: said, ms: Date.now() - t0,
   };
+  appendTurn({ at: last.at, heard: last.transcript, answer: typeof answer === 'string' ? answer : (answer || null),
+    spoke: last.spoke?.provider ?? null, ms: last.ms, seconds });
   setPhase('awaiting', 'turn finished');   // the microphone is the trigger's again
   publish();
   return { ok: true, ...last };
@@ -475,6 +511,28 @@ const server = http.createServer(async (req, res) => {
     return send(res, 200, { ok: true, lease, pin: PIN_FILE, exists: fs.existsSync(PIN_FILE) });
   }
 
+  /**
+   * LIVE. Everything the room needs at ten frames a second: the microphone level right now, and the trigger door's last
+   * transcript - which is a real word-for-word reading of the last three seconds, not a sample of it. Polled by the page
+   * so the waveform and the running text move while the person is still talking.
+   */
+  if (p === '/api/log') {
+    const n = Math.max(1, Math.min(RING_MAX, Number(url.searchParams.get('n') ?? 30)));
+    return send(res, 200, { ok: true, file: logFile(), count: RING.length, turns: RING.slice(-n) });
+  }
+
+  if (p === '/api/live') {
+    const [lvl, wake] = await Promise.all([
+      j(`${AUDIOIN}/api/level`, {}, 1200).catch(() => ({ ok: false })),
+      j(`${WAKEWORD}/api/status`, {}, 1200).catch(() => ({ ok: false })),
+    ]);
+    return send(res, 200, {
+      ok: true, at: new Date().toISOString(), phase,
+      level: lvl.ok ? { rms: lvl.body.rms ?? null, peak: lvl.body.peak ?? null, silent: lvl.body.silent ?? null, device: lvl.body.device ?? null } : { error: 'audioin_down' },
+      heard: wake.ok ? { text: wake.body.lastHeard?.text ?? null, at: wake.body.lastHeard?.at ?? null, chunks: wake.body.chunks ?? null, state: wake.body.state ?? null } : { error: 'wakeword_down' },
+    });
+  }
+
   if (p === '/api/state') return send(res, 200, {
     ok: true, ref: REF, hits, last, phase, phaseAt, agent: AGENT || null, lease: extraLease,
     doors: { audioIn: AUDIOIN, videoIn: VIDEOIN, audioOut: AUDIOOUT, wakeWord: WAKEWORD },
@@ -484,6 +542,7 @@ const server = http.createServer(async (req, res) => {
 });
 
 server.listen(PORT, HOST, () => {
+  loadRecent();
   console.log(`[comms] ${REF} on ${HOST}:${PORT} -> mic ${AUDIOIN} cam ${VIDEOIN} say ${AUDIOOUT} wake ${WAKEWORD} stt ${whisperExe() ? 'whisper.cpp' : (comms.sttUrl || 'none')}`);
   publish();
   setInterval(publish, 30000);

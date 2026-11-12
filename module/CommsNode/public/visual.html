@@ -5,52 +5,62 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Kate</title>
 <style>
-  /* Four states, one screen, readable across a room. The state is the loudest thing here on purpose: a person talking
-     to a box must never have to guess whether it is hearing them. */
-  :root { --ink:#0d0d0d; --paper:#ffffff; --dim:#9a9a9a; --line:#e4e4e4; }
-  @media (prefers-color-scheme: dark) { :root { --ink:#f4f4f4; --paper:#0a0a0a; --dim:#6f6f6f; --line:#1f1f1f; } }
+  /* The room's view of the exchange: the state, the microphone as a moving wave, the words as they arrive, and the
+     answer. Monochrome, large, no chrome - read from a chair, not from the screen. */
+  :root { --ink:#0d0d0d; --paper:#ffffff; --dim:#9a9a9a; --line:#e4e4e4; --faint:#f2f2f2; }
+  @media (prefers-color-scheme: dark) { :root { --ink:#f4f4f4; --paper:#0a0a0a; --dim:#6f6f6f; --line:#1f1f1f; --faint:#141414; } }
   * { box-sizing:border-box; }
   html, body { height:100%; margin:0; background:var(--paper); color:var(--ink);
-    font-family:"Segoe UI", system-ui, -apple-system, sans-serif; -webkit-font-smoothing:antialiased; }
-  body { display:grid; grid-template-rows:auto 1fr auto; padding:clamp(20px,3.6vh,48px) clamp(24px,4.4vw,72px); }
+    font-family:"Segoe UI", system-ui, -apple-system, sans-serif; -webkit-font-smoothing:antialiased; overflow:hidden; }
+  body { display:grid; grid-template-rows:auto auto 1fr auto; gap:clamp(8px,1.4vh,18px);
+    padding:clamp(16px,2.6vh,34px) clamp(20px,3.4vw,54px); }
 
   header { display:flex; justify-content:space-between; align-items:baseline; }
-  header .who { font-size:clamp(15px,1.5vw,22px); letter-spacing:.42em; text-transform:uppercase; color:var(--dim); }
-  header .clock { font-size:clamp(12px,1vw,15px); letter-spacing:.14em; color:var(--dim); font-variant-numeric:tabular-nums; }
+  header .who { font-size:clamp(13px,1.2vw,18px); letter-spacing:.44em; text-transform:uppercase; color:var(--dim); }
+  header .clock { font-size:clamp(11px,.9vw,14px); letter-spacing:.14em; color:var(--dim); font-variant-numeric:tabular-nums; }
 
-  main { display:grid; align-content:center; justify-items:start; gap:clamp(10px,2vh,26px); }
-
-  /* the state, deliberately enormous */
-  .phase { display:flex; align-items:center; gap:clamp(14px,2vw,28px); }
-  .phase .dot { width:clamp(20px,2.6vw,40px); height:clamp(20px,2.6vw,40px); border-radius:50%;
-    background:var(--ink); flex:0 0 auto; }
-  .phase .word { font-size:clamp(46px,9.2vw,148px); font-weight:700; letter-spacing:-.035em; line-height:.92; }
-  .hint { font-size:clamp(15px,1.9vw,30px); color:var(--dim); letter-spacing:.01em; max-width:26ch; line-height:1.3; }
-
-  /* listening: the dot breathes */
+  /* 1. the state */
+  .phase { display:flex; align-items:center; gap:clamp(12px,1.7vw,24px); }
+  .phase .dot { width:clamp(16px,2.2vw,32px); height:clamp(16px,2.2vw,32px); border-radius:50%; background:var(--ink); flex:0 0 auto; }
+  .phase .word { font-size:clamp(38px,7.4vw,112px); font-weight:700; letter-spacing:-.035em; line-height:.92; }
+  .phase .hint { font-size:clamp(12px,1.3vw,20px); color:var(--dim); max-width:24ch; line-height:1.25; margin-left:auto; text-align:right; }
   body[data-phase="listening"] .dot { animation:breathe 1.1s ease-in-out infinite; }
   body[data-phase="listening"] .hint { color:var(--ink); }
-  @keyframes breathe { 0%,100%{ transform:scale(1); opacity:1 } 50%{ transform:scale(.62); opacity:.35 } }
-
-  /* thinking: a spinning ring, so "not listening" is a shape and not a word to read */
-  body[data-phase="thinking"] .dot { background:transparent; border:clamp(4px,.55vw,9px) solid var(--ink);
+  @keyframes breathe { 0%,100%{ transform:scale(1); opacity:1 } 50%{ transform:scale(.6); opacity:.35 } }
+  body[data-phase="thinking"] .dot { background:transparent; border:clamp(3px,.45vw,7px) solid var(--ink);
     border-top-color:transparent; animation:rotate 1.6s linear infinite; }
   @keyframes rotate { to { transform:rotate(360deg) } }
-
-  /* off: hollow and still */
-  body[data-phase="off"] .dot { background:transparent; border:clamp(3px,.4vw,6px) solid var(--dim); }
+  body[data-phase="off"] .dot { background:transparent; border:clamp(3px,.35vw,5px) solid var(--dim); }
   body[data-phase="off"] .word { color:var(--dim); }
 
-  .exchange { display:grid; gap:clamp(8px,1.6vh,18px); margin-top:clamp(16px,3vh,40px); border-top:1px solid var(--line);
-    padding-top:clamp(14px,2.2vh,26px); width:100%; }
-  .row { display:grid; grid-template-columns:clamp(70px,7vw,120px) 1fr; gap:clamp(12px,1.6vw,24px); align-items:baseline; }
-  .row .label { font-size:clamp(10px,.92vw,13px); letter-spacing:.22em; text-transform:uppercase; color:var(--dim); }
-  .row .value { font-size:clamp(17px,1.9vw,30px); line-height:1.28; }
-  .row.answer .value { font-weight:600; font-size:clamp(20px,2.5vw,40px); letter-spacing:-.01em; }
-  .empty { color:var(--dim); font-weight:400; }
+  /* 2. the microphone: known, live, and visibly hearing */
+  .mic { display:grid; grid-template-columns:auto 1fr auto; gap:clamp(10px,1.4vw,22px); align-items:center;
+    border-top:1px solid var(--line); border-bottom:1px solid var(--line); padding:clamp(8px,1.2vh,14px) 0; }
+  .mic .label { font-size:clamp(9px,.85vw,12px); letter-spacing:.24em; text-transform:uppercase; color:var(--dim); }
+  .mic .dev { font-size:clamp(11px,1vw,15px); color:var(--dim); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:30ch; }
+  .meter { height:clamp(26px,4.2vh,54px); background:var(--faint); position:relative; overflow:hidden; }
+  canvas { width:100%; height:100%; display:block; }
+  .known { font-size:clamp(9px,.85vw,12px); letter-spacing:.22em; text-transform:uppercase; color:var(--dim);
+    border:1px solid var(--line); padding:6px 10px; white-space:nowrap; }
+  .known.here { color:var(--ink); border-color:var(--ink); }
 
-  footer { display:flex; flex-wrap:wrap; gap:8px 26px; border-top:1px solid var(--line); padding-top:14px;
-    font-size:clamp(10px,.92vw,13px); letter-spacing:.1em; color:var(--dim); font-variant-numeric:tabular-nums; }
+  /* 3. the words */
+  .talk { display:grid; grid-template-rows:auto 1fr; gap:clamp(6px,1vh,12px); min-height:0; }
+  .live { font-size:clamp(15px,1.9vw,32px); line-height:1.3; color:var(--dim); min-height:1.4em; }
+  .live b { color:var(--ink); font-weight:600; }
+  .exchange { display:grid; gap:clamp(4px,.9vh,10px); align-content:start; }
+  .row { display:grid; grid-template-columns:clamp(64px,6vw,104px) 1fr; gap:clamp(10px,1.4vw,20px); align-items:baseline; }
+  .row .label { font-size:clamp(9px,.85vw,12px); letter-spacing:.24em; text-transform:uppercase; color:var(--dim); }
+  .row .value { font-size:clamp(15px,1.8vw,28px); line-height:1.26; }
+  .row.answer .value { font-weight:600; font-size:clamp(18px,2.3vw,38px); letter-spacing:-.01em; }
+  .empty { color:var(--dim); font-weight:400; }
+  .history { display:grid; gap:3px; margin-top:6px; border-top:1px solid var(--line); padding-top:8px;
+    font-size:clamp(10px,.85vw,13px); color:var(--dim); line-height:1.35; }
+  .history div { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .history b { color:var(--ink); font-weight:600; }
+
+  footer { display:flex; flex-wrap:wrap; gap:6px 22px; font-size:clamp(9px,.85vw,12px); letter-spacing:.1em;
+    color:var(--dim); font-variant-numeric:tabular-nums; }
   footer b { color:var(--ink); font-weight:600; }
 </style>
 </head>
@@ -60,77 +70,136 @@
     <div class="clock" id="clock"></div>
   </header>
 
-  <main>
-    <div class="phase">
-      <span class="dot" id="dot"></span>
-      <span class="word" id="word">Off</span>
-    </div>
-    <div class="hint" id="hint">connecting to the hub</div>
+  <div class="phase">
+    <span class="dot"></span>
+    <span class="word" id="word">Off</span>
+    <span class="hint" id="hint">connecting</span>
+  </div>
 
+  <div class="mic">
+    <span class="label">mic</span>
+    <div class="meter"><canvas id="wave" width="1200" height="120"></canvas></div>
+    <span class="known" id="known">not checked</span>
+  </div>
+
+  <div class="talk">
+    <div class="live" id="live">&nbsp;</div>
     <div class="exchange">
       <div class="row"><span class="label">heard</span><span class="value empty" id="heard">&mdash;</span></div>
       <div class="row answer"><span class="label">answer</span><span class="value empty" id="answer">&mdash;</span></div>
     </div>
-  </main>
+    <div class="history" id="history"></div>
+  </div>
 
   <footer>
     <span>node <b id="ref">jims</b></span>
-    <span>voice <b id="voice">&mdash;</b></span>
-    <span>mic <b id="mic">&mdash;</b></span>
+    <span>device <b id="dev">mic</b></span>
+    <span>voice <b id="voice">piper</b></span>
     <span>camera <b id="cam">none</b></span>
-    <span>model <b id="model">&mdash;</b></span>
+    <span>model <b id="model">qwen</b></span>
     <span>turn <b id="ms">&mdash;</b></span>
     <span>card <b id="lease">&mdash;</b></span>
+    <span>chunks <b id="chunks">&mdash;</b></span>
   </footer>
 
 <script>
 const $ = (id) => document.getElementById(id);
 const HUB = location.origin;
-
 const PHASES = {
-  awaiting:  { word: 'Say Kate',  hint: 'Waiting for the word. Nothing is being recorded.' },
-  listening: { word: 'Listening', hint: 'Speak now — the microphone is open.' },
-  thinking:  { word: 'Thinking',  hint: 'Not listening. Working out the answer, then it will speak.' },
-  off:       { word: 'Off',       hint: 'The trigger is not armed. Nothing is being heard.' },
+  awaiting:  { word:'Say Kate',  hint:'Waiting for the word — nothing is being recorded.' },
+  listening: { word:'Listening', hint:'Speak now — the microphone is open.' },
+  thinking:  { word:'Thinking',  hint:'Not listening. Working out the answer, then she speaks.' },
+  off:       { word:'Off',       hint:'The trigger is not armed. Nothing is being heard.' },
 };
 
-function paint(phase, extra) {
-  const p = PHASES[phase] ? phase : 'off';
-  document.body.dataset.phase = p;
-  $('word').textContent = PHASES[p].word;
-  $('hint').textContent = extra || PHASES[p].hint;
+// --- the wave: one RMS sample every ~120 ms, the last eleven seconds on screen
+const wave = $('wave'), ctx = wave.getContext('2d');
+const BARS = 120;
+const levels = new Array(BARS).fill(0);
+let speaking = 0;
+
+function draw() {
+  const w = wave.width, h = wave.height, mid = h / 2;
+  ctx.clearRect(0, 0, w, h);
+  const bw = w / BARS;
+  for (let i = 0; i < BARS; i++) {
+    const v = levels[i];
+    const bh = Math.max(1, v * h * 0.92);
+    ctx.fillStyle = i > BARS - 14 ? '#0d0d0d' : 'rgba(13,13,13,0.55)';
+    ctx.fillRect(i * bw + bw * 0.18, mid - bh / 2, bw * 0.64, bh);
+  }
 }
+const dark = matchMedia('(prefers-color-scheme: dark)');
+function ink() { return dark.matches ? '#f4f4f4' : '#0d0d0d'; }
+
+let lastChunkAt = null, liveText = '';
 
 async function tick() {
   try {
-    const s = await (await fetch(HUB + '/api/state', { cache: 'no-store' })).json();
-    const lease = await (await fetch(HUB + '/api/gpu/lease', { cache: 'no-store' })).json().catch(() => ({}));
+    const live = await (await fetch(HUB + '/api/live', { cache:'no-store' })).json();
+    const s = await (await fetch(HUB + '/api/state', { cache:'no-store' })).json();
+    const lease = await (await fetch(HUB + '/api/gpu/lease', { cache:'no-store' })).json().catch(() => ({}));
 
-    // the hub owns the phase: only it knows when the microphone actually opened
+    // 1. state
     let phase = s.phase || 'off';
     if (s.last && s.last.error) phase = 'off';
+    document.body.dataset.phase = phase;
+    $('word').textContent = PHASES[phase] ? PHASES[phase].word : 'Off';
+    $('hint').textContent = (s.last && s.last.error) ? 'Fault — see the footer' : (PHASES[phase] ? PHASES[phase].hint : '');
 
+    // 2. microphone: level -> wave, and a word that says it is really hearing
+    const rms = (live.level && typeof live.level.rms === 'number') ? live.level.rms : 0;
+    levels.push(Math.min(1, rms / 0.12)); levels.shift();
+    ctx.clearRect(0,0,wave.width,wave.height);
+    draw();
+    if (rms > 0.012) speaking = Date.now();
+    const here = Date.now() - speaking < 1200;
+    const known = $('known');
+    known.textContent = phase === 'off' ? 'off' : (here ? 'hearing you' : (phase === 'listening' ? 'open' : 'known'));
+    known.classList.toggle('here', here);
+    if (live.level && live.level.device) $('dev').textContent = live.level.device;
+
+    // 3. the running transcript from the trigger door: a new line every three seconds
+    const h = live.heard || {};
+    if (h.text && h.at !== lastChunkAt && !/^\(|BLANK_AUDIO/i.test(h.text)) {
+      lastChunkAt = h.at; liveText = h.text;
+      $('live').innerHTML = '<b>“' + liveText.replace(/</g,'&lt;') + '”</b>';
+    }
+    $('chunks').textContent = h.chunks ?? '\u2014';
+
+    // 4. the finished exchange
     const last = s.last || {};
-    paint(phase, null);
+    if (last.transcript) { $('heard').textContent = last.transcript; $('heard').classList.remove('empty'); }
+    const a = typeof last.answer === 'string' ? last.answer
+      : (last.answer && last.answer.handoff ? 'handed to Kate — ' + JSON.stringify(last.answer.handoff.tellmom)
+      : (last.answer && (last.answer.answer || last.answer.why)) || null);
+    if (a) { $('answer').textContent = a; $('answer').classList.remove('empty'); }
 
     $('ref').textContent = s.ref || 'jims';
     $('voice').textContent = (last.spoke && last.spoke.provider) || 'piper';
-    $('mic').textContent = phase === 'listening' ? 'open' : (phase === 'off' ? 'closed' : 'on trigger');
-    $('model').textContent = s.agent ? 'local qwen' : 'none';
+    $('model').textContent = s.agent ? 'local qwen (Destiny)' : 'none';
     $('ms').textContent = last.ms ? (last.ms / 1000).toFixed(1) + ' s' : '\u2014';
-    $('lease').textContent = lease.lease ? 'held by services' : 'free';
-
-    if (last.transcript) { $('heard').textContent = last.transcript; $('heard').classList.remove('empty'); }
-    const a = typeof last.answer === 'string' ? last.answer : (last.answer && (last.answer.answer || last.answer.why)) || null;
-    if (a) { $('answer').textContent = a; $('answer').classList.remove('empty'); }
-    if (last.error) { $('hint').textContent = 'Fault: ' + JSON.stringify(last.error).slice(0, 120); }
+    $('lease').textContent = lease.lease ? 'held' : 'free';
+    // the thread so far - the last few turns, so anyone walking up knows what was being discussed
+    try {
+      const log = await (await fetch(HUB + '/api/log?n=4', { cache:'no-store' })).json();
+      const rows = (log.turns || []).slice(-4, -1).map((t) => {
+        const a = typeof t.answer === 'string' ? t.answer : (t.answer && (t.answer.answer || (t.answer.to === 'kate' ? 'handed to Kate' : ''))) || '';
+        const hh = (t.at || '').slice(11, 16);
+        return '<div>' + hh + ' &nbsp;<b>' + String(t.heard || '').replace(/</g,'&lt;').slice(0, 70) + '</b> &nbsp;' +
+          String(a).replace(/</g,'&lt;').slice(0, 70) + '</div>';
+      });
+      $('history').innerHTML = rows.join('') || '';
+    } catch (e) { }
 
     $('clock').textContent = new Date().toLocaleTimeString();
   } catch (e) {
-    paint('off', 'No answer from the hub at ' + HUB);
+    document.body.dataset.phase = 'off';
+    $('word').textContent = 'Off';
+    $('hint').textContent = 'No answer from the hub.';
   }
 }
-tick(); setInterval(tick, 900);
+tick(); setInterval(tick, 120);
 </script>
 </body>
 </html>
