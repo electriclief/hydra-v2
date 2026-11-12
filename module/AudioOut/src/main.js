@@ -105,7 +105,7 @@ const server = http.createServer(async (req, res) => {
     const text = (r.stderr || '') + (r.stdout || '');
     const audio = [];
     for (const line of text.split(/\r?\n/)) { const m = line.match(/"([^"]+)"\s*\(audio\)/i); if (m) audio.push(m[1]); }
-    return send(res, 200, { ok: true, audio, speakers: audio.filter((n) => /speaker|headphone|output|realtek|nvidia/i.test(n)) });
+    return send(res, 200, { ok: true, audio, speakers: audio.filter((n) => !/microphone|mic\b/i.test(n)) });
   }
 
   if (p === '/api/say' && req.method === 'POST') {
