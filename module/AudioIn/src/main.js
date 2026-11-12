@@ -120,6 +120,8 @@ const send = (res, code, body, type = 'application/json') => {
   res.end(data);
 };
 
+const LEVEL = { cache: null, at: 0, busy: null, seconds: 1 };
+
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, 'http://x');
   const p = url.pathname;
@@ -131,11 +133,34 @@ const server = http.createServer(async (req, res) => {
     return send(res, 200, { ok: mic.length > 0, mic, ffmpeg: FFMPEG, why: mic.length ? undefined : 'no_mic' });
   }
 
+  /**
+   * ONE MEASUREMENT, SHARED. A meter on a screen asks ten times a second, and each ask spawns ffmpeg against the same
+   * device - two of those at once and the second one opens a microphone that is already busy, which reads as "no mic".
+   * So a sample is taken at most every 250 ms and concurrent callers wait on the same one.
+   */
   if (p === '/api/level') {
-    const r = capture(Number(url.searchParams.get('seconds') || 1), url.searchParams.get('device'));
+    const seconds = Number(url.searchParams.get('seconds') || 1);
+    const device = url.searchParams.get('device');
+    const now = Date.now();
+    if (LEVEL.cache && now - LEVEL.at < 250 && LEVEL.seconds === seconds) {
+      return send(res, 200, { ...LEVEL.cache, cached: true, ageMs: now - LEVEL.at });
+    }
+    if (!LEVEL.busy) {
+      LEVEL.busy = (async () => {
+        const r = capture(seconds, device);
+        if (!r.ok) return { ok: false, ...r };
+        fs.unlink(r.file, () => { });
+        return { ok: true, device: r.device, rms: r.rms, peak: r.peak, silent: r.silent };
+      })().then((out) => {
+        if (out.ok) { LEVEL.cache = out; LEVEL.at = Date.now(); LEVEL.seconds = seconds; }
+        LEVEL.busy = null;
+        return out;
+      });
+    }
+    const r = await LEVEL.busy;
     if (!r.ok) return send(res, r.why === 'no_mic' ? 503 : 500, r);
-    fs.unlink(r.file, () => { });
-    return send(res, 200, { ok: true, device: r.device, rms: r.rms, peak: r.peak, silent: r.silent });
+    const { ok, ...body } = r;
+    return send(res, 200, body);
   }
 
   if (p === '/api/capture' && req.method === 'POST') {
