@@ -224,6 +224,7 @@ async function publish() {
  *   thinking  the microphone is CLOSED: transcribing, asking the model, speaking the answer
  *   off       the trigger is not armed (no wake door, no microphone) - nothing is being heard
  */
+let liveAudioReady = null;
 let phase = 'awaiting';
 let phaseAt = new Date().toISOString();
 function setPhase(next, why) {
@@ -522,6 +523,9 @@ const server = http.createServer(async (req, res) => {
   }
 
   if (p === '/api/live') {
+    // the door that owns the microphone is lazy; the live view is the one caller that needs it awake
+    if (!liveAudioReady) { liveAudioReady = up('AudioIn').then(() => true).catch(() => false); }
+    await liveAudioReady;
     const [lvl, wake] = await Promise.all([
       j(`${AUDIOIN}/api/level`, {}, 1200).catch(() => ({ ok: false })),
       j(`${WAKEWORD}/api/status`, {}, 1200).catch(() => ({ ok: false })),
