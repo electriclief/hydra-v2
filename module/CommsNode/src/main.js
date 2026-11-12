@@ -252,6 +252,22 @@ const server = http.createServer(async (req, res) => {
     return send(res, s.status || 502, s.body);
   }
 
+  // testing the trigger without a person: bring the door up, hand it a wav, hear the matcher's verdict
+  if (p === '/api/wake/test' && req.method === 'POST') {
+    const body = await readBody(req);
+    const ready = await up('WakeWord');
+    if (!ready.ok) return send(res, 503, ready);
+    const r = await j(`${WAKEWORD}/api/test`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) }, 300000);
+    return send(res, r.status || 502, r.body);
+  }
+
+  if (p === '/api/wake/arm' && req.method === 'POST') {
+    const ready = await up('WakeWord');
+    if (!ready.ok) return send(res, 503, ready);
+    const r = await j(`${WAKEWORD}/api/arm`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}' }, 30000);
+    return send(res, r.status || 502, r.body);
+  }
+
   if (p === '/api/state') return send(res, 200, { ok: true, ref: REF, hits, last, doors: { audioIn: AUDIOIN, videoIn: VIDEOIN, audioOut: AUDIOOUT, wakeWord: WAKEWORD } });
 
   send(res, 404, { ok: false, why: 'no_such_endpoint', path: p });
@@ -261,4 +277,9 @@ server.listen(PORT, HOST, () => {
   console.log(`[comms] ${REF} on ${HOST}:${PORT} -> mic ${AUDIOIN} cam ${VIDEOIN} say ${AUDIOOUT} wake ${WAKEWORD} stt ${whisperExe() ? 'whisper.cpp' : (comms.sttUrl || 'none')}`);
   publish();
   setInterval(publish, 30000);
+  // The trigger is the one door that is not lazy: if nothing is watching for the phrase, nothing ever starts the loop.
+  // Everything expensive behind it (capture, whisper) is still started on demand.
+  if (String(comms.wakeAuto ?? 'true') === 'true') {
+    up('WakeWord').then((r) => console.log('[comms] wake door', JSON.stringify(r))).catch((e) => console.log('[comms] wake door failed', e.message));
+  }
 });
