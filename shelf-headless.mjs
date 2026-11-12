@@ -15,7 +15,7 @@
  * any device that pings gets welcomed, nothing is private, no auth).
  */
 import { spawn } from 'node:child_process';
-import { appendFileSync, mkdirSync, readFileSync } from 'node:fs';
+import { appendFileSync, existsSync, mkdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 
@@ -53,7 +53,14 @@ const log = (...a) => {
   try { appendFileSync(LOG_FILE, line + '\n'); } catch { /* logging must never kill the shelf */ }
 };
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-const doorArgs = (port, extra = []) => ['public/js/main.js', '--port', String(port), '--host', HOST, ...extra];
+// A door's entry file is not one convention: the TypeScript modules build to public/js/main.js, a module written as
+// ESM runs src/main.js as it sits. Picking the wrong one is a door that fails at boot with MODULE_NOT_FOUND while
+// every other door on the node looks healthy (that is exactly how the resolver went missing on a fresh node).
+const entryFor = (dir) => {
+  const built = path.join(MODULE, dir, 'public', 'js', 'main.js');
+  return existsSync(built) ? 'public/js/main.js' : 'src/main.js';
+};
+const doorArgs = (dir, port, extra = []) => [entryFor(dir), '--port', String(port), '--host', HOST, ...extra];
 
 async function up(port, p = '/') {
   try {
@@ -77,7 +84,7 @@ async function waitDoor(port, p = '/', ms = 30000) {
 }
 
 function spawnHidden(dir, port, extra = []) {
-  return spawn(NODE, doorArgs(port, extra), {
+  return spawn(NODE, doorArgs(dir, port, extra), {
     cwd: path.join(MODULE, dir),
     windowsHide: true,
     stdio: 'ignore',
@@ -89,7 +96,7 @@ async function pwLaunch(dir, port, name, extra = []) {
   const r = await fetch(`${DOORS.pwUrl}/api/processes`, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ name, command: NODE, args: doorArgs(port, extra), cwd: path.join(MODULE, dir), tag: 'door' }),
+    body: JSON.stringify({ name, command: NODE, args: doorArgs(dir, port, extra), cwd: path.join(MODULE, dir), tag: 'door' }),
   });
   if (!r.ok) throw new Error(`POST /api/processes -> ${r.status} ${await r.text()}`);
   return (await r.json()).process;
