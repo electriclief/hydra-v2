@@ -48,8 +48,12 @@ const WHISPER = argOf('whisper', comms.whisper ?? '');
 const MODEL = argOf('model', comms.whisperModel ?? '');
 const AUTO = String(argOf('auto', comms.wakeAuto ?? 'false')) === 'true';
 const SCRIPT = path.join(HERE, '..', 'scripts', 'wake.ps1');
+const AUDIOIN = String(argOf('audioin', comms.audioIn ?? 'http://127.0.0.1:8161')).replace(/\/$/, '');
+const MODE = String(argOf('mode', comms.wakeMode ?? 'auto'));
+const CHUNK = Number(argOf('chunk', comms.wakeChunkSeconds ?? 3));
 
 let child = null;
+let loopTimer = null;
 let armedAt = 0;
 let hits = 0;
 let lastHit = null;
@@ -66,50 +70,89 @@ function matches(text) {
   return t.includes(PHRASE) || t.includes(joined) || (t.includes('are you') && t.includes('listen'));
 }
 
+/**
+ * Two triggers, chosen by what the node can actually do:
+ *   grammar - Windows System.Speech, instant and free, but it rejects synthetic and accented speech more often
+ *             than a person expects. Measured here: a piper voice saying the phrase was heard by the microphone
+ *             (whisper transcribed it perfectly) and the grammar still did not fire.
+ *   stt     - the same whisper the listener uses, over N-second chunks. On this laptop whisper runs at RTF ~0.18,
+ *             so a chunk is transcribed in a fraction of the time it took to record and the loop keeps up.
+ * 'auto' picks stt when whisper is installed, grammar otherwise.
+ */
 function arm() {
-  if (child) return { ok: true, already: true, pid: child.pid };
-  if (!fs.existsSync(SCRIPT)) { failure = 'wake.ps1 missing at ' + SCRIPT; return { ok: false, why: 'no_script', detail: failure }; }
-  try {
-    child = spawn('powershell.exe', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', SCRIPT, '-Phrase', PHRASE],
-      { windowsHide: true });
-  } catch (e) {
-    failure = 'spawn failed: ' + e.message;
-    return { ok: false, why: 'spawn_failed', detail: failure };
-  }
+  if (child || loopTimer) return { ok: true, already: true, pid: child ? child.pid : null };
+  const mode = MODE === 'auto' ? (whisperExe() && MODEL && fs.existsSync(MODEL) ? 'stt' : 'grammar') : MODE;
   armedAt = Date.now();
   failure = null;
-
-  let buf = '';
-  child.stdout.on('data', (d) => {
-    buf += d.toString();
-    let i;
-    while ((i = buf.indexOf('\n')) >= 0) {
-      const line = buf.slice(0, i).trim();
-      buf = buf.slice(i + 1);
-      if (line.startsWith('HIT')) {
-        const [, text = '', conf = ''] = line.split('\t');
-        hits++;
-        lastHit = { text, confidence: Number(conf) || null, at: new Date().toISOString() };
-        console.log('[wakeword] HIT', text, conf);
-        fetch(HUB + '/api/wake', {
-          method: 'POST', headers: { 'content-type': 'application/json' },
-          body: JSON.stringify({ phrase: PHRASE, text, confidence: Number(conf) || null, at: lastHit.at }),
-        }).catch((e) => console.log('[wakeword] hub did not take the hit:', e.message));
-      } else if (line.startsWith('FAIL')) {
-        failure = line.slice(4).trim();
-        console.log('[wakeword] recogniser said', failure);
-      }
+  if (mode === 'grammar') {
+    if (!fs.existsSync(SCRIPT)) { failure = 'wake.ps1 missing at ' + SCRIPT; return { ok: false, why: 'no_script', detail: failure }; }
+    try {
+      child = spawn('powershell.exe', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', SCRIPT, '-Phrase', PHRASE], { windowsHide: true });
+    } catch (e) {
+      failure = 'spawn failed: ' + e.message;
+      return { ok: false, why: 'spawn_failed', detail: failure };
     }
-  });
-  child.on('exit', (code) => { console.log('[wakeword] recogniser exited', code); child = null; });
-  return { ok: true, pid: child.pid, phrase: PHRASE };
+    let buf = '';
+    child.stdout.on('data', (d) => {
+      buf += d.toString();
+      let i;
+      while ((i = buf.indexOf('\n')) >= 0) {
+        const line = buf.slice(0, i).trim(); buf = buf.slice(i + 1);
+        if (line.startsWith('HIT')) {
+          const [, text = '', conf = ''] = line.split('\t');
+          hit(text, Number(conf) || null);
+        } else if (line.startsWith('FAIL')) { failure = line.slice(4).trim(); console.log('[wakeword] recogniser said', failure); }
+      }
+    });
+    child.on('exit', (code) => { console.log('[wakeword] recogniser exited', code); child = null; });
+    return { ok: true, pid: child.pid, phrase: PHRASE, mode };
+  }
+
+  // STT mode: capture a chunk, transcribe it, match it. Sequential on purpose - a second capture while the first is
+  // still transcribing would fight for the same microphone.
+  const tick = async () => {
+    if (!loopTimer) return;
+    let heard = '';
+    try {
+      const ac = new AbortController();
+      const timer = setTimeout(() => ac.abort(), (CHUNK + 15) * 1000);
+      const cap = await fetch(`${AUDIOIN}/api/capture`, {
+        method: 'POST', headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ seconds: CHUNK }), signal: ac.signal,
+      });
+      clearTimeout(timer);
+      const capBody = await cap.json();
+      if (capBody.ok) {
+        const r = spawnSync(whisperExe(), ['-m', MODEL, '-f', capBody.file, '-nt'], { timeout: 120000, encoding: 'utf8' });
+        heard = String(r.stdout || '').trim();
+        fs.unlink(capBody.file, () => { });
+        if (heard && matches(heard)) hit(heard, null);
+      } else {
+        failure = capBody.why || 'capture_failed';
+      }
+    } catch (e) {
+      failure = 'loop: ' + e.message;
+    }
+    if (loopTimer) loopTimer = setTimeout(tick, 150);
+  };
+  loopTimer = setTimeout(tick, 100);
+  return { ok: true, phrase: PHRASE, mode: 'stt', chunkSeconds: CHUNK };
+}
+
+function hit(text, confidence) {
+  hits++;
+  lastHit = { text, confidence, at: new Date().toISOString() };
+  console.log('[wakeword] HIT', text, confidence ?? '');
+  fetch(HUB + '/api/wake', {
+    method: 'POST', headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ phrase: PHRASE, text, confidence, at: lastHit.at }),
+  }).catch((e) => console.log('[wakeword] hub did not take the hit:', e.message));
 }
 
 function disarm() {
-  if (!child) return { ok: true, already: true };
-  try { child.kill('SIGKILL'); } catch { }
-  child = null;
-  return { ok: true };
+  if (loopTimer) { clearTimeout(loopTimer); loopTimer = null; }
+  if (child) { try { child.kill('SIGKILL'); } catch { } child = null; }
+  return { ok: true, already: false };
 }
 
 /**
@@ -154,9 +197,9 @@ const readBody = (req) => new Promise((resolve) => {
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, 'http://x');
   const p = url.pathname;
-  if (p === '/health') return send(res, 200, { ok: true, door: 'WakeWord', port: PORT, phrase: PHRASE, state: child ? 'armed' : (failure ? 'failed' : 'sleeping') });
+  if (p === '/health') return send(res, 200, { ok: true, door: 'WakeWord', port: PORT, phrase: PHRASE, state: (child || loopTimer) ? 'armed' : (failure ? 'failed' : 'sleeping'), mode: MODE });
   if (p === '/api/status') return send(res, 200, {
-    ok: true, state: child ? 'armed' : (failure ? 'failed' : 'sleeping'), phrase: PHRASE,
+    ok: true, state: (child || loopTimer) ? 'armed' : (failure ? 'failed' : 'sleeping'), mode: MODE, phrase: PHRASE,
     pid: child ? child.pid : null, armedForMs: child ? Date.now() - armedAt : 0, hits, lastHit, failure,
   });
   if (p === '/api/arm' && req.method === 'POST') { const r = arm(); return send(res, r.ok ? 200 : 500, r); }
