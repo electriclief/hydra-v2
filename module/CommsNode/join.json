@@ -1,0 +1,15 @@
+{
+ "name": "CommsNode",
+ "kind": "door",
+ "port": 8160,
+ "start": "\"C:\\AI\\hydra-local\\tools\\node\\node.exe\" src/main.js --host 0.0.0.0",
+ "wiredAtBoot": false,
+ "deps": [
+  "AudioIn",
+  "VideoIn",
+  "AudioOut",
+  "WakeWord",
+  "State"
+ ],
+ "what": "The face of a communication node: it knows no devices of its own, asks the four doors, and runs the one loop that matters - trigger, capture, transcribe, answer, speak. Publishes node.<ref>.comms into State so the Menu can say what this node can hear and see."
+}

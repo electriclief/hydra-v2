@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><title>AudioIn - Hydra V2</title>
+<style>body{font:15px/1.6 system-ui,sans-serif;max-width:820px;margin:40px auto;padding:0 20px;color:#1b1b1b}code,pre{background:#f4f4f4;padding:2px 6px;border-radius:4px}pre{padding:14px;overflow:auto}.kicker{display:inline-block;background:#111;color:#fff;padding:2px 10px;border-radius:10px;font-size:12px}h2{margin-top:34px;border-bottom:1px solid #ddd;padding-bottom:6px}</style>
+</head><body>
+<h1>AudioIn</h1>
+<p class="kicker">door on port 8161</p>
+
+<section id="summary">
+<p>Records the microphone for N seconds and returns 16 kHz mono WAV plus the RMS and peak measured from the samples, so a muted device reads silent instead of looking like a working one. ffmpeg is spawned per request and exits; no device is held between calls.</p>
+</section>
+
+<section id="concepts">
+Concepts</h2>
+  <h3>Level is measured, not assumed</h3>
+  <p>RMS and peak are computed from the PCM samples in the file that was written. A capture below 0.0005 RMS is reported as silent, not as a successful recording of nothing.</p>
+  <h3>ffmpeg is the whole audio API</h3>
+  <p>One static binary enumerates DirectShow devices, captures, resamples and encodes. No native npm module, no python, no driver.</p>
+  <h3>Nothing resident</h3>
+  <p>There is no long-lived capture process: each request is one child that exits. A door that holds the microphone open blocks every other app on the machine.</p>
+
+
+</section>
+
+<section id="wiring">
+<ul>
+Wiring</h2>
+
+  <li>needs: ffmpeg.exe (comms.ffmpeg)</li>
+  <li>gives: GET /api/devices, GET /api/level, POST /api/capture, GET /api/audio?seconds=N (wav)</li>
+
+
+
+</ul>
+</section>
+
+<script id="contract" type="application/json">
+{
+  "module": "AudioIn",
+  "port": 8161,
+  "kind": "door",
+  "needs": [
+    "ffmpeg.exe (comms.ffmpeg)"
+  ],
+  "gives": [
+    "GET /api/devices",
+    "GET /api/level",
+    "POST /api/capture",
+    "GET /api/audio"
+  ]
+}
+</script>
+</body></html>

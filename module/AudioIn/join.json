@@ -1,0 +1,9 @@
+{
+ "name": "AudioIn",
+ "kind": "door",
+ "port": 8161,
+ "start": "\"C:\\AI\\hydra-local\\tools\\node\\node.exe\" src/main.js --host 0.0.0.0",
+ "wiredAtBoot": false,
+ "deps": [],
+ "what": "The microphone as a door: a bounded recording of the default or named input device, as 16 kHz mono WAV, with the level measured off the samples so a muted device reads silent instead of looking like a working one."
+}

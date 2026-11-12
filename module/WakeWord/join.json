@@ -1,0 +1,11 @@
+{
+ "name": "WakeWord",
+ "kind": "door",
+ "port": 8164,
+ "start": "\"C:\\AI\\hydra-local\\tools\\node\\node.exe\" src/main.js --host 0.0.0.0",
+ "wiredAtBoot": false,
+ "deps": [
+  "CommsNode"
+ ],
+ "what": "The \"are you listening\" trigger: a Windows speech grammar that spots one phrase instantly and calls the hub, so the expensive listening only runs after the trigger."
+}

@@ -1,0 +1,9 @@
+{
+ "name": "AudioOut",
+ "kind": "door",
+ "port": 8163,
+ "start": "\"C:\\AI\\hydra-local\\tools\\node\\node.exe\" src/main.js --host 0.0.0.0",
+ "wiredAtBoot": false,
+ "deps": [],
+ "what": "The speaker as a door: text in, wav out, and it says who spoke - piper when the voice is installed, Windows SAPI when it is not. Plays it in the room and returns the audio."
+}

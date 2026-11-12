@@ -1,0 +1,9 @@
+{
+ "name": "VideoIn",
+ "kind": "door",
+ "port": 8162,
+ "start": "\"C:\\AI\\hydra-local\\tools\\node\\node.exe\" src/main.js --host 0.0.0.0",
+ "wiredAtBoot": false,
+ "deps": [],
+ "what": "The camera as a door: MJPEG for a browser, a single JPEG for a still, from either a local DirectShow camera or an ipwebcam-style URL. The stream is killed when the last viewer leaves."
+}

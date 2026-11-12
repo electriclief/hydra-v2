@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><title>AudioOut - Hydra V2</title>
+<style>body{font:15px/1.6 system-ui,sans-serif;max-width:820px;margin:40px auto;padding:0 20px;color:#1b1b1b}code,pre{background:#f4f4f4;padding:2px 6px;border-radius:4px}pre{padding:14px;overflow:auto}.kicker{display:inline-block;background:#111;color:#fff;padding:2px 10px;border-radius:10px;font-size:12px}h2{margin-top:34px;border-bottom:1px solid #ddd;padding-bottom:6px}</style>
+</head><body>
+<h1>AudioOut</h1>
+<p class="kicker">door on port 8163</p>
+
+<section id="summary">
+<p>Turns text into speech and plays it in the room: piper when a voice is installed, Windows System.Speech when it is not, with the answer naming the provider that spoke. Returns the wav as well, and reports piper's own real-time factor instead of a stopwatch.</p>
+</section>
+
+<section id="concepts">
+Concepts</h2>
+  <h3>Two providers, one answer</h3>
+  <p>x-tts-provider names who spoke and fellBackFrom names why. A node with nothing installed still talks.</p>
+  <h3>RTF from piper itself</h3>
+  <p>piper prints its real-time factor to stderr; that number is reported rather than a stopwatch over model load.</p>
+  <h3>The file is the interface</h3>
+  <p>SAPI can only write a wav file, never stdout audio, so every provider writes a file and the caller gets that file.</p>
+
+
+</section>
+
+<section id="wiring">
+<ul>
+Wiring</h2>
+
+  <li>needs: piper.exe + voice (comms.piper/comms.voice), ffplay, powershell</li>
+  <li>gives: POST /api/say {text, download}, POST /api/play, GET /api/devices</li>
+
+
+
+</ul>
+</section>
+
+<script id="contract" type="application/json">
+{
+  "module": "AudioOut",
+  "port": 8163,
+  "kind": "door",
+  "needs": [
+    "piper.exe + voice, ffplay, powershell"
+  ],
+  "gives": [
+    "POST /api/say",
+    "POST /api/play",
+    "GET /api/devices"
+  ]
+}
+</script>
+</body></html>

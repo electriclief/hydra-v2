@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><title>CommsNode - Hydra V2</title>
+<style>body{font:15px/1.6 system-ui,sans-serif;max-width:820px;margin:40px auto;padding:0 20px;color:#1b1b1b}code,pre{background:#f4f4f4;padding:2px 6px;border-radius:4px}pre{padding:14px;overflow:auto}.kicker{display:inline-block;background:#111;color:#fff;padding:2px 10px;border-radius:10px;font-size:12px}h2{margin-top:34px;border-bottom:1px solid #ddd;padding-bottom:6px}</style>
+</head><body>
+<h1>CommsNode</h1>
+<p class="kicker">door on port 8160</p>
+
+<section id="summary">
+<p>One node that can hear, see and speak, assembled from four small doors. The hub holds the sequence and the state, never the hardware: it asks AudioIn, VideoIn, AudioOut and WakeWord what they have, runs trigger-capture-transcribe-answer-speak, and says which door is down when one is.</p>
+</section>
+
+<section id="concepts">
+Concepts</h2>
+  <h3>Doors, not devices</h3>
+  <p>AudioIn, VideoIn, AudioOut and WakeWord each own one device and can fail alone. The hub asks each for its inventory on demand and says which one is down instead of hiding the gap.</p>
+  <h3>The loop</h3>
+  <p>wake -> POST /api/wake -> capture N seconds -> transcribe -> optional agent -> speak the answer. Each step is an HTTP call to a door, so a step can be swapped for another node's door by changing one URL.</p>
+  <h3>Typed absence</h3>
+  <p>A missing microphone is no_mic with the devices that were enumerated; a missing STT is stt_missing with the path it looked for. Nothing returns silence and calls it success.</p>
+  <h3>Published fact</h3>
+  <p>node.<ref>.comms carries the four door URLs, the capture length, the STT engine and the last exchange, refreshed every 30 s with a 120 s TTL so a dead node stops advertising.</p>
+
+
+</section>
+
+<section id="wiring">
+<ul>
+Wiring</h2>
+
+  <li>needs: AudioIn :8161, VideoIn :8162, AudioOut :8163, WakeWord :8164, State :8127</li>
+  <li>gives: POST /api/listen {seconds|wav} -> transcript (and the answer, if configured)</li>
+  <li>gives: POST /api/wake (the wake word's landing point), POST /api/say, GET /api/devices, GET /api/state</li>
+  <li>node.json: comms.{ref, whisper, whisperModel, answerUrl, listenSeconds, sttUrl}</li>
+
+
+
+</ul>
+</section>
+
+<script id="contract" type="application/json">
+{
+  "module": "CommsNode",
+  "port": 8160,
+  "kind": "door",
+  "needs": [
+    "State :8127"
+  ],
+  "gives": [
+    "POST /api/listen",
+    "POST /api/wake",
+    "POST /api/say",
+    "GET /api/devices",
+    "GET /api/state"
+  ]
+}
+</script>
+</body></html>
