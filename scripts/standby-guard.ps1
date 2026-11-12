@@ -641,6 +641,9 @@ while ($true) {
   $pinKind = 'operator'
   if ($pinned) { try { $pj = Get-Content $PinFile -Raw | ConvertFrom-Json; if ($pj.service) { $pinKind = 'service' } } catch { } }
   $servicePinNow = ($pinned -and $pinKind -eq 'service')
+  # The release can land on a tick where some OTHER work has the card (a transcription, a request in flight), so the
+  # resume intent is recorded here and honoured the moment the card is free - not only on the tick the pin vanished.
+  if ($script:servicePinWas -and -not $servicePinNow) { $script:leaseReleasedAt = Get-Date; LogIt "service lease released - the card is free for the miner" }
   $ai = @(Get-AiWork)
   $miner = Get-MinerRunning
 
@@ -677,10 +680,10 @@ while ($true) {
   }
   else {
     $busySince = $null
-    if ($script:servicePinWas -and -not $pinned) {
-      # the lease was released: resume at once instead of serving a grace owed to a human
-      $freeSince = (Get-Date).AddSeconds(-($ResumeGraceSeconds + 5))
-      LogIt "service lease released - miner resumes now"
+    if ($script:leaseReleasedAt) {
+      # a service handed the card back: resume at once instead of serving a grace owed to a human
+      $freeSince = $script:leaseReleasedAt.AddSeconds(-($ResumeGraceSeconds + 5))
+      $script:leaseReleasedAt = $null
     }
     elseif ($null -eq $freeSince) { $freeSince = Get-Date }
 
