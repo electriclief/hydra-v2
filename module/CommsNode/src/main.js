@@ -292,10 +292,19 @@ const server = http.createServer(async (req, res) => {
     const body = await readBody(req);
     if (body.on === false || body.release === true) {
       try { fs.unlinkSync(PIN_FILE); } catch { }
-      const st = await here();
-      st.lease = null;
-      publishExtra(st);
-      return send(res, 200, { ok: true, lease: null, pin: PIN_FILE, released: true });
+      // Releasing the card means the CARD IS FREE, not just the paperwork: a resident model server that keeps 1.8 GB
+      // of a 2 GB card while the pin is gone is a miner that starts and then cannot allocate. Unless the caller asks
+      // to keep the server warm, releasing the lease stops it through ProcessWrapper.
+      const stopName = String(body.stop ?? comms.gpuService ?? 'comms-llm');
+      let stopped = null;
+      if (body.keep !== true && stopName) {
+        const rows = await j(`${PW}/api/processes`, {}, 8000);
+        const live = (rows.body?.processes ?? []).filter((r) => r.name === stopName && r.life === 'running');
+        for (const row of live) await j(`${PW}/api/processes/${row.id}/kill`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{"force":true}' }, 15000);
+        stopped = live.length;
+      }
+      publishExtra({ lease: null });
+      return send(res, 200, { ok: true, lease: null, pin: PIN_FILE, released: true, stoppedProcesses: stopped });
     }
     const lease = {
       service: true, owner: 'comms', why: String(body.why ?? 'local model resident'),
