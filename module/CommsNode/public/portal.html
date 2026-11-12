@@ -174,10 +174,10 @@ async function tickLive() {
   try {
     const live = await (await fetch(HUB + '/api/live', { cache:'no-store' })).json();
     const rms = (live.level && typeof live.level.rms === 'number') ? live.level.rms : 0;
-    levels.push(Math.min(1, rms / 0.10)); levels.shift();
+    levels.push(Math.min(1, rms / 0.09)); levels.shift();
     drawWave();
 
-    if (rms > 0.012) hotUntil = Date.now() + 1100;
+    if (rms > 0.022) hotUntil = Date.now() + 900;
     const here = Date.now() < hotUntil;
     const k = $('known');
     const phase = (lastState && lastState.phase) || live.phase;
