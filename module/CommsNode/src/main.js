@@ -160,9 +160,9 @@ async function publish() {
     listenSeconds: CAPTURE, stt: whisperExe() ? 'whisper.cpp' : (comms.sttUrl || 'none'),
     agent: AGENT || null, hits, last,
   };
-  return j(`${STATE}/api/state/push`, {
+  return j(`${STATE}/api/state/register`, {
     method: 'POST', headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ name: `node.${REF}.comms`, content: body, ttlMs: 120000 }),
+    body: JSON.stringify({ name: `node.${REF}.comms`, content: body }),
   }, 8000);
 }
 

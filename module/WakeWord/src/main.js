@@ -116,12 +116,24 @@ function disarm() {
  * File mode: transcribe a wav with whisper (if present) and run the same matcher. This is how the trigger is tested
  * without a human in the room - the microphone path and the detection path are separate failures.
  */
+function whisperExe() {
+  if (!WHISPER) return null;
+  if (fs.existsSync(WHISPER) && WHISPER.toLowerCase().endsWith('.exe')) return WHISPER;
+  for (const n of ['whisper-cli.exe', 'main.exe', 'whisper.exe']) {
+    const p = path.join(WHISPER, n);
+    if (fs.existsSync(p)) return p;
+  }
+  return null;
+}
+
 function testFile(file) {
-  if (!WHISPER || !fs.existsSync(WHISPER)) return { ok: false, why: 'whisper_missing', lookedFor: WHISPER || '(comms.whisper)' };
+  const exe = whisperExe();
+  if (!exe) return { ok: false, why: 'whisper_missing', lookedFor: WHISPER || '(comms.whisper)' };
   if (!MODEL || !fs.existsSync(MODEL)) return { ok: false, why: 'model_missing', lookedFor: MODEL || '(comms.whisperModel)' };
   if (!fs.existsSync(file)) return { ok: false, why: 'no_such_file', file };
   const t0 = Date.now();
-  const r = spawnSync(WHISPER, ['-m', MODEL, '-f', file, '-nt', '-np'], { timeout: 180000, encoding: 'utf8' });
+  const r = spawnSync(exe, ['-m', MODEL, '-f', file, '-nt'], { timeout: 180000, encoding: 'utf8' });
+  if (r.error) return { ok: false, why: 'spawn_failed', detail: r.error.message, exe, file };
   const heard = String(r.stdout || '').trim();
   return {
     ok: true, file, heard, matched: matches(heard), phrase: PHRASE,
