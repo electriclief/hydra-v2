@@ -1,0 +1,11 @@
+{
+  "nodes": [
+    {
+      "ref": "rex",
+      "host": "192.168.1.147",
+      "agentPort": 8142,
+      "minerApiPort": 60130,
+      "note": "RX 580 / Polaris — unMiner spawns SRBMiner with --api-enable --api-port 60130. Its API may bind loopback only, so the adapter falls back to reading it through the EchidnaAccess agent on this node."
+    }
+  ]
+}

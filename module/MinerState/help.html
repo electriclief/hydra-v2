@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MinerState — hashes and shares into Hydra State</title>
+<style>
+ :root { color-scheme: dark; --bg:#111318; --panel:#191c23; --border:#303541; --text:#e5e7eb; --muted:#a1a8b7; }
+ * { box-sizing: border-box; }
+ body { margin:0; padding:32px; background:var(--bg); color:var(--text); font:15px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif; max-width:78ch; }
+ h1 { margin:0 0 4px; font-size:24px; font-weight:600; }
+ h2 { margin:30px 0 10px; font-size:13px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; color:var(--muted); }
+ .kicker { margin:0 0 26px; color:var(--muted); font-size:13px; }
+ code { font:13px/1.5 ui-monospace,Consolas,monospace; background:#0b0d11; border:1px solid var(--border); border-radius:5px; padding:1px 5px; }
+ table { width:100%; border-collapse:collapse; margin:6px 0 14px; font-size:14px; }
+ th, td { text-align:left; padding:7px 10px; border-bottom:1px solid var(--border); vertical-align:top; }
+ th { color:var(--muted); font-size:12px; text-transform:uppercase; letter-spacing:.06em; }
+ .note { color:var(--muted); font-size:14px; }
+</style></head><body>
+<header><h1>MinerState</h1>
+<p class="kicker">hashes and shares into Hydra State · door on :8145 · publishes <code>node.&lt;ref&gt;.miner</code></p></header>
+
+<section id="summary">
+<p>A mining node has no Hydra shelf and does not need one: it runs a miner, and the miner publishes its own JSON on an
+API port. MinerState is the adapter between those two facts. It reads each declared node's miner API every fifteen
+seconds, normalises the answer, and registers <code>node.&lt;ref&gt;.miner</code> in State — the same place every other
+node publishes its own <code>node.&lt;ref&gt;.*</code>. Mirror already reads State, the Menu reads Mirror, so a share
+count becomes a fleet question instead of a terminal command on a slow box.</p>
+</section>
+
+<section id="concepts">
+<h2>An unreadable miner is not a miner at zero</h2>
+<p>When nothing answers, State gets <code>{readable:false, why:"no miner answering on 192.168.1.147:60130"}</code>, never
+<code>hashrate: 0</code>. A zero reads as "mining fine, earning nothing" and hides the one fault this door exists to
+surface. The same rule applies to a miner that answers with a shape nobody declared: the reading is refused with the
+keys it did see, rather than fabricated.</p>
+<h2>Two shapes, because two miners actually appear</h2>
+<table>
+<tr><th>SRBMiner</th><th>lolMiner</th></tr>
+<tr><td><code>algorithms[0].hashrate.'1min'</code></td><td><code>Algorithms[0].Total_Performance × Performance_Factor</code></td></tr>
+<tr><td><code>algorithms[0].shares.accepted | rejected</code></td><td><code>Total_Accepted | Total_Rejected</code></td></tr>
+<tr><td><code>mining_time</code>, <code>gpu_devices[]</code></td><td><code>Session.Uptime</code>, <code>Workers[]</code> (per card: temp, fan, power, clocks)</td></tr>
+</table>
+<p>A parser written for one reports zeros for the other while the card hashes at full rate — which is worse than no
+reading at all.</p>
+<h2>Loopback is normal, so there are two ways to read</h2>
+<p>unMiner's bundled SRBMiner binds its API to the node's loopback, so a direct fetch from this door can fail while the
+miner is healthy. The fallback is the EchidnaAccess agent on that node: <code>POST /exec</code> running
+<code>(Invoke-WebRequest http://127.0.0.1:&lt;api&gt;/)</code> on the box itself. Each reading records which way it was
+obtained (<code>via:"direct" | "agent"</code>), because "I could not read it" and "it is not mining" are different
+statements.</p>
+<h2>Share deltas, not just a rate</h2>
+<p>Every change in <code>accepted</code> or <code>rejected</code> is appended to <code>data/miner-state.log</code> as its
+own line. A hashrate never shows a rejection: a miner pointed at a pool that refuses everything looks identical to one
+earning, until the counter is read line by line.</p>
+</section>
+
+<section id="wiring">
+<h2>Wiring, for humans</h2>
+<table>
+<tr><th>needs</th><th>from</th><th>required</th></tr>
+<tr><td>the node list and its API ports</td><td><code>data/nodes.json</code></td><td>yes</td></tr>
+<tr><td>the miner's JSON</td><td><code>http://&lt;host&gt;:&lt;apiPort&gt;/</code> or the node's agent</td><td>yes</td></tr>
+<tr><td>a place to publish</td><td>State <code>:8127</code> <code>POST /api/state/register</code></td><td>yes</td></tr>
+<tr><td>a token, only if that node's agent has one</td><td><code>C:/AI/fleet/access.json</code></td><td>no</td></tr>
+</table>
+<table>
+<tr><th>gives</th><th>to</th><th>shape</th></tr>
+<tr><td><code>node.&lt;ref&gt;.miner</code></td><td>State, Mirror, the Menu</td><td>miner, algo, hashrate, accepted, rejected, pool, uptime, cards[], via</td></tr>
+<tr><td><code>GET /state</code> · <code>?ref=</code></td><td>any reader</td><td>the last reading, readable or refused with a reason</td></tr>
+<tr><td><code>GET /health</code></td><td>the LAN, Echidna</td><td><code>{ok, nodes, readable}</code></td></tr>
+<tr><td><code>GET /</code></td><td>the operator</td><td>a live table: rate, shares, pool, uptime, per-card detail</td></tr>
+</table>
+<p class="note">Started by the shell as a door (<code>Basic_App/electron/main.cjs</code>, key <code>minerstate</code>):
+one ProcessWrapper row, visible and closeable. A mining node stays a mining node — nothing of Hydra has to run on it.</p>
+</section>
+
+<script type="application/json" id="contract">
+{
+  "module": "MinerState",
+  "port": 8145,
+  "kind": "door",
+  "needs": [
+    { "name": "nodes", "from": "data/nodes.json", "required": true },
+    { "name": "miner api", "from": "http://<host>:<apiPort>/ or the node's EchidnaAccess agent", "required": true },
+    { "name": "state", "from": "State :8127", "required": true },
+    { "name": "ledger", "from": "C:/AI/fleet/access.json", "required": false }
+  ],
+  "gives": [
+    { "name": "node.<ref>.miner", "to": "State", "kind": "state" },
+    { "name": "/state", "to": "any reader", "kind": "http" },
+    { "name": "/health", "to": "the LAN", "kind": "http" },
+    { "name": "/", "to": "the operator", "kind": "html" }
+  ]
+}
+</script>
+</body></html>

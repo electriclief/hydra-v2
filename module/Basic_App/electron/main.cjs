@@ -86,6 +86,9 @@ const DOOR_TABLE = [
   // privilege. It is NOT an elevation path of its own - it talks to the EchidnaAccess agent on :8142 of each node, so
   // the door can never be the thing that silently gains SYSTEM.
   { key: 'access', dir: 'Access', port: 8143, script: 'server/main.js' },
+  // MinerState is the mining nodes' adapter into State: a node that runs no Hydra modules still answers "how many
+  // shares?" through node.<ref>.miner. Declared here so a relaunch brings it back instead of leaving State stale.
+  { key: 'minerstate', dir: 'MinerState', port: 8145, script: 'server/main.js' },
 ];
 
 // ── THE WATCHDOGS ARE PROCESSES TOO ────────────────────────────────────────────

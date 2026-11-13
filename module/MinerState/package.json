@@ -1,0 +1,7 @@
+{
+  "name": "hydra-miner-state",
+  "private": true,
+  "type": "module",
+  "description": "MinerState door: reads each miner node's own API and publishes node.<ref>.miner into Hydra State.",
+  "main": "server/main.js"
+}
