@@ -8,3 +8,6 @@
 {"at":"2026-11-13T00:48:05.792Z","node":"self","ip":"192.168.1.123","cmd":"whoami","exitCode":0,"ms":279,"roundTrip":445,"ok":true}
 {"at":"2026-11-13T00:48:06.288Z","node":"self","ip":"192.168.1.123","cmd":"dir C:\\Windows\\System32\\config\\SAM","exitCode":0,"ms":441,"roundTrip":455,"ok":true}
 {"at":"2026-11-13T00:48:06.721Z","node":"self","ip":"192.168.1.123","cmd":"Get-Service sshd -ErrorAction SilentlyContinue | Select-Object Status,StartType","exitCode":0,"ms":386,"roundTrip":400,"ok":true}
+{"at":"2026-11-13T01:06:54.265Z","node":"rex","ip":"192.168.1.147","cmd":"whoami","exitCode":0,"ms":11934,"roundTrip":15453,"ok":true}
+{"at":"2026-11-13T01:07:14.536Z","node":"rex","ip":"192.168.1.147","cmd":"dir C:\\Windows\\Temp | Select-Object -First 3 Name","exitCode":0,"ms":16539,"roundTrip":20227,"ok":true}
+{"at":"2026-11-13T01:07:34.933Z","node":"rex","ip":"192.168.1.147","cmd":"Get-CimInstance Win32_VideoController | Select-Object Name,DriverVersion | Format-List","exitCode":0,"ms":16444,"roundTrip":20385,"ok":true}

@@ -61,7 +61,9 @@ async function discover() {
       let text = '';
       try { text = await readFile(join(dir, name), 'utf8'); } catch { continue; }
       if (!text.includes('=== echidna-access install ===')) continue;
-      if (!/VERDICT: WORKING/.test(text)) continue;
+      // Any install report counts, whatever its verdict: a box that failed its own health wait (a slow machine can
+      // miss a 30 s window and come up a minute later) still belongs in the list. The live probe - not the report -
+      // decides whether it is up, so the page never claims a node works because a file said so.
       const m = text.match(/host:\s*(\S+)\s*\((\d+\.\d+\.\d+\.\d+)\)/);
       if (!m) continue;
       const [, host, ip] = m;
@@ -77,7 +79,7 @@ async function discover() {
 async function allNodes() {
   const known = await ledger();
   const byIp = new Map(known.map(n => [n.ip, n]));
-  for (const d of await discover()) { if (!byIp.has(d.ip)) byIp.set(d.ip, d); }
+  for (const d of await discover()) { if (!byIp.has(d.ip) && d.ip !== SELF.ip) byIp.set(d.ip, d); }
   return [...byIp.values()];
 }
 
