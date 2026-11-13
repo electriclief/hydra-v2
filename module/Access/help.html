@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Access — run a command line on a node</title>
+<style>
+ :root { color-scheme: dark; --bg:#111318; --panel:#191c23; --border:#303541; --text:#e5e7eb; --muted:#a1a8b7; }
+ * { box-sizing: border-box; }
+ body { margin:0; padding:32px; background:var(--bg); color:var(--text); font:15px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif; max-width:78ch; }
+ h1 { margin:0 0 4px; font-size:24px; font-weight:600; }
+ h2 { margin:30px 0 10px; font-size:13px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; color:var(--muted); }
+ .kicker { margin:0 0 26px; color:var(--muted); font-size:13px; }
+ code { font:13px/1.5 ui-monospace,Consolas,monospace; background:#0b0d11; border:1px solid var(--border); border-radius:5px; padding:1px 5px; }
+ table { width:100%; border-collapse:collapse; margin:6px 0 14px; font-size:14px; }
+ th, td { text-align:left; padding:7px 10px; border-bottom:1px solid var(--border); vertical-align:top; }
+ th { color:var(--muted); font-size:12px; text-transform:uppercase; letter-spacing:.06em; }
+ .note { color:var(--muted); font-size:14px; }
+</style></head><body>
+<header><h1>Access</h1>
+<p class="kicker">run a command line on a node and read the console back · door on :8143 · the executing half is the
+EchidnaAccess agent on each node's :8142</p></header>
+
+<section id="summary">
+<p>The operator's ask, in his words: an app that accepts a command line, runs it elevated, and returns console out —
+with no middle man. Access is the door for that. You pick a node, type a line, and get stdout, stderr and the real exit
+code back from an agent running on that machine. One install per node, ever; after that no UAC prompt and nobody at a
+keyboard.</p>
+<p>The door itself holds no privilege. It cannot elevate anything on its own — it only talks to an agent that already
+has the privilege. That separation is the whole design: a door that could elevate by itself would be a second, silent
+way into every machine on the LAN.</p>
+</section>
+
+<section id="concepts">
+<h2>Two halves, deliberately</h2>
+<table>
+<tr><th></th><th>the agent (EchidnaAccess)</th><th>the door (Access)</th></tr>
+<tr><td>where</td><td>each node, port 8142</td><td>this node, port 8143</td></tr>
+<tr><td>identity</td><td><code>NT AUTHORITY\SYSTEM</code> when installed, the logged-in user when run by hand</td><td>the Hydra app's user</td></tr>
+<tr><td>job</td><td>execute one command line, return console out</td><td>choose the node, show the result, keep the receipts</td></tr>
+<tr><td>fails how</td><td>refuses with a reason and a 4xx/5xx</td><td>says which node did not answer, never an empty list</td></tr>
+</table>
+<h2>A command line, exactly as typed</h2>
+<p>The agent wraps the line in <code>powershell -EncodedCommand</code> (<code>$ProgressPreference='SilentlyContinue'</code>
+prepended), so quotes, pipes and <code>$</code> survive the trip without escaping. Working directory defaults to
+<code>%SystemRoot%</code>. The child is killed as a tree on timeout and the result comes back with
+<code>exitCode: 124</code> — a timeout is a fact, not a hang.</p>
+<h2>Open by default, and why that is still gated</h2>
+<p>The operator asked for no auth: a command line in, console out, no questions. So the agent has <b>no token</b>
+unless <code>token.txt</code> exists — in which case it is required. What remains is not ceremony: an
+<code>allow.json</code> client list and a firewall rule written by the installer, both narrowed to the controller
+(<code>192.168.1.123</code>). "Open" therefore means open to one address, not to the LAN, and every call — including
+every refusal — is appended to <code>audit.jsonl</code> on the node that ran it.</p>
+<h2>Brakes that exist on purpose</h2>
+<table>
+<tr><th>brake</th><th>what it does</th></tr>
+<tr><td><code>STOP</code> file</td><td><code>C:\ProgramData\EchidnaAccess\STOP</code> — every request refused with 503, and a deliberate stop is not undone by the healer</td></tr>
+<tr><td>timeout</td><td>1–1800 s per call, default 120; the child tree is killed</td></tr>
+<tr><td>audit</td><td>one line per call: caller address, command, working directory, exit code, ms, byte counts, identity</td></tr>
+</table>
+</section>
+
+<section id="wiring">
+<h2>Wiring, for humans</h2>
+<table>
+<tr><th>needs</th><th>from</th><th>required</th></tr>
+<tr><td>the node list and tokens</td><td><code>C:/AI/fleet/access.json</code></td><td>yes (empty is a valid file)</td></tr>
+<tr><td>an agent on each node</td><td><code>http://192.168.1.123:8140/echidna-access-install.ps1</code></td><td>yes, once per node</td></tr>
+<tr><td>the install page for the operator</td><td><code>http://192.168.1.123:8140/echidna.html</code></td><td>no</td></tr>
+</table>
+<table>
+<tr><th>gives</th><th>to</th><th>shape</th></tr>
+<tr><td><code>GET /api/nodes</code></td><td>the page, a script</td><td>every ledger node plus this box, probed live: up, identity, auth mode, uptime, jobs</td></tr>
+<tr><td><code>POST /api/run</code></td><td>the page, an agent</td><td><code>{node, cmd, cwd?, timeoutSec?}</code> → the agent's verbatim result</td></tr>
+<tr><td><code>GET /api/runs</code></td><td>a display</td><td>what this door has run, newest first</td></tr>
+<tr><td><code>GET /api/audit?node=</code></td><td>an operator</td><td>the node's own audit trail, proxied</td></tr>
+<tr><td><code>GET /health</code></td><td>the LAN, Echidna</td><td><code>{ok, nodes, up}</code></td></tr>
+</table>
+<p class="note">Started by the shell as a door (<code>Basic_App/electron/main.cjs</code>, key <code>access</code>): one
+ProcessWrapper row, visible and closeable. On this box the agent itself is a ProcessWrapper row too
+(<code>echidna-access-8142</code>), started as the logged-in user; installing it elevated replaces that with a SYSTEM
+task that survives reboots and re-raises itself within a minute.</p>
+</section>
+
+<script type="application/json" id="contract">
+{
+  "module": "Access",
+  "port": 8143,
+  "kind": "door",
+  "needs": [
+    { "name": "ledger", "from": "C:/AI/fleet/access.json", "required": true },
+    { "name": "agent", "from": "EchidnaAccess :8142 per node", "required": true },
+    { "name": "install page", "from": "http://192.168.1.123:8140/echidna.html", "required": false }
+  ],
+  "gives": [
+    { "name": "/api/nodes", "to": "page, scripts", "kind": "http" },
+    { "name": "/api/run", "to": "page, agents", "kind": "http" },
+    { "name": "/api/runs", "to": "display", "kind": "http" },
+    { "name": "/api/audit", "to": "operator", "kind": "http" },
+    { "name": "/health", "to": "the LAN", "kind": "http" }
+  ]
+}
+</script>
+</body></html>

@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Access — run a command on a node</title>
+<style>
+  :root { color-scheme: dark; --bg:#0f1115; --panel:#151922; --line:#2a2f3a; --text:#e7e9ee; --muted:#8b93a7; --accent:#e7c84b; --good:#3fbf7f; --bad:#e2705f; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); font:15px/1.6 system-ui,-apple-system,"Segoe UI",sans-serif; }
+  main { max-width:70em; margin:0 auto; padding:36px 24px 80px; }
+  h1 { font-size:24px; margin:0 0 4px; font-weight:600; letter-spacing:-.01em; }
+  .kicker { color:var(--muted); font-size:13px; margin:0 0 26px; }
+  h2 { font-size:12px; letter-spacing:.14em; text-transform:uppercase; color:var(--muted); font-weight:600; margin:28px 0 10px; }
+  .nodes { display:flex; flex-wrap:wrap; gap:8px; margin:0 0 16px; }
+  .node { display:flex; align-items:center; gap:8px; padding:8px 12px; border:1px solid var(--line); border-radius:6px; background:var(--panel); cursor:pointer; font-size:13px; }
+  .node.sel { border-color:var(--accent); }
+  .node .dot { width:8px; height:8px; border-radius:50%; background:var(--bad); }
+  .node .dot.up { background:var(--good); }
+  .node .who { color:var(--muted); font-size:11px; }
+  textarea { width:100%; min-height:74px; background:#0b0d11; color:var(--text); border:1px solid var(--line); border-radius:6px; padding:12px; font:13.5px/1.55 ui-monospace,Consolas,monospace; resize:vertical; }
+  .row { display:flex; align-items:center; gap:10px; margin:10px 0 0; flex-wrap:wrap; }
+  button { font:600 13px/1 system-ui,sans-serif; border:0; border-radius:5px; padding:10px 16px; cursor:pointer; background:var(--accent); color:#0f1115; }
+  button.ghost { background:transparent; color:var(--text); border:1px solid var(--line); }
+  button:disabled { opacity:.5; cursor:default; }
+  .meta { font:12.5px/1.5 ui-monospace,Consolas,monospace; color:var(--muted); }
+  pre { margin:0; padding:14px 16px; background:#0b0d11; border:1px solid var(--line); border-radius:6px; font:13px/1.55 ui-monospace,Consolas,monospace; white-space:pre-wrap; word-break:break-word; max-height:60vh; overflow:auto; }
+  .head { display:flex; justify-content:space-between; align-items:center; gap:12px; margin:0 0 6px; }
+  .verdict { font:600 13px/1.4 system-ui,sans-serif; }
+  .verdict.ok { color:var(--good); } .verdict.bad { color:var(--bad); }
+  table { width:100%; border-collapse:collapse; font-size:12.5px; }
+  th, td { text-align:left; padding:6px 8px; border-bottom:1px solid var(--line); vertical-align:top; }
+  th { color:var(--muted); font-weight:600; font-size:11px; text-transform:uppercase; letter-spacing:.06em; }
+  td.cmd { font-family:ui-monospace,Consolas,monospace; color:#cfd4e0; word-break:break-all; }
+  a { color:var(--accent); }
+  .foot { color:var(--muted); font-size:12.5px; margin-top:22px; }
+</style></head><body><main>
+
+<h1>Access</h1>
+<p class="kicker">pick a node, type a command line, read the console — the agent on that node runs it and returns stdout,
+stderr and the real exit code. Nothing is queued: if a node is not up, it says so.</p>
+
+<h2>nodes</h2>
+<div class="nodes" id="nodes"></div>
+
+<h2>command</h2>
+<textarea id="cmd" spellcheck="false" placeholder="dir C:\Windows\System32">whoami</textarea>
+<div class="row">
+  <button id="run">run</button>
+  <button class="ghost" id="clear">clear</button>
+  <span class="meta" id="status">idle</span>
+</div>
+
+<div class="head" style="margin-top:20px"><h2 style="margin:0">output</h2><span class="verdict" id="verdict"></span></div>
+<pre id="out">(nothing run yet)</pre>
+
+<h2>what this door has run</h2>
+<table><thead><tr><th>when</th><th>node</th><th>exit</th><th>ms</th><th>command</th></tr></thead><tbody id="runs"></tbody></table>
+
+<p class="foot">Install the agent on a node: <a href="http://192.168.1.123:8140/echidna.html">192.168.1.123:8140/echidna.html</a>
+· this door's docs: <a href="/help.html">/help.html</a> · the agent's contract: <code>POST :8142/exec {cmd}</code></p>
+
+</main><script>
+let selected = 'self';
+let nodes = [];
+
+function el(id){ return document.getElementById(id); }
+
+async function loadNodes(){
+  el('status').textContent = 'probing nodes…';
+  try {
+    const r = await fetch('/api/nodes', { cache:'no-store' });
+    const j = await r.json();
+    nodes = j.nodes || [];
+  } catch (e) { nodes = []; }
+  const box = el('nodes'); box.innerHTML = '';
+  for (const n of nodes) {
+    const d = document.createElement('div');
+    d.className = 'node' + (n.ref === selected ? ' sel' : '');
+    d.innerHTML = '<span class="dot ' + (n.up ? 'up' : '') + '"></span><span>' + n.ref + '</span>' +
+      '<span class="who">' + (n.up ? (n.health.user || '') : (n.error || 'down')) + '</span>';
+    d.title = n.ip + ':' + n.port + (n.up ? ' · up ' + n.health.uptimeH + ' h · ' + n.health.jobs + ' job(s) · auth ' + n.health.auth : '');
+    d.onclick = () => { selected = n.ref; loadNodes(); };
+    box.appendChild(d);
+  }
+  el('status').textContent = nodes.filter(n => n.up).length + ' of ' + nodes.length + ' node(s) up · running on ' + selected;
+}
+
+async function run(){
+  const cmd = el('cmd').value.trim();
+  if (!cmd) return;
+  el('run').disabled = true;
+  el('status').textContent = 'running on ' + selected + '…';
+  el('verdict').className = 'verdict'; el('verdict').textContent = '';
+  const t0 = Date.now();
+  try {
+    const r = await fetch('/api/run', { method:'POST', headers:{'content-type':'application/json'}, body: JSON.stringify({ node: selected, cmd }) });
+    const j = await r.json();
+    if (!j.ok && !j.stdout && !j.stderr) {
+      el('out').textContent = 'FAILED: ' + (j.error || ('HTTP ' + r.status));
+      el('verdict').className = 'verdict bad'; el('verdict').textContent = 'no result';
+    } else {
+      el('out').textContent = (j.stdout || '') + (j.stderr ? '\n--- stderr ---\n' + j.stderr : '');
+      el('verdict').className = 'verdict ' + (j.exitCode === 0 ? 'ok' : 'bad');
+      el('verdict').textContent = j.host + ' as ' + j.user + ' · exit ' + j.exitCode + ' · ' + j.ms + 'ms on the node · ' + (Date.now()-t0) + 'ms round trip';
+    }
+  } catch (e) {
+    el('out').textContent = 'FAILED: ' + (e && e.message || e);
+    el('verdict').className = 'verdict bad'; el('verdict').textContent = 'door unreachable';
+  } finally {
+    el('run').disabled = false;
+    el('status').textContent = 'idle';
+    loadRuns();
+  }
+}
+
+async function loadRuns(){
+  try {
+    const r = await fetch('/api/runs?limit=12', { cache:'no-store' });
+    const j = await r.json();
+    const tb = el('runs'); tb.innerHTML = '';
+    for (const row of j.rows || []) {
+      const tr = document.createElement('tr');
+      const when = (row.at || '').slice(11, 19);
+      tr.innerHTML = '<td>' + when + '</td><td>' + (row.node || '') + '</td><td>' + (row.exitCode ?? (row.ok ? '—' : 'ERR')) + '</td><td>' + (row.ms ?? '') + '</td><td class="cmd">' + (row.cmd || row.error || '') + '</td>';
+      tb.appendChild(tr);
+    }
+  } catch {}
+}
+
+el('run').onclick = run;
+el('clear').onclick = () => { el('out').textContent = '(nothing run yet)'; el('verdict').textContent = ''; };
+el('cmd').addEventListener('keydown', (e) => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) run(); });
+loadNodes(); loadRuns();
+</script></body></html>

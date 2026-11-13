@@ -82,6 +82,10 @@ const DOOR_TABLE = [
   // node with no upkeep and Echidna's board said "phoenix is not answering" forever. A beat is a process like any
   // other: declared here, raised through ProcessWrapper, visible in the Process tab, closed with the window.
   { key: 'phoenix', dir: 'Phoenix', port: 8146, script: 'server/main.js' },
+  // Access is the operator's ask made a door: a command line in, console out, from a node that already holds the
+  // privilege. It is NOT an elevation path of its own - it talks to the EchidnaAccess agent on :8142 of each node, so
+  // the door can never be the thing that silently gains SYSTEM.
+  { key: 'access', dir: 'Access', port: 8143, script: 'server/main.js' },
 ];
 
 // ── THE WATCHDOGS ARE PROCESSES TOO ────────────────────────────────────────────

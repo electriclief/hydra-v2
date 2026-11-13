@@ -1,0 +1,7 @@
+{
+  "name": "hydra-access",
+  "private": true,
+  "type": "module",
+  "description": "The Access door: run a command line on a node and read the console back.",
+  "main": "server/main.js"
+}

@@ -1,0 +1,4 @@
+{"at":"2026-11-13T00:40:10.577Z","node":"self","ip":"127.0.0.1","cmd":"dir C:\\Windows | Select-Object -First 5 Name","exitCode":0,"ms":463,"roundTrip":492,"ok":true}
+{"at":"2026-11-13T00:40:11.072Z","node":"gtx1660","ip":"192.168.1.149","cmd":"dir C:\\ | Select-Object -First 5 Name","exitCode":0,"ms":295,"roundTrip":488,"ok":true}
+{"at":"2026-11-13T00:40:11.810Z","node":"robert","ip":"192.168.1.112","cmd":"whoami","exitCode":0,"ms":620,"roundTrip":711,"ok":true}
+{"at":"2026-11-13T00:41:20.305Z","node":"gtx1660","ip":"192.168.1.149","cmd":"cmd /c dir C:\\Windows\\System32\\config","exitCode":0,"ms":215,"roundTrip":238,"ok":true}

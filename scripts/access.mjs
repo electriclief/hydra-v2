@@ -63,12 +63,11 @@ if (!target) {
 }
 const port = Number(flag('port', target.port || 8142));
 const token = String(flag('token', process.env.ECHIDNA_ACCESS_TOKEN || target.token || '')).trim();
-if (!token) {
-  console.error(`no token for ${node}. Add one to ${LEDGER}: {"${target.ip}":{"port":${port},"token":"…"}}`);
-  process.exit(2);
-}
+// No token is a valid configuration: an agent without token.txt is OPEN (the operator's default). The header is only
+// sent when there is something to send, so an open agent is not confused by an empty credential.
 const base = `http://${target.ip}:${port}`;
-const headers = { 'content-type': 'application/json', 'x-access-token': token };
+const headers = { 'content-type': 'application/json' };
+if (token) headers['x-access-token'] = token;
 
 async function call(pathname, init = {}, timeoutMs = 30000) {
   const ctl = new AbortController();
