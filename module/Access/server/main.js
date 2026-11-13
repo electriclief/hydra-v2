@@ -27,7 +27,9 @@ const ROOT = join(HERE, '..');
 const PORT = Number(process.env.PORT || 8143);
 const LEDGER = 'C:/AI/fleet/access.json';
 const RUNS = join(ROOT, 'data', 'runs.jsonl');
-const SELF = { ref: 'self', ip: '127.0.0.1', port: 8142, host: '(this box)' };
+// The controller's own agent is reached by its LAN address, not 127.0.0.1: an installed agent's allow.json names
+// 192.168.1.123, and going out and back in through the same NIC is what keeps one code path for every node.
+const SELF = { ref: 'self', ip: '192.168.1.123', port: 8142, host: '(this box)' };
 
 const TYPES = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.json': 'application/json; charset=utf-8' };
 

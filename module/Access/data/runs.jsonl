@@ -2,3 +2,9 @@
 {"at":"2026-11-13T00:40:11.072Z","node":"gtx1660","ip":"192.168.1.149","cmd":"dir C:\\ | Select-Object -First 5 Name","exitCode":0,"ms":295,"roundTrip":488,"ok":true}
 {"at":"2026-11-13T00:40:11.810Z","node":"robert","ip":"192.168.1.112","cmd":"whoami","exitCode":0,"ms":620,"roundTrip":711,"ok":true}
 {"at":"2026-11-13T00:41:20.305Z","node":"gtx1660","ip":"192.168.1.149","cmd":"cmd /c dir C:\\Windows\\System32\\config","exitCode":0,"ms":215,"roundTrip":238,"ok":true}
+{"at":"2026-11-13T00:47:32.919Z","node":"self","ip":"127.0.0.1","cmd":"whoami","exitCode":null,"ms":null,"roundTrip":126,"ok":false}
+{"at":"2026-11-13T00:47:32.960Z","node":"self","ip":"127.0.0.1","cmd":"dir C:\\Windows\\System32\\config\\SAM","exitCode":null,"ms":null,"roundTrip":13,"ok":false}
+{"at":"2026-11-13T00:47:33.301Z","node":"gtx1660","ip":"192.168.1.149","cmd":"dir C:\\ | Select-Object -First 4 Name","exitCode":0,"ms":285,"roundTrip":307,"ok":true}
+{"at":"2026-11-13T00:48:05.792Z","node":"self","ip":"192.168.1.123","cmd":"whoami","exitCode":0,"ms":279,"roundTrip":445,"ok":true}
+{"at":"2026-11-13T00:48:06.288Z","node":"self","ip":"192.168.1.123","cmd":"dir C:\\Windows\\System32\\config\\SAM","exitCode":0,"ms":441,"roundTrip":455,"ok":true}
+{"at":"2026-11-13T00:48:06.721Z","node":"self","ip":"192.168.1.123","cmd":"Get-Service sshd -ErrorAction SilentlyContinue | Select-Object Status,StartType","exitCode":0,"ms":386,"roundTrip":400,"ok":true}
