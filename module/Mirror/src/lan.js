@@ -19,7 +19,7 @@ export function lanJson({ self, peers = [], at = Date.now(), cycleOf = () => nul
   if (self) nodes.push(view(self, 'self', at, cycleOf(self.ref), { roster, ip: selfIp }));
   for (const peer of peers) {
     nodes.push(
-      view(peer.node, peer.verdict, at, peer.cycle, { misses: peer.misses, reason: peer.reason, ref: peer.ref, roster, ip: peer.ip || null, minerProbe: peer.minerProbe || null }),
+      view(peer.node, peer.verdict, at, peer.cycle, { misses: peer.misses, reason: peer.reason, ref: peer.ref, roster, ip: peer.ip || null, minerProbe: peer.minerProbe || null, shim: peer.shim || null }),
     );
   }
 
@@ -175,6 +175,13 @@ function view(node, verdict, at, cycle, extra = {}) {
       const r = matchRow(extra.roster, { ref: node?.ref || extra.ref, name: node?.id?.name, ip: extra.ip });
       return r ? r.managed !== false : true;
     })(),
+    // DOES THIS BOX RUN HYDRA AT ALL? Richard, miner1 and Daedalus are ssh-monitored only: they have no modules, so
+    // they can never report a build and must never be version-checked. Declared in the roster as hydra:false; null means
+    // nobody said, and a version check must not invent an expectation out of silence.
+    hydra: (() => {
+      const r = matchRow(extra.roster, { ref: node?.ref || extra.ref, name: node?.id?.name, ip: extra.ip });
+      return r && r.hydra !== undefined ? r.hydra !== false : null;
+    })(),
     // WHAT THE CARD IS DOING, as its owner reported it. `ageS` is the honesty: a report older than the owner's
     // own poll interval is stale, and a screen must be able to say so instead of showing old news as current.
     standby: standbyOf(node?.standby, at) || standbyFromMiner(extra.minerProbe, at),
@@ -196,6 +203,9 @@ function view(node, verdict, at, cycle, extra = {}) {
           // who set this clock: a node whose beat was written by the root says so, and the screen says it too
           governed: node.upkeep.governed === true, parent: node.upkeep.parent ?? null }
       : null,
+    // what a WRAPPED process on an ssh-only box measured (node-shim.ps1): carried like any other fact, null when
+    // that machine has never spoken
+    shim: extra.shim || null,
     observedAt: node?.observed || null,
     degraded: node?.health?.degraded === true,
     misses: extra.misses ?? null,

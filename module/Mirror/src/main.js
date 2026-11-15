@@ -249,6 +249,33 @@ async function refresh() {
     const c = await getJson(`${LAN_STATE}/api/state/pull?name=lan.cycle`, 1500);
     serverCycle = c.ok ? (c.body?.content ?? null) : null;
   } catch { serverCycle = null; }
+  // SSH-ONLY BOXES THAT SPEAK. Richard, miner1 and Daedalus run no Hydra modules, so they can never publish a state
+  // branch of their own - but node-shim.ps1 on the box writes node.<ref>.shim into THIS controller's state. Reading it
+  // here is the whole point of the shim: the screen must not care whether a fact travelled through a module or through
+  // a wrapped process, only that something measured it.
+  {
+    const roster = loadRoster();
+    const shimRows = (roster?.rows || []).filter((r) => r.enabled && r.hydra === false && (r.name || r.ref));
+    await Promise.all(shimRows.map(async (row) => {
+      const ref = String(row.name || row.ref || '').trim();
+      if (!ref) return;
+      const res = await getJson(`${STATE}/api/state/pull?name=node.${ref.toLowerCase()}.shim`, 2500);
+      const shim = res.ok ? (res.body?.content || null) : null;
+      if (!shim) return;
+      const probe = shim.miner && shim.miner.algo
+        ? { at: shim.at, algo: shim.miner.algo, rate: shim.miner.rate, accepted: shim.miner.accepted, rejected: shim.miner.rejected,
+            pool: shim.miner.pool, uptime: shim.miner.since, declared: 'node-shim' }
+        : null;
+      const existing = state.peers.find((x) => String(x.ref).toLowerCase() === ref.toLowerCase());
+      if (existing) { existing.shim = shim; if (!existing.minerProbe) existing.minerProbe = probe; return; }
+      state.peers.push({
+        ref, url: null, ip: row.ip || null, node: null, cycle: null, misses: 0,
+        verdict: 'alive', reason: 'ssh-monitored - measured by a shim, it has no state door',
+        shim, minerProbe: probe,
+      });
+    }));
+  }
+
   state.lan = lanJson({ self: state.self, peers: state.peers, at, roster: state.roster, selfIp: selfIp(), serverCycle });
   state.at = at;
   state.error = null;

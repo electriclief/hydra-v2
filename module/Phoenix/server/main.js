@@ -642,36 +642,50 @@ const server = http.createServer(async (req, res) => {
     // match), and a dirty tree is called out: "same commit" is not the same code if the files on disk differ.
     if (p === '/api/versions' && method === 'GET') {
       let peers = [];
+      let sshOnly = [];
       try {
         const r = await fetch(`${MIRROR}/api/lan.json`, { signal: AbortSignal.timeout(2500) });
         const j = await r.json();
-        // only machines that RUN Hydra can be on this version: an unmanaged miner box has no code to compare, and
-        // comparing it would page every ten minutes about a box that was never meant to have the repo.
+        // Three kinds of box, and the check has to tell them apart or it becomes noise:
+        //   hydra:false   ssh-monitored, no modules at all (Richard, miner1, Daedalus) - never versioned
+        //   hydra:true    must report a build; silence while it is on the wire is a real gap
+        //   hydra:null    nobody declared it, so nothing is expected of it either way
         peers = (j.nodes || [])
-          .filter((n) => n && n.ref && n.ip && n.managed !== false && n.verdict !== 'gone')
-          .map((n) => ({ ref: n.ref, ip: n.ip }));
+          .filter((n) => n && n.ref && n.ip && n.hydra !== false)
+          .map((n) => ({ ref: n.ref, ip: n.ip, onWire: n.verdict !== 'gone' && n.verdict !== 'unknown', hydra: n.hydra }));
+        sshOnly = (j.nodes || []).filter((n) => n && n.ref && n.hydra === false).map((n) => n.ref);
       } catch { peers = []; }
       const rows = await Promise.all(peers.map(async (peer) => {
         try {
           const r = await fetch(`http://${peer.ip}:${NODE_STATE_PORT}/api/state/pull?name=node.${peer.ref}.build`, { signal: AbortSignal.timeout(1500) });
           const j = await r.json();
           const b = j?.content || null;
-          return { ref: peer.ref, rev: b?.rev ?? null, at: b?.at ?? null, dirty: b?.dirty ?? null, match: !!b && b.rev === BUILD.rev };
-        } catch (e) { return { ref: peer.ref, rev: null, error: e.message, match: false }; }
+          return { ref: peer.ref, rev: b?.rev ?? null, at: b?.at ?? null, dirty: b?.dirty ?? null,
+                   hydra: peer.hydra, onWire: peer.onWire, match: !!b && b.rev === BUILD.rev };
+        } catch (e) { return { ref: peer.ref, rev: null, error: e.message, hydra: peer.hydra, onWire: peer.onWire, match: false }; }
       }));
       // TWO DIFFERENT FACTS, and conflating them makes a check nobody can leave switched on:
       //   SKEW    a node published a build and it is not mine  -> a real fault, this is what the entry fails on
       //   ABSENT  a node never published a build               -> it is not running this line of code at all, which the
       //           Menu already shows as "no state door". Paging every ten minutes about it would be noise, not news.
+      // SKEW     reported a build and it is not mine                      -> failure
+      // SILENT   declared (or visibly) a Hydra node, reports no build     -> failure: it is not running this code
+      // QUIET    nobody declared it and it is not on the wire              -> reported, not a failure
+      // SSH-ONLY hydra:false from the roster (Richard, miner1, Daedalus)   -> never versioned, listed for the record
       const skew = rows.filter((x) => x.rev && !x.match);
-      const absent = rows.filter((x) => !x.rev);
-      const verdict = skew.length
-        ? `${skew.length} on a different build than ${BUILD.rev}: ${skew.map((b) => `${b.ref}@${b.rev}`).join(', ')}`
-        : `no skew - ${rows.length - absent.length} of ${rows.length} on ${BUILD.rev}`
-          + (absent.length ? `, ${absent.length} never reported a build (${absent.map((b) => b.ref).join(', ')})` : '');
-      sendJson(res, skew.length ? 503 : 200, {
-        ok: skew.length === 0, own: BUILD, nodes: rows, mismatch: skew.length, absent: absent.length, absentRefs: absent.map((b) => b.ref),
-        verdict,
+      const silent = rows.filter((x) => !x.rev && (x.hydra === true || x.onWire === true));
+      const quiet = rows.filter((x) => !x.rev && !(x.hydra === true || x.onWire === true));
+      const bad = skew.length + silent.length;
+      const parts = [];
+      if (skew.length) parts.push(`skew: ${skew.map((b) => `${b.ref}@${b.rev}`).join(', ')}`);
+      if (silent.length) parts.push(`not reporting: ${silent.map((b) => b.ref).join(', ')}`);
+      const verdict = (bad ? `${bad} node(s) off build ${BUILD.rev}` : `no skew - ${rows.length - skew.length - silent.length - quiet.length} of ${rows.length} on ${BUILD.rev}`)
+        + (parts.length ? ' · ' + parts.join(' · ') : '')
+        + (quiet.length ? ` · undeclared and silent: ${quiet.map((b) => b.ref).join(', ')}` : '')
+        + (sshOnly.length ? ` · ssh-only, not versioned: ${sshOnly.join(', ')}` : '');
+      sendJson(res, bad ? 503 : 200, {
+        ok: bad === 0, own: BUILD, nodes: rows, mismatch: skew.length, silent: silent.length, silentRefs: silent.map((b) => b.ref),
+        sshOnly, verdict,
       });
       return;
     }

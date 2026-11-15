@@ -54,6 +54,10 @@ export function loadRoster(file = DEFAULT_ROSTER) {
       // member of the house - it is one Echidna reaches over ssh and cannot ask for state. Absent means managed
       // (every row written before this field existed was a Hydra node).
       managed: row.managed !== false,
+      // DOES THIS BOX RUN HYDRA? Richard, miner1 and Daedalus are ssh-monitored only - no modules, no state door, so
+      // they can never report a build. Rows written before this field existed were all Hydra nodes, so absent = true,
+      // and only an explicit false takes a machine out of the version check.
+      hydra: row.hydra === undefined ? true : row.hydra === true,
       // WHAT ITS MINER ANSWERS ON. Declared, never guessed: a box with no State door can still be mining, and
       // this URL is the only thing that lets the tree say so from a measurement instead of staying silent.
       minerApi: typeof row.minerApi === 'string' && row.minerApi ? row.minerApi : null,
