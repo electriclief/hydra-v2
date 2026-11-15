@@ -22,8 +22,9 @@
  */
 import http from 'node:http';
 import fs from 'node:fs';
-import path from 'node:path';
+import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
+import path from 'node:path';
 import { createHash } from 'node:crypto';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
@@ -70,6 +71,19 @@ function readRefFromMenu() {
 }
 
 const log = (...parts) => process.stdout.write(`[phoenix] ${parts.join(' ')}\n`);
+
+// WHICH CODE IS THIS? A beat is only worth trusting if you know which build produced it, and the fleet question
+// "are the children on the same version as me" needs an answer that does not depend on anybody remembering to ask.
+function buildInfo() {
+  const root = (() => { try { return fileURLToPath(new URL('../../..', import.meta.url)); } catch { return null; } })();
+  let rev = process.env.PHOENIX_REV || null, dirty = null;
+  if (!rev && root) {
+    try { rev = execFileSync('git', ['-C', root, 'rev-parse', '--short', 'HEAD'], { encoding: 'utf8', timeout: 4000 }).trim(); } catch { rev = null; }
+    try { dirty = execFileSync('git', ['-C', root, 'status', '--porcelain'], { encoding: 'utf8', timeout: 4000 }).trim().length > 0; } catch { dirty = null; }
+  }
+  return { rev: rev || 'unknown', dirty, root, at: new Date().toISOString(), port: PORT };
+}
+const BUILD = buildInfo();
 const nowIso = () => new Date().toISOString();
 
 fs.mkdirSync(RECEIPTS, { recursive: true });
@@ -623,6 +637,45 @@ const server = http.createServer(async (req, res) => {
       return;
     }
 
+    // ARE THE CHILDREN ON MY VERSION? One answer for the whole fleet, because the honest alternative is asking eight
+    // boxes by hand and comparing strings. Missing build = not on this version (a node that never reported cannot
+    // match), and a dirty tree is called out: "same commit" is not the same code if the files on disk differ.
+    if (p === '/api/versions' && method === 'GET') {
+      let peers = [];
+      try {
+        const r = await fetch(`${MIRROR}/api/lan.json`, { signal: AbortSignal.timeout(2500) });
+        const j = await r.json();
+        // only machines that RUN Hydra can be on this version: an unmanaged miner box has no code to compare, and
+        // comparing it would page every ten minutes about a box that was never meant to have the repo.
+        peers = (j.nodes || [])
+          .filter((n) => n && n.ref && n.ip && n.managed !== false && n.verdict !== 'gone')
+          .map((n) => ({ ref: n.ref, ip: n.ip }));
+      } catch { peers = []; }
+      const rows = await Promise.all(peers.map(async (peer) => {
+        try {
+          const r = await fetch(`http://${peer.ip}:${NODE_STATE_PORT}/api/state/pull?name=node.${peer.ref}.build`, { signal: AbortSignal.timeout(1500) });
+          const j = await r.json();
+          const b = j?.content || null;
+          return { ref: peer.ref, rev: b?.rev ?? null, at: b?.at ?? null, dirty: b?.dirty ?? null, match: !!b && b.rev === BUILD.rev };
+        } catch (e) { return { ref: peer.ref, rev: null, error: e.message, match: false }; }
+      }));
+      // TWO DIFFERENT FACTS, and conflating them makes a check nobody can leave switched on:
+      //   SKEW    a node published a build and it is not mine  -> a real fault, this is what the entry fails on
+      //   ABSENT  a node never published a build               -> it is not running this line of code at all, which the
+      //           Menu already shows as "no state door". Paging every ten minutes about it would be noise, not news.
+      const skew = rows.filter((x) => x.rev && !x.match);
+      const absent = rows.filter((x) => !x.rev);
+      const verdict = skew.length
+        ? `${skew.length} on a different build than ${BUILD.rev}: ${skew.map((b) => `${b.ref}@${b.rev}`).join(', ')}`
+        : `no skew - ${rows.length - absent.length} of ${rows.length} on ${BUILD.rev}`
+          + (absent.length ? `, ${absent.length} never reported a build (${absent.map((b) => b.ref).join(', ')})` : '');
+      sendJson(res, skew.length ? 503 : 200, {
+        ok: skew.length === 0, own: BUILD, nodes: rows, mismatch: skew.length, absent: absent.length, absentRefs: absent.map((b) => b.ref),
+        verdict,
+      });
+      return;
+    }
+
     if (p === '/api/tick' && method === 'POST') {
       const body = JSON.parse((await readBody(req)) || '{}');
       const result = await beat(body.reason || 'manual');
@@ -650,11 +703,23 @@ const server = http.createServer(async (req, res) => {
   }
 });
 
+async function publishBuild() {
+  try {
+    await fetch(`${NODE_STATE_URL}/api/state/register`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ name: `node.${REF}.build`, content: { ...BUILD, role: STATE_URL ? 'root' : 'child', everyMin: EVERY_MIN } }),
+      signal: AbortSignal.timeout(1500),
+    });
+  } catch (e) { log(`build publish failed: ${e.message}`); }
+}
+
 server.listen(PORT, HOST, () => {
   const entries = loadRegistry();
   log(`door up: http://${HOST}:${PORT}`);
   log(`registry: ${REGISTRY} (${entries.length} entries)`);
   log(`heartbeat: every ${EVERY_MIN}m`);
+  publishBuild();
   setTimeout(() => { beat('startup').catch((e) => log('startup beat failed:', e.message)); }, 2000);
   setInterval(() => { beat('timer').catch((e) => log('beat failed:', e.message)); }, EVERY_MIN * 60000);
 });

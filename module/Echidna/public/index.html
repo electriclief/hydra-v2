@@ -32,6 +32,16 @@
   .monitor-head { display: flex; align-items: center; gap: 10px; padding: 10px 18px; color: var(--muted); font-size: 11px; letter-spacing: .12em; text-transform: uppercase; }
   .monitor-head .spacer { flex: 1; }
   .monitor-head button { background: none; border: 1px solid var(--line); color: var(--muted); border-radius: 8px; padding: 4px 10px; cursor: pointer; font-size: 12px; letter-spacing: .04em; }
+  /* The board's own pager: one dot per card, the current one lit. A stack you can only walk backwards with a
+     button is a stack you cannot count - the dots are the count. */
+  .monitor-dots { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 6px;
+                  padding: 8px 12px 10px; border-top: 1px solid var(--line); }
+  .monitor-dots .mdot { width: 7px; height: 7px; padding: 0; border: 1px solid var(--line); border-radius: 50%;
+                        background: transparent; cursor: pointer; transition: transform .12s ease, background .12s ease; }
+  .monitor-dots .mdot:hover { transform: scale(1.3); border-color: var(--text); }
+  .monitor-dots .mdot.on { background: var(--gold, #d9b45b); border-color: var(--gold, #d9b45b); }
+  .monitor-dots .mdot.ahead { opacity: .35; cursor: default; }
+  .monitor-dots .mcount { font: 11px/1 ui-monospace, Consolas, monospace; color: var(--muted); margin-left: 6px; }
   .monitor-head button:disabled { opacity: .3; cursor: default; }
   .monitor-head button:hover:not(:disabled) { color: var(--text); border-color: #3a4150; }
   .monitor-body { flex: 1; display: flex; flex-direction: column; justify-content: center; padding: 4px 44px 16px; overflow: hidden; }
@@ -159,6 +169,7 @@
     <div class="monitor-body" id="monitor-body">
       <p class="monitor-empty">Nothing on the board. Ask below, and whatever is worth looking at lands here — a question, an output, a thing we made.</p>
     </div>
+    <div class="monitor-dots" id="monitor-dots" aria-label="cards on the board"></div>
   </section>
 
   <div class="splitter" id="splitter" role="separator" aria-orientation="horizontal" tabindex="0" title="drag to resize"></div>
@@ -201,6 +212,7 @@
   var clearEl = document.getElementById('clear');
   var monBody = document.getElementById('monitor-body');
   var monBack = document.getElementById('mon-back');
+  var monDots = document.getElementById('monitor-dots');
   var monVoice = document.getElementById('mon-voice');
   var monitorEl = document.getElementById('monitor');
   var splitterEl = document.getElementById('splitter');
@@ -440,8 +452,27 @@
 
   // The monitor: one card, always replaced, never scrolled. A news caster's screen behind him - the thing worth
   // looking at RIGHT NOW. Back walks the few cards that were replaced; it is a stack of one-line memories, not a feed.
+  // Every card on the board gets a dot. Cards ahead of the cursor are drawn faint: the stack can only be walked
+  // backwards (that is what the door supports), so a dot in front is a place you have already been, not a place you
+  // can jump to - and saying that is more honest than a dot that does nothing when clicked.
+  function paintMonitorDots(m) {
+    if (!monDots) return;
+    var total = m && m.total ? m.total : 0;
+    if (total <= 1) { monDots.innerHTML = ''; return; }
+    var here = (m.index || 0);
+    var out = '';
+    for (var i = 0; i < total; i++) {
+      var cls = 'mdot' + (i === here ? ' on' : '') + (i > here ? ' ahead' : '');
+      out += '<button type="button" class="' + cls + '" data-back="' + (here - i) + '" title="card ' + (i + 1) + ' of ' + total + '"'
+        + (i > here ? ' disabled' : '') + ' aria-label="card ' + (i + 1) + '"></button>';
+    }
+    out += '<span class="mcount">' + (here + 1) + '/' + total + '</span>';
+    monDots.innerHTML = out;
+  }
+
   function renderMonitor() {
     var m = state.monitor;
+    paintMonitorDots(m);
     if (!m || !m.card || m.card.kind !== 'speaker') stopAnim();
     if (m && m.card && m.card.kind === 'speaker') {
       var c0 = m.card;
@@ -714,6 +745,22 @@
   monBack.addEventListener('click', function () {
     fetch('api/monitor/back', { method: 'POST' }).then(load);
   });
+
+  // A dot walks back to the card it names. The door only steps one at a time, so this steps N times, in order, and
+  // renders once at the end - a burst of repaints mid-walk would flash the board.
+  if (monDots) {
+    monDots.addEventListener('click', function (e) {
+      var dot = e.target && e.target.closest ? e.target.closest('.mdot') : null;
+      if (!dot || dot.disabled) return;
+      var steps = Number(dot.getAttribute('data-back')) || 0;
+      if (steps <= 0) return;
+      var chain = Promise.resolve();
+      for (var i = 0; i < steps; i++) {
+        chain = chain.then(function () { return fetch('api/monitor/back', { method: 'POST' }); });
+      }
+      chain.then(load).catch(function () { load(); });
+    });
+  }
 
   // the drag bar: the monitor's share of the window, remembered. Pointer capture so the drag survives the cursor
   // leaving the 7px handle - a handle you have to chase is not a handle.
