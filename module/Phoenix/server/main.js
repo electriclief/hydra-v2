@@ -79,7 +79,7 @@ function buildInfo() {
   let rev = process.env.PHOENIX_REV || null, dirty = null;
   if (!rev && root) {
     try { rev = execFileSync('git', ['-C', root, 'rev-parse', '--short', 'HEAD'], { encoding: 'utf8', timeout: 4000 }).trim(); } catch { rev = null; }
-    try { dirty = execFileSync('git', ['-C', root, 'status', '--porcelain'], { encoding: 'utf8', timeout: 4000 }).trim().length > 0; } catch { dirty = null; }
+    try { dirty = execFileSync('git', ['-C', root, 'status', '--porcelain', '--untracked-files=no'], { encoding: 'utf8', timeout: 4000 }).trim().length > 0; } catch { dirty = null; }
   }
   return { rev: rev || 'unknown', dirty, root, at: new Date().toISOString(), port: PORT };
 }
