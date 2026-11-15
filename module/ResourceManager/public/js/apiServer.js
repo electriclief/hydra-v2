@@ -36,6 +36,14 @@ function createApiServer(options) {
   const token = options.token ?? null;
   const publicDir = options.publicDir ?? path.join(process.cwd(), "public");
   const mcp = options.enableMcp === false ? null : createMcpServer({ registry: createRmMcpRegistry(store, reads) });
+  // the live picture (inventory.js owns collection; this door only serves what it last measured)
+  const inventory = options.inventory ?? (() => null);
+  const apis = options.apis ?? (() => null);
+  const refreshInventory = options.refreshInventory ?? null;
+  // "unusual" is learned, so it is served as data with its band, never as a bare flag
+  const baseline = options.baseline ?? (() => null);
+  const redefineBaseline = options.redefine ?? null;
+  const resetBaseline = options.resetBaseline ?? null;
   const authorized = (req, url) => {
     if (!token) return true;
     const header = req.headers["x-rm-token"];
@@ -68,6 +76,56 @@ function createApiServer(options) {
       await readBody(req).catch(() => "");
       const current = await refreshReads();
       sendJson(res, 200, { ok: true, resources: current, bookings: store.active() });
+      return;
+    }
+    // --- what this node is doing right now ------------------------------------------------------------------
+    if ((pathName === "/api/inventory" || pathName === "/api/apis") && method === "GET") {
+      const sample = pathName === "/api/inventory" ? inventory() : apis();
+      if (!sample) { sendError(res, 503, "not_measured_yet", "the first inventory pass has not finished"); return; }
+      sendJson(res, 200, { ok: true, ...sample });
+      return;
+    }
+    if (pathName === "/api/inventory/refresh" && method === "POST") {
+      await readBody(req).catch(() => "");
+      if (!refreshInventory) { sendError(res, 501, "no_refresh", "this build has no refresh hook"); return; }
+      const sample = await refreshInventory();
+      sendJson(res, 200, { ok: true, ...(sample ?? {}) });
+      return;
+    }
+    // A status door for a cycle: 200 when the machine looks like itself, 503 when it does not. The body always
+    // carries the numbers, so an alert can say WHAT moved and by how much instead of only that something did.
+    if (pathName === "/api/unusual" && method === "GET") {
+      const b = baseline();
+      if (!b) { sendError(res, 503, "no_baseline", "this build has no baseline"); return; }
+      const body = { ok: !b.unusual, unusual: b.unusual, learning: b.learning ?? false,
+                     findings: b.findings ?? [], at: b.at ?? null };
+      sendJson(res, b.unusual ? 503 : 200, body);
+      return;
+    }
+    if (pathName === "/api/baseline" && method === "GET") {
+      const b = baseline();
+      if (!b) { sendError(res, 503, "no_baseline", "this build has no baseline"); return; }
+      sendJson(res, 200, { ok: true, baseline: b });
+      return;
+    }
+    if (pathName.startsWith("/api/baseline/") && method === "POST") {
+      const what = pathName.slice("/api/baseline/".length);
+      let body = {};
+      try { const raw = await readBody(req); body = raw ? JSON.parse(raw) : {}; } catch { body = {}; }
+      if (what === "reset") {
+        if (!resetBaseline) { sendError(res, 501, "no_reset", "this build cannot reset the baseline"); return; }
+        sendJson(res, 200, { ok: true, ...resetBaseline() });
+        return;
+      }
+      if (what === "accept" || what === "band") {
+        if (!redefineBaseline) { sendError(res, 501, "no_redefine", "this build cannot redefine a band"); return; }
+        const patch = what === "accept" ? { accept: true, metric: body.metric ?? null }
+                                        : { metric: body.metric, low: body.low ?? null, high: body.high ?? null };
+        const out = redefineBaseline(patch);
+        sendJson(res, out.ok ? 200 : 400, out);
+        return;
+      }
+      sendError(res, 404, "no_such_action", "use accept, band or reset");
       return;
     }
     if (pathName === "/api/bookings" && method === "GET") {

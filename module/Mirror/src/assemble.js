@@ -22,12 +22,15 @@ export function emptyNode(ref) {
     id: null,
     doors: null,
     cycle: null,
+    upkeep: null,
     services: {},
     scheduler: { booked: {} },
     resources: {},
     health: {},
     observed: {},
     standby: null,
+    unusual: null,
+    personality: null,
     // the shared conversation (thread + monitor): carried, never computed, exactly like standby
     conversation: null,
     unknown: {},
@@ -53,6 +56,8 @@ export function assemble(entries = [], refHint = null) {
     if (rest[0] === 'id') node.id = content;
     else if (rest[0] === 'doors') node.doors = content;
     else if (rest[0] === 'cycle') node.cycle = content;
+    // Phoenix's own heartbeat for this node (beat, everyMin, nextAt, role): the countdown the screen draws
+    else if (rest[0] === 'upkeep') node.upkeep = content;
     else if (rest[0] === 'services' && rest[1]) node.services[rest[1]] = content;
     else if (rest[0] === 'services' && !rest[1] && content && typeof content === 'object') {
       // the rollup index: every advertised service in one entry, so a reader needs one pull, not a discovery pass
@@ -64,6 +69,9 @@ export function assemble(entries = [], refHint = null) {
     else if (rest[0] === 'observed' && rest[1]) node.observed[rest[1]] = content;
     // the Idle Service owns this branch; Mirror only carries it, it never computes it
     else if (rest[0] === 'standby') node.standby = content;
+    // ResourceManager's learned verdict about this machine, and FirstRun's name for its agent: carried, never computed
+    else if (rest[0] === 'unusual') node.unusual = content;
+    else if (rest[0] === 'personality') node.personality = content;
     // the Echidna host publishes the one conversation; every other node reads THIS branch to show the same talk
     else if (rest[0] === 'echidna') node.conversation = content;
     else node.unknown[path] = content;

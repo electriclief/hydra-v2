@@ -1,0 +1,8 @@
+{
+ "name": "FirstRun",
+ "kind": "door",
+ "port": 8166,
+ "start": "node public/js/main.js --port 8166 --host 0.0.0.0",
+ "wiredAtBoot": false,
+ "what": "The introduction a bare machine gets: which agent already exists (adopt it as Echidna) or install Hermes, which brain answers, which services fit, then write node.json + personality.json and birth the doors as visible rows."
+}

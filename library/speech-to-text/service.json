@@ -1,0 +1,80 @@
+{
+  "name": "speech-to-text",
+  "version": "0.1.0",
+  "schema": 2,
+  "dispatch": true,
+  "task": "transcribe",
+  "tasks": [
+    "transcribe",
+    "speech-to-text"
+  ],
+  "advert": {
+    "what": "Hear speech and return text. whisper.cpp on the CPU, fed 16 kHz mono WAV by ffmpeg, with a declared model so a bigger box only needs a bigger file. The ear that goes with the mouth on :8144.",
+    "time": "about 10 s for a 3 s clip on 4 CPU threads with the tiny.en model; larger models trade time for accuracy",
+    "karma": 3
+  },
+  "provider": {
+    "name": "whisper.cpp",
+    "launch": "powershell -NoProfile -ExecutionPolicy Bypass -File C:\\AI\\scripts\\stt.ps1 -Audio {{audio}} -Model \"{{model}}\" -Threads {{threads}} -Json",
+    "backend": "CLI",
+    "update": "download a newer whisper.cpp release, or a better ggml model — the service declaration does not change",
+    "note": "The model is an INIT variable, not part of the service: ggml-tiny.en.bin is the default so a GPU-less node works out of the box, and a node with a card points the same service at a bigger file."
+  },
+  "models": [],
+  "needs": {
+    "gpu": false,
+    "ramMb": 1200,
+    "cores": 2,
+    "diskGb": 0
+  },
+  "whenItDoesNotFit": "A machine without ffmpeg cannot decode input, and a machine without whisper-cli cannot recognise it — both are reported as MISSING with the path that was looked for, never as \"no speech detected\". Silence and a broken install must not read the same way.",
+  "variables": {
+    "init": [
+      {
+        "name": "model",
+        "type": "text",
+        "default": "C:\\AI\\speech\\stage\\ggml-tiny.en.bin"
+      },
+      {
+        "name": "threads",
+        "type": "number",
+        "default": 4
+      },
+      {
+        "name": "language",
+        "type": "text",
+        "default": "en"
+      }
+    ],
+    "input": [
+      {
+        "name": "audio",
+        "type": "text",
+        "required": true
+      }
+    ],
+    "files": [
+      {
+        "name": "audio",
+        "kind": "audio"
+      }
+    ]
+  },
+  "progress": {
+    "how": "stt.ps1 runs one recogniser pass and prints a single JSON line when it is done, so progress is \"waiting for one line\": there is no partial text to report and claiming otherwise would be noise."
+  },
+  "output": {
+    "kind": "text",
+    "location": "stdout",
+    "shape": "{ ok, text, ms, model, threads, chars }"
+  },
+  "pages": {
+    "ad": "<h1>Hear speech, return text</h1>\n<p class=\"lede\">The mouth has been real for a while — text to speech runs on this node already. This is the ear, and it is\nthe cheap half on purpose: whisper.cpp on the CPU, so the machine with no graphics card still gets a voice.</p>\n\n<h2>Why it is a service and not a script</h2>\n<p>Because the fleet should be able to ask for it the same way it asks for anything else. A node advertises \"I can\ntranscribe\", a broker or a Scheduler books it, and the answer comes back as text. A tool that only one person knows how\nto run is not infrastructure.</p>\n\n<h2>What it needs</h2>\n<p>No GPU. About 1.2 GB of RAM and two cores. ffmpeg on the box to decode, whisper-cli and a ggml model in place. That is\nall — a four-core machine with 8 GB can hold this and still answer.</p>\n\n<h2>The two answers it refuses to confuse</h2>\n<p>A missing model says <b>MISSING model</b> and the path it looked for. A quiet room says <b>no speech</b>. Those two\nsentences look alike to a careless tool, and telling them apart is the difference between a service you can trust and one\nthat quietly lies.</p>",
+    "inputs": "<h1>Transcribe an audio file</h1>\n<p class=\"lede\">One file in, the words out. Any container ffmpeg understands — the conversion to the 16 kHz mono WAV the\nrecogniser wants is done for you.</p>\n\n<form class=\"inputs\">\n  <label>Audio file\n    <input name=\"audio\" type=\"text\" required placeholder=\"C:\\path\\clip.wav or clip.mp3\" />\n    <small>wav, mp3, m4a, flac, ogg — anything ffmpeg can decode.</small>\n  </label>\n\n  <label>Model (optional)\n    <input name=\"model\" type=\"text\" placeholder=\"C:\\AI\\speech\\stage\\ggml-tiny.en.bin\" />\n    <small>Leave it alone and the small English model is used. A bigger file is slower and more accurate; it is the same\n    service either way.</small>\n  </label>\n\n  <label>Threads\n    <input name=\"threads\" type=\"number\" value=\"4\" min=\"1\" max=\"32\" />\n    <small>Four is what a four-core machine can give without stalling everything else.</small>\n  </label>\n\n  <button type=\"submit\">Transcribe</button>\n</form>\n\n<p class=\"note\">During a run this page carries the progress: one recogniser pass, one JSON line back. There is no partial\ntext to show, and inventing a progress bar that moves on its own would be worse than waiting.</p>"
+  },
+  "library": {
+    "sha256": "1afab26102382cd0f1f30b2c85eff4c8c12617659954421afea9f96960bcdb0c",
+    "from": "speech-to-text.js",
+    "note": "Generated by scripts/export-library.mjs from the sandboxed service file. Do not hand-edit: edit the .js and re-export."
+  }
+}

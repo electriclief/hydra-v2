@@ -209,11 +209,115 @@ async function publish() {
     doors: { audioIn: AUDIOIN, videoIn: VIDEOIN, audioOut: AUDIOOUT, wakeWord: WAKEWORD },
     listenSeconds: CAPTURE, stt: whisperExe() ? 'whisper.cpp' : (comms.sttUrl || 'none'),
     agent: AGENT || null, lease: extraLease, hits, last, phase, phaseAt,
+    // the show is part of what this node is: which beat is on the screen right now, so the Menu can say it too
+    show: { phase: SHOW.phase, beat: SHOW.beat, total: SHOW.total, line: SHOW.line?.id ?? null, mic: SHOW.mic },
   };
   return j(`${STATE}/api/state/register`, {
     method: 'POST', headers: { 'content-type': 'application/json' },
     body: JSON.stringify({ name: `node.${REF}.comms`, content: body }),
   }, 8000);
+}
+
+/**
+ * THE SHOW: A SPOKEN PRESENTATION THE PORTAL GIVES ITSELF.
+ *
+ * The operator's rule for a demo is that nothing is generated while somebody is listening: every line is rendered to a
+ * wav BEFORE the first word is spoken, and this runner only plays them in order and moves the beat. A line whose wav is
+ * missing stops the whole thing at the start (with the path), because a demo that goes quiet in the middle of a
+ * sentence teaches the room that the machine is broken.
+ *
+ * The screen is not on a timer. `/api/show` is the beat as a FACT of this node, polled by the page, so the display can
+ * never run ahead of the voice - and if the runner stops, the screen stops with it instead of finishing a story the
+ * speaker never told.
+ */
+const MODULE_DIR = path.dirname(path.dirname(new URL(import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1')));
+const SHOW_FILE = path.join(MODULE_DIR, 'data', 'show.json');
+const SHOW_PAGE = path.join(MODULE_DIR, 'public', 'show.html');
+const SHOW = { phase: 'idle', beat: -1, total: 0, startedAt: null, at: null, elapsedMs: null, line: null, title: null, guest: null, mic: null, errors: [], device: null };
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+function readShow() {
+  const doc = JSON.parse(fs.readFileSync(SHOW_FILE, 'utf8').replace(/^\uFEFF/, ''));
+  doc.lines = (doc.lines || []).map((l) => ({ ...l, wav: l.wav ? String(l.wav).replace(/\//g, path.sep) : null }));
+  return doc;
+}
+
+/** Everything must be ready before the first word: this returns the reasons it is not, instead of finding out mid-show. */
+function showReadiness(doc) {
+  const problems = [];
+  if (!doc.lines.length) problems.push({ why: 'no_lines', file: SHOW_FILE });
+  for (const l of doc.lines) {
+    if (!l.wav) problems.push({ why: 'no_wav', line: l.id });
+    else if (!fs.existsSync(l.wav)) problems.push({ why: 'wav_missing', line: l.id, wav: l.wav });
+    else if (!l.ms) problems.push({ why: 'no_duration', line: l.id, wav: l.wav });
+  }
+  return problems;
+}
+
+async function runShow() {
+  let doc;
+  try { doc = readShow(); } catch (e) {
+    SHOW.phase = 'failed'; SHOW.errors = [{ why: 'show_unreadable', file: SHOW_FILE, detail: e.message }]; publish();
+    return;
+  }
+  const problems = showReadiness(doc);
+  if (problems.length) {
+    SHOW.phase = 'failed'; SHOW.errors = problems; publish();
+    console.log('[comms] show refused, not ready:', JSON.stringify(problems).slice(0, 400));
+    return;
+  }
+  SHOW.title = doc.title ?? null; SHOW.guest = doc.guest ?? null;
+  SHOW.total = doc.lines.length; SHOW.beat = -1; SHOW.errors = [];
+  SHOW.phase = 'playing'; SHOW.startedAt = new Date().toISOString();
+  const out = await up('AudioOut');
+  SHOW.device = out.ok ? out.url : null;
+  console.log(`[comms] show starting: ${SHOW.total} beats, speaker ${out.ok ? out.url : JSON.stringify(out)}`);
+  for (let i = 0; i < doc.lines.length; i++) {
+    if (SHOW.phase !== 'playing') return;
+    const line = doc.lines[i];
+    SHOW.beat = i; SHOW.at = new Date().toISOString();
+    SHOW.line = { id: line.id, kicker: line.kicker ?? null, head: line.head ?? null, sub: line.sub ?? null, text: line.text ?? null, ms: line.ms ?? null };
+    publish();
+    if (out.ok) {
+      const r = await j(`${AUDIOOUT}/api/play`, {
+        method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ file: line.wav }),
+      }, 30000);
+      if (!r.ok) { SHOW.errors.push({ line: line.id, why: 'play_failed', detail: r.body }); publish(); }
+    }
+    // the line's own measured duration plus a breath; the speaker started a moment after the POST, so this is a pause,
+    // never an overlap - two lines at once is the one failure a spoken demo cannot survive
+    await sleep(Number(line.ms) + Number(doc.gapMs ?? 900));
+  }
+  SHOW.phase = 'done'; SHOW.at = new Date().toISOString(); SHOW.elapsedMs = Date.now() - Date.parse(SHOW.startedAt); publish();
+  appendTurn({ at: SHOW.at, heard: null, answer: null, spoke: 'show', show: { title: SHOW.title, beats: SHOW.total }, ms: SHOW.elapsedMs });
+  console.log('[comms] show done in', SHOW.elapsedMs, 'ms');
+}
+
+/**
+ * THE LAST BEAT'S HONEST MEASUREMENT. A microphone is claimed, never assumed: the door is asked for its inventory, then
+ * held open for a bounded capture and the level is measured off the samples. A silent device answers `silent`, and a
+ * box with no input at all answers `no_mic` with the list it looked through.
+ */
+async function probeMic(seconds = 3) {
+  const t0 = Date.now();
+  const ready = await up('AudioIn');
+  if (!ready.ok) { SHOW.mic = { at: new Date().toISOString(), ok: false, why: 'door_did_not_come_up', detail: ready }; publish(); return SHOW.mic; }
+  const dev = await j(`${AUDIOIN}/api/devices`, {}, 20000);
+  const cap = await withMic(() => j(`${AUDIOIN}/api/capture`, {
+    method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ seconds }),
+  }, (Number(seconds) + 30) * 1000));
+  SHOW.mic = {
+    at: new Date().toISOString(), ok: !!(cap.ok && cap.body?.ok), ms: Date.now() - t0, seconds: Number(seconds),
+    devices: dev.ok ? (dev.body.mic ?? []) : { down: AUDIOIN, detail: dev.body },
+    device: cap.ok ? cap.body.device ?? null : null,
+    rms: cap.ok ? cap.body.rms ?? null : null,
+    peak: cap.ok ? cap.body.peak ?? null : null,
+    silent: cap.ok ? cap.body.silent ?? null : null,
+    why: cap.ok ? undefined : (cap.body?.why ?? 'capture_failed'),
+    detail: cap.ok ? undefined : cap.body,
+  };
+  publish();
+  return SHOW.mic;
 }
 
 /**
@@ -578,6 +682,67 @@ const server = http.createServer(async (req, res) => {
     doors: { audioIn: AUDIOIN, videoIn: VIDEOIN, audioOut: AUDIOOUT, wakeWord: WAKEWORD },
   });
 
+  /**
+   * THE SHOW. `start` refuses to begin unless every line has a wav and a duration, and answers with the reasons instead
+   * of going quiet later. The page reads the same record the runner writes, so voice and screen cannot disagree.
+   */
+  if (p === '/show') {
+    try {
+      const html = fs.readFileSync(SHOW_PAGE, 'utf8');
+      res.writeHead(200, { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store' });
+      return res.end(html);
+    } catch (e) { return send(res, 500, { ok: false, why: 'no_show_page', lookedFor: SHOW_PAGE, detail: e.message }); }
+  }
+
+  if (p === '/api/show') {
+    let lines = null, doc = null;
+    try { doc = readShow(); } catch { }
+    if (url.searchParams.get('lines') === '1' && doc) {
+      lines = doc.lines.map((l) => ({ id: l.id, kicker: l.kicker ?? null, head: l.head ?? null, sub: l.sub ?? null, ms: l.ms ?? null }));
+    }
+    return send(res, 200, {
+      ok: true, ref: REF, phase: SHOW.phase, beat: SHOW.beat,
+      // before the first word the screen still says who it is for and how many beats are coming: it is a portal, not a
+      // blank screen, and the person walking up should be able to read that it is ready
+      total: SHOW.total || (doc ? doc.lines.length : 0),
+      line: SHOW.line,
+      title: SHOW.title ?? (doc ? doc.title ?? null : null),
+      guest: SHOW.guest ?? (doc ? doc.guest ?? null : null),
+      startedAt: SHOW.startedAt, at: SHOW.at, mic: SHOW.mic, errors: SHOW.errors,
+      // the clock is the hub's, not the page's: a page loaded after the fact must show the presentation's duration, not
+      // the time since it ended
+      elapsedMs: SHOW.phase === 'playing' && SHOW.startedAt ? Date.now() - Date.parse(SHOW.startedAt) : SHOW.elapsedMs,
+      speaker: { url: AUDIOOUT, device: SHOW.device }, lines,
+    });
+  }
+
+  if (p === '/api/show/start' && req.method === 'POST') {
+    if (SHOW.phase === 'playing') return send(res, 409, { ok: false, why: 'already_playing', beat: SHOW.beat });
+    let doc;
+    try { doc = readShow(); } catch (e) { return send(res, 503, { ok: false, why: 'show_unreadable', file: SHOW_FILE, detail: e.message }); }
+    const problems = showReadiness(doc);
+    if (problems.length) return send(res, 503, { ok: false, why: 'not_ready', file: SHOW_FILE, problems });
+    runShow().catch((e) => { SHOW.phase = 'failed'; SHOW.errors.push({ why: 'runner_failed', detail: e.message }); publish(); });
+    return send(res, 202, {
+      ok: true, started: true, beats: doc.lines.length,
+      totalMs: doc.lines.reduce((a, l) => a + Number(l.ms) + Number(doc.gapMs ?? 900), 0), speaker: AUDIOOUT,
+    });
+  }
+
+  if (p === '/api/show/stop' && req.method === 'POST') {
+    const was = SHOW.phase;
+    SHOW.phase = 'stopped'; SHOW.at = new Date().toISOString();
+    SHOW.elapsedMs = SHOW.startedAt ? Date.now() - Date.parse(SHOW.startedAt) : null; publish();
+    return send(res, 200, { ok: true, was, now: SHOW.phase, beat: SHOW.beat });
+  }
+
+  // the last beat's measurement, on demand: the microphone is claimed here, never assumed
+  if (p === '/api/show/mic' && req.method === 'POST') {
+    const body = await readBody(req);
+    const m = await probeMic(Number(body.seconds ?? 3));
+    return send(res, m.ok ? 200 : 503, m);
+  }
+
   send(res, 404, { ok: false, why: 'no_such_endpoint', path: p });
 });
 
@@ -587,8 +752,9 @@ server.listen(PORT, HOST, () => {
   publish();
   setInterval(publish, 30000);
   // The trigger is the one door that is not lazy: if nothing is watching for the phrase, nothing ever starts the loop.
-  // Everything expensive behind it (capture, whisper) is still started on demand.
-  if (String(comms.wakeAuto ?? 'true') === 'true') {
+  // Everything expensive behind it (capture, whisper) is still started on demand. `--wake-auto false` leaves it unarmed
+  // for a session that needs the microphone to itself (a demo with a measured capture, a speaker-mic echo test).
+  if (String(argOf('wake-auto', comms.wakeAuto ?? 'true')) === 'true') {
     up('WakeWord').then((r) => console.log('[comms] wake door', JSON.stringify(r))).catch((e) => console.log('[comms] wake door failed', e.message));
   }
 });

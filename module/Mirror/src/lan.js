@@ -14,7 +14,7 @@ import { fleetSummary, intentFor, matchRow } from './roster.js';
 
 export const SCHEMA_VERSION = 1;
 
-export function lanJson({ self, peers = [], at = Date.now(), cycleOf = () => null, roster = null, selfIp = null }) {
+export function lanJson({ self, peers = [], at = Date.now(), cycleOf = () => null, roster = null, selfIp = null, serverCycle = null }) {
   const nodes = [];
   if (self) nodes.push(view(self, 'self', at, cycleOf(self.ref), { roster, ip: selfIp }));
   for (const peer of peers) {
@@ -27,6 +27,9 @@ export function lanJson({ self, peers = [], at = Date.now(), cycleOf = () => nul
     schemaVersion: SCHEMA_VERSION,
     at: new Date(at).toISOString(),
     self: self ? self.ref : null,
+    // the SERVER cycle's own heartbeat (lan.cycle, published by the root Phoenix): beat, everyMin, nextAt.
+    // Carried, never computed - a countdown needs the clock that actually runs the cycle, not an estimate of it.
+    serverCycle: serverCycle || null,
     counts: {
       nodes: nodes.length,
       alive: nodes.filter((n) => n.verdict === 'alive').length,
@@ -175,6 +178,24 @@ function view(node, verdict, at, cycle, extra = {}) {
     // WHAT THE CARD IS DOING, as its owner reported it. `ageS` is the honesty: a report older than the owner's
     // own poll interval is stale, and a screen must be able to say so instead of showing old news as current.
     standby: standbyOf(node?.standby, at) || standbyFromMiner(extra.minerProbe, at),
+    // is this machine behaving like itself (a LEARNED band, not a constant), and what does it call its agent
+    unusual: node?.unusual
+      ? { unusual: node.unusual.unusual === true, learning: node.unusual.learning === true,
+          findings: (node.unusual.findings || []).slice(0, 3), at: node.unusual.at ?? null }
+      : null,
+    personality: node?.personality
+      ? { name: node.personality.name ?? null, tone: node.personality.tone ?? null,
+          voice: node.personality.voice?.character ?? null }
+      : null,
+    // Phoenix's own clock for this node: beat, everyMin, nextAt, role. Carried so a screen can count down to the
+    // next beat without reaching into a cross-origin door - and null when the node never published one.
+    upkeep: node?.upkeep
+      ? { beat: node.upkeep.beat ?? null, everyMin: node.upkeep.everyMin ?? null, nextAt: node.upkeep.nextAt ?? null,
+          role: node.upkeep.role ?? null, ran: node.upkeep.ran ?? null, failed: node.upkeep.failed ?? null,
+          repaired: node.upkeep.repaired ?? null, at: node.upkeep.at ?? null,
+          // who set this clock: a node whose beat was written by the root says so, and the screen says it too
+          governed: node.upkeep.governed === true, parent: node.upkeep.parent ?? null }
+      : null,
     observedAt: node?.observed || null,
     degraded: node?.health?.degraded === true,
     misses: extra.misses ?? null,

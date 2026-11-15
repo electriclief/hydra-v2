@@ -1,0 +1,148 @@
+<h1>Contract</h1>
+
+<section id="summary">
+  <h2>Summary</h2>
+<p>The vocabulary every wrapper speaks to State. A wrapper is anything that runs work for Hydra - a ProcessWrapper row,
+an EchidnaAccess job, an idle-service guard, a miner launcher, a watchdog. Each one answers the same four questions in
+the same shape, so Phoenix can act on a failure without reading prose and the Menu can show it without special cases:</p>
+<ol>
+  <li><b>what are you doing?</b> - <code>state</code> (starting, running, idle, blocked, failed, stopped)</li>
+  <li><b>what went wrong?</b> - <code>error.code</code> from a fixed vocabulary, not a sentence</li>
+  <li><b>can you be fixed?</b> - <code>fix</code>: the declared remedy, one of four kinds, or none</li>
+  <li><b>who must know?</b> - <code>needs_human</code> when a declared fix did not work</li>
+</ol>
+
+</section>
+<section id="concepts">
+  <h2>Concepts</h2>
+
+<h3>The entry: <code>agent.&lt;ref&gt;.&lt;wrapper&gt;</code></h3>
+<p>Published into the node's own State (<code>:8127</code>) and republished on a cadence, exactly like every other branch.
+"State boots blank and persists nothing" - an entry lives as long as its wrapper; a dead wrapper is a stale entry, which
+is itself the signal.</p>
+<pre>
+{
+  "ref": "xpsw",
+  "wrapper": "standby-miner",
+  "owner": "idle-service",            // the module that owns this wrapper
+  "host": "DESKTOP-OIE507H",
+  "tier": "node",                     // node | lan | global: same shape at every rung
+  "state": "running",                 // starting | running | idle | blocked | failed | stopped
+  "at": "2026-11-15T12:20:31-05:00",  // last heartbeat
+  "lastOkAt": "2026-11-15T12:20:31-05:00",
+  "pid": 8124,
+  "restarts": 1,                      // how many times this wrapper has already come back
+  "error": null,                      // or { code, message, at, retryable }
+  "fix": { "pw": { "name": "standby-miner" } },   // what WOULD fix it - declared, never invented
+  "needs_human": false                // true once the declared fix has been tried and failed
+}
+</pre>
+
+<h3>The error vocabulary (fixed)</h3>
+<p>Codes exist so a machine can route a failure. A wrapper that cannot pick one is reporting something nobody planned
+for, and <code>UNKNOWN</code> is the honest answer - it escalates immediately rather than being retried forever.</p>
+<pre>
+POOL_UNREACHABLE   DEVICE_MISSING   EXE_MISSING      CONFIG_INVALID
+API_SILENT         AUTH_DENIED      PORT_IN_USE      CRASHED
+TIMEOUT            DEPENDENCY_DOWN  AGENT_SILENT     UNKNOWN
+</pre>
+<p>Each error also carries <code>retryable</code>: true means "a restart may help", false means "a person must change
+something first" (missing GPU, wrong wallet, dead pool). Phoenix never repairs a non-retryable error - it escalates.</p>
+
+<h3>The four fix kinds</h3>
+<p>Phoenix may only execute what the entry declares. There is no shell kind on purpose: an automation that invents
+commands is a second operator.</p>
+<table>
+  <tr><th>kind</th><th>shape</th><th>what it does</th></tr>
+  <tr><td><code>http</code></td><td><code>{ "http": "http://...", "method": "POST", "body": {} }</code></td><td>a door or endpoint that knows how to repair itself</td></tr>
+  <tr><td><code>pw</code></td><td><code>{ "pw": { "name": "standby-miner", "url": "http://127.0.0.1:8125" } }</code></td><td>restart a ProcessWrapper row (locally or on a peer's own wrapper)</td></tr>
+  <tr><td><code>agent</code></td><td><code>{ "agent": { "node": "richard", "cmd": "schtasks /run /tn \"hydra-mine-gpu\"" } }</code></td><td>one declared command through Access on that node</td></tr>
+  <tr><td><code>task</code></td><td><code>{ "task": { "node": "xpsw", "name": "EchidnaAccess" } }</code></td><td>start a scheduled task on that node</td></tr>
+</table>
+
+<h3>The rungs</h3>
+<pre>
+wrapper                publishes agent.&lt;ref&gt;.&lt;wrapper&gt; with error + declared fix
+   |
+Phoenix cycle          check fails -> run the declared fix once -> re-check
+   |                     ok      -> outcome "repaired" (a receipt, not a page)
+   |                     failed  -> error travels with the receipt, wrapper marked needs_human
+   |
+Echidna / Tell Mom     one alert naming the node, the wrapper, the code and what was already tried
+   |
+Menu                   the node's headline turns red and says the code; the full detail stays in the receipt
+</pre>
+
+</section>
+<section id="wiring">
+  <h2>Wiring</h2>
+<table>
+  <tr><th>who</th><th>talks to</th><th>how</th></tr>
+  <tr><td>any wrapper</td><td>State <code>:8127</code></td><td><code>POST /api/state/register {name, content}</code></td></tr>
+  <tr><td>Phoenix <code>:8146</code> local / <code>:8156</code> LAN</td><td>the failing thing</td><td><code>action.http</code>, then <code>fix</code>, then re-check</td></tr>
+  <tr><td>Phoenix</td><td>Access <code>:8143</code></td><td><code>POST /api/run {node, cmd}</code> - only for a declared <code>agent</code>/<code>task</code> fix</td></tr>
+  <tr><td>Phoenix</td><td>Tell Mom <code>:8139</code></td><td><code>POST /api/tell {severity, subject, body, dedupeKey, by}</code></td></tr>
+  <tr><td>Menu <code>:8133</code></td><td>Mirror <code>:8137</code> / LAN State <code>:8148</code></td><td>reads <code>lan.agents</code> and each node's <code>agent.*</code></td></tr>
+</table>
+
+</section>
+<script type="application/json" id="contract">
+{
+  "module": "Contract",
+  "version": 1,
+  "kind": "library",
+  "needs": [
+    {
+      "name": "a state door",
+      "from": ":8127 (node) or :8148 (LAN tier)",
+      "required": true
+    },
+    {
+      "name": "a wrapper to report",
+      "from": "any process that does work",
+      "required": true
+    }
+  ],
+  "gives": [
+    {
+      "name": "entry shape",
+      "route": "agent.<ref>.<wrapper>",
+      "shape": "{state,error{code,message,retryable},fix,needs_human,at}"
+    },
+    {
+      "name": "error vocabulary",
+      "route": "lib/publish.js CODES",
+      "shape": "12 fixed codes incl. RESOURCE_UNUSUAL, UNKNOWN"
+    },
+    {
+      "name": "fix kinds",
+      "route": "fix.{http|pw|agent|task}",
+      "shape": "the only four Phoenix will execute"
+    },
+    {
+      "name": "publishers",
+      "route": "lib/publish.js",
+      "shape": "ok, fail, needsHuman, guard(fields, job)"
+    }
+  ],
+  "rule": "a fix is declared, never invented; a repaired fault is a receipt, not a page",
+  "entry_fields": {
+    "state": [
+      "starting",
+      "running",
+      "idle",
+      "blocked",
+      "failed",
+      "stopped"
+    ],
+    "outcomes": [
+      "ok",
+      "repaired",
+      "failed",
+      "refused",
+      "cancelled",
+      "skipped"
+    ]
+  }
+}
+</script>

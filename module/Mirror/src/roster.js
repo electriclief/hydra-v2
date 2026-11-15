@@ -57,6 +57,8 @@ export function loadRoster(file = DEFAULT_ROSTER) {
       // WHAT ITS MINER ANSWERS ON. Declared, never guessed: a box with no State door can still be mining, and
       // this URL is the only thing that lets the tree say so from a measurement instead of staying silent.
       minerApi: typeof row.minerApi === 'string' && row.minerApi ? row.minerApi : null,
+      // the operator's own word that a box is out of service on purpose - carried, never inferred from `managed`
+      parked: row.parked === true,
       os: row.os || (row.managed === false ? 'linux' : 'windows'),
       kind,
     });
@@ -106,6 +108,9 @@ export function intentFor(roster, keys = {}) {
     ready_for: row.ready_for,
     notes: row.notes,
     kind: row.kind,
+    // `parked` is the operator saying "this box is out of service on purpose" - distinct from `managed:false`,
+    // which only means "no Hydra app on it". Conflating them drew a working miner as parked.
+    parked: row.parked === true,
     source: roster.file,
   };
 }

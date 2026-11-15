@@ -28,7 +28,8 @@ import { createHash } from 'node:crypto';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const MODULE = path.resolve(HERE, '..');
-const DATA = path.join(MODULE, 'data');
+// a second instance is a different tier, so it must not share this one's registry, clock or receipts
+const DATA = process.env.PHOENIX_DATA ? path.resolve(process.env.PHOENIX_DATA) : path.join(MODULE, 'data');
 const REGISTRY = path.join(DATA, 'registry.json');
 const CLOCK = path.join(DATA, 'clock.json');
 const HASHES = path.join(DATA, 'hashes.json');
@@ -46,6 +47,27 @@ const EVERY_MIN = Math.max(1, Number(argOf('every', process.env.PHOENIX_EVERY_MI
 // fails an entry is a thing that happened, so it is told once (deduped by TellMom's own window) instead of scrolling
 // past in a receipt file nobody opens.
 const TELLMOM = (argOf('tellmom', process.env.PHOENIX_TELLMOM ?? 'http://127.0.0.1:8139')).replace(/\/$/, '');
+// Where this cycle publishes itself, if anywhere. Empty means a plain node cycle; set it and the same code is the
+// LAN-tier cycle: lan.cycle plus one lan.entry.<id> per check, so the fleet's heartbeat is a state path, not a page.
+const STATE_URL = (argOf('state', process.env.PHOENIX_STATE ?? '')).replace(/\/$/, '');
+// A node cycle has no tier above it, so it publishes nothing - and then the countdown to its next beat exists only in its
+// own /health, which a browser on :8133 cannot read (cross-origin). So a node cycle publishes its beat as node.<ref>.upkeep
+// into its OWN state: same facts as lan.cycle, one rung down, so the screen can draw both rungs without asking anyone.
+// The ordering matters: this is a node fact written to a node state, never a lan.* key.
+const NODE_STATE_URL = (argOf('node-state', process.env.PHOENIX_NODE_STATE ?? 'http://127.0.0.1:8127')).replace(/\/$/, '');
+// The root governs: each beat it writes every node's beat, so a node never runs a second schedule. Mirror already knows
+// where the machines are, so the root asks it instead of carrying a roster of its own.
+const MIRROR = (argOf('mirror', process.env.PHOENIX_MIRROR ?? 'http://127.0.0.1:8137')).replace(/\/$/, '');
+const NODE_STATE_PORT = Number(argOf('node-state-port', process.env.PHOENIX_NODE_STATE_PORT ?? 8127)) || 8127;
+const REF = (argOf('ref', process.env.PHOENIX_REF ?? '')).trim() || readRefFromMenu();
+function readRefFromMenu() {
+  // same source ResourceManager uses: the node's own identity file. A missing ref is not fatal - the entry is published
+  // as node.unknown.upkeep rather than silently skipped, so a nameless box is visible instead of absent.
+  try {
+    const j = JSON.parse(fs.readFileSync(new URL('../../Menu/data/node.json', import.meta.url), 'utf8'));
+    return (j.ref ?? j.name ?? '').toString().trim() || 'unknown';
+  } catch { return 'unknown'; }
+}
 
 const log = (...parts) => process.stdout.write(`[phoenix] ${parts.join(' ')}\n`);
 const nowIso = () => new Date().toISOString();
@@ -88,6 +110,15 @@ function validate(entry) {
     if (!action.http && !action.func && !action.tell) bad('a code entry needs action.http, action.func or action.tell');
   }
   if (entry.kind === 'nag' && !entry.title) bad('a nag entry needs a title to show a person');
+  // a repair is only ever a declared kind: an entry that cannot say HOW is escalated, not improvised at
+  if (entry.fix) {
+    const fx = entry.fix;
+    if (typeof fx !== 'object') bad('fix must be an object');
+    if (!fx.http && !fx.pw && !fx.agent && !fx.task) bad('fix must declare http, pw, agent or task');
+    if (fx.pw && !fx.pw.processId && !fx.pw.name) bad('fix.pw needs processId or name');
+    if (fx.agent && (!fx.agent.node || !fx.agent.cmd)) bad('fix.agent needs node and cmd');
+    if (fx.task && !fx.task.name) bad('fix.task needs a task name');
+  }
   return { ...entry, lease_s: Math.max(5, Math.min(3600, Number(entry.lease_s) || 120)) };
 }
 
@@ -164,7 +195,27 @@ async function runCode(entry, signal) {
   }
   if (action.http) {
     const started = Date.now();
-    const res = await fetch(action.http, { signal, method: action.method || 'GET' });
+    // The lease is the OUTER bound; a probe needs its own, shorter one. A dead agent that never answers used to eat the
+    // whole lease and come back 'cancelled', which reads like a non-event instead of "that door is gone".
+    const probeMs = Math.max(1000, Number(action.timeoutMs ?? Math.min(entry.lease_s * 1000, 10000)));
+    const probe = new AbortController();
+    const onAbort = () => probe.abort();
+    if (signal) signal.addEventListener('abort', onAbort, { once: true });
+    const probeTimer = setTimeout(() => probe.abort(), probeMs);
+    let res;
+    try {
+      res = await fetch(action.http, { signal: probe.signal, method: action.method || 'GET' });
+    } catch (error) {
+      const timedOut = probe.signal.aborted && !(signal && signal.aborted);
+      return {
+        outcome: 'failed',
+        detail: { url: action.http, ms: Date.now() - started, timeoutMs: probeMs },
+        error: `${timedOut ? 'NO ANSWER' : 'unreachable'} within ${probeMs} ms: ${error.message}`,
+      };
+    } finally {
+      clearTimeout(probeTimer);
+      if (signal) signal.removeEventListener('abort', onAbort);
+    }
     const body = await res.text();
     const detail = { url: action.http, status: res.status, ms: Date.now() - started, bytes: body.length };
     if (!res.ok) return { outcome: 'failed', detail, error: `HTTP ${res.status}` };
@@ -234,6 +285,11 @@ async function runNag(entry) {
 let lastBeat = null;
 let lastBeatAt = null;
 let beatCount = 0;
+// A shutdown abort is the ONE cancellation that must not be repaired: the cycle was told to stop, nothing is broken.
+let shuttingDown = false;
+for (const sig of ['SIGINT', 'SIGTERM', 'SIGBREAK']) {
+  process.on(sig, () => { shuttingDown = true; setTimeout(() => process.exit(0), 300).unref(); });
+}
 
 function due(entry, clock, nowMs) {
   const trigger = entry.trigger || {};
@@ -242,6 +298,72 @@ function due(entry, clock, nowMs) {
   if (!every) return false;
   const last = clock[entry.id] ? Date.parse(clock[entry.id]) : 0;
   return nowMs - last >= every;
+}
+
+/**
+ * A repair is a DECLARED action, never a guess. An entry that can be fixed says how, and only four kinds are honoured:
+ * an HTTP call, a ProcessWrapper restart, a scheduled task, or a command through the Access agent. Anything else is
+ * refused - a Phoenix that invents shell commands is a second operator, and that is not what it is for.
+ */
+async function runFix(entry, failed) {
+  const fix = entry.fix || {};
+  const why = failed?.error || failed?.outcome || 'unknown';
+  if (fix.http) {
+    const r = await fetch(fix.http, {
+      method: fix.method || 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: fix.body ? JSON.stringify(fix.body) : undefined,
+      signal: AbortSignal.timeout(Math.max(1000, Number(fix.timeoutMs ?? 8000))),
+    });
+    const text = await r.text().catch(() => '');
+    return { kind: 'http', ok: r.ok, status: r.status, body: text.slice(0, 300), because: why };
+  }
+  if (fix.pw) {
+    const base = fix.pw.url || 'http://127.0.0.1:8125';
+    let id = fix.pw.processId;
+    if (!id && fix.pw.name) {
+      const listRes = await fetch(`${base}/api/processes`, { signal: AbortSignal.timeout(4000) });
+      const body = await listRes.json().catch(() => ({}));
+      const rows = Array.isArray(body) ? body : body.processes || [];
+      const row = rows.find((x) => x.name === fix.pw.name && ['running', 'failed'].includes(x.life));
+      if (!row) return { kind: 'pw', ok: false, error: `no row named ${fix.pw.name}`, because: why };
+      id = row.id;
+    }
+    if (!id) throw new Error('fix.pw needs processId or name');
+    const r = await fetch(`${base}/api/processes/${id}/restart`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ force: true }),
+      signal: AbortSignal.timeout(Math.max(2000, Number(fix.timeoutMs ?? 15000))),
+    });
+    return { kind: 'pw', ok: r.ok, status: r.status, processId: id, because: why };
+  }
+  if (fix.agent) {
+    const { node, cmd } = fix.agent;
+    if (!node || !cmd) throw new Error('fix.agent needs node and cmd');
+    const r = await fetch('http://127.0.0.1:8143/api/run', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ node, cmd, timeoutSec: Number(fix.timeoutSec ?? 60) }),
+      signal: AbortSignal.timeout(Math.max(5000, Number(fix.timeoutMs ?? 90000))),
+    });
+    const body = await r.json().catch(() => ({}));
+    return { kind: 'agent', ok: r.ok && body.ok !== false, node, exitCode: body.exitCode ?? null, because: why };
+  }
+  if (fix.task) {
+    const { name, node } = fix.task;
+    if (!name) throw new Error('fix.task needs name');
+    if (!node) return { kind: 'task', ok: false, error: 'a task fix must name the node it runs on', because: why };
+    const r = await fetch('http://127.0.0.1:8143/api/run', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ node, cmd: `schtasks /run /tn "${name}"`, timeoutSec: 60 }),
+      signal: AbortSignal.timeout(90000),
+    });
+    const body = await r.json().catch(() => ({}));
+    return { kind: 'task', ok: r.ok && body.ok !== false, node, name, because: why };
+  }
+  return { kind: 'none', ok: false, error: 'fix declared with no known kind (http|pw|agent|task)', because: why };
 }
 
 async function runEntry(entry) {
@@ -255,6 +377,42 @@ async function runEntry(entry) {
   } catch (error) {
     result = { outcome: error.name === 'AbortError' ? 'cancelled' : 'failed', error: error.message };
   }
+
+  // --- the standard repair rung -------------------------------------------------------------------------------
+  // A wrapper that fails publishes WHY (a fixed error code) and WHAT WOULD FIX IT (`fix`). Phoenix may only do what
+  // the entry declares: no guessing, no invented commands. One repair attempt per beat, then re-check. A check that
+  // comes back healthy after the repair is `repaired` - it happened, it is not a page. A check that fails again keeps
+  // its `failed` outcome, and the repair trail travels with it so the alert says what was already tried.
+  // 'cancelled' means the check overran its lease - the thing it watches did not answer in time. That is exactly the
+  // case a repair is for, so it is repairable like any failure; only a shutdown abort is left alone.
+  if (result.outcome !== 'ok' && entry.fix && !shuttingDown) {
+    const fixStarted = nowIso();
+    let fixResult;
+    try {
+      fixResult = await runFix(entry, result);
+    } catch (error) {
+      fixResult = { ok: false, error: error.message };
+    }
+    const before = result.outcome;
+    await new Promise((r) => setTimeout(r, Math.max(0, Number(entry.fix.waitMs ?? 4000))));
+    let after;
+    try {
+      after = entry.kind === 'nag'
+        ? await runNag(entry)
+        : await withLease(entry, (signal) => runCode(entry, signal));
+    } catch (error) {
+      after = { outcome: 'failed', error: error.message };
+    }
+    result = {
+      ...(after.outcome === 'ok' ? after : result),
+      outcome: after.outcome === 'ok' ? 'repaired' : result.outcome,
+      detail: {
+        ...(after.detail || result.detail || {}),
+        repair: { before, fix: fixResult, after: after.outcome, fixedAt: fixStarted, error: after.error ?? null },
+      },
+    };
+  }
+
   const receipt = {
     id: entry.id,
     owner: entry.owner,
@@ -277,6 +435,7 @@ async function runEntry(entry) {
  */
 async function tellOnFailure(receipts) {
   const bad = receipts.filter((r) => ['failed', 'refused', 'cancelled'].includes(r.outcome));
+  // 'repaired' is deliberately absent: an entry Phoenix fixed this beat already told the story in its receipt.
   if (!bad.length) return null;
   const lines = bad.map((r) => `${r.id}=${r.outcome}${r.error ? ` (${r.error})` : ''}`);
   const payload = {
@@ -298,6 +457,78 @@ async function tellOnFailure(receipts) {
   } catch (error) {
     return { ok: false, error: error.message };
   }
+}
+
+// ---------------------------------------------------------------- publish to the tier above
+
+async function publishState(beat) {
+  // ONE CLOCK. A child does not publish a beat of its own: the parent's cycle is the schedule, and a node that also
+  // ticks would give Echidna two timelines to reconcile. The child's receipts stay local; its clock comes from above.
+  if (!STATE_URL) return;
+  const target = STATE_URL;
+  const put = async (name, content) => {
+    const r = await fetch(`${target}/api/state/register`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ name, content }),
+      signal: AbortSignal.timeout(1500),
+    });
+    if (!r.ok) throw new Error(`${name} -> HTTP ${r.status}`);
+  };
+  const entries = loadRegistry();
+  const isRoot = Boolean(STATE_URL);
+  const cycleName = isRoot ? 'lan.cycle' : `node.${REF}.upkeep`;
+  const facts = {
+    tier: isRoot ? 'lan' : 'node', role: isRoot ? 'root' : 'child', ref: isRoot ? 'lan-1' : REF,
+    at: beat.at, port: PORT, everyMin: EVERY_MIN, beat: beatCount,
+    entries: entries.length, ran: beat.ran, reason: beat.reason,
+    // repaired is its own outcome: something broke and Phoenix fixed it - that is not a failure, and it is not silence
+    failed: (beat.receipts || []).filter((r) => !['ok', 'repaired'].includes(r.outcome)).length,
+    repaired: (beat.receipts || []).filter((r) => r.outcome === 'repaired').length,
+    nextAt: new Date(Date.now() + Math.max(0, EVERY_MIN * 60000 - (Date.now() - lastBeatAt))).toISOString(),
+    source: 'Phoenix',
+  };
+  const jobs = [put(cycleName, facts)];
+  for (const r of beat.receipts || []) {
+    jobs.push(put(isRoot ? `lan.entry.${r.id}` : `node.${REF}.entry.${r.id}`, {
+      at: r.ended || r.started || beat.at, outcome: r.outcome,
+      ms: r.ms ?? null, error: r.error ?? null, http: r.http ?? null,
+    }));
+  }
+  try { await Promise.all(jobs); } catch (e) { log(`state publish failed: ${e.message}`); }
+  await publishReflection(facts);
+}
+
+/**
+ * The root's reflection, written into every node's OWN state: same beat, same nextAt, the parent named.
+ * A node that is off the wire is skipped in silence - the point of the write is the beat, not a page about a write.
+ */
+async function publishReflection(facts) {
+  let peers = [];
+  try {
+    const r = await fetch(`${MIRROR}/api/lan.json`, { signal: AbortSignal.timeout(2500) });
+    const j = await r.json();
+    peers = (j.nodes || []).filter((n) => n && n.ref && n.ip).map((n) => ({ ref: n.ref, ip: n.ip }));
+  } catch (e) {
+    return log(`reflection: no peer list (${e.message}) - nodes keep the last beat they were given`);
+  }
+  const results = await Promise.all(peers.map(async (p) => {
+    try {
+      const r = await fetch(`http://${p.ip}:${NODE_STATE_PORT}/api/state/register`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ name: `node.${p.ref}.upkeep`, content: {
+          tier: 'node', role: 'child', ref: p.ref, governed: true, parent: STATE_URL, source: 'Phoenix(lan)',
+          beat: facts.beat, everyMin: facts.everyMin, nextAt: facts.nextAt, at: facts.at,
+          ran: facts.ran, failed: facts.failed, repaired: facts.repaired,
+        } }),
+        signal: AbortSignal.timeout(1500),
+      });
+      return { ref: p.ref, ok: r.ok, status: r.status };
+    } catch (e) { return { ref: p.ref, ok: false, error: e.message }; }
+  }));
+  const bad = results.filter((x) => !x.ok);
+  if (bad.length) log(`reflection: ${results.length - bad.length}/${results.length} written, missed ${bad.map((b) => b.ref).join(',')}`);
 }
 
 async function beat(reason = 'timer') {
@@ -328,6 +559,7 @@ async function beat(reason = 'timer') {
     lastBeat.told = await tellOnFailure(ran);
     if (lastBeat.told) log(`beat ${beatCount}: told the operator (${lastBeat.told.ok ? 'sent' : 'not sent'}${lastBeat.told.deduped ? `, ${lastBeat.told.deduped}` : ''})`);
   }
+  await publishState(lastBeat);
   return lastBeat;
 }
 

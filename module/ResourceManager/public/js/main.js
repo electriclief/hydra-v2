@@ -1,8 +1,11 @@
 import path from "node:path";
+import fs from "node:fs";
 import { pathToFileURL } from "node:url";
 import { createBookingStore } from "./bookingStore.js";
 import { collectReads, loadShareList } from "./resourceRead.js";
 import { startApiServer } from "./apiServer.js";
+import { startInventoryLoop, collect, probeApis, publishState } from "./inventory.js";
+import { createBaseline } from "./baseline.js";
 const DEFAULTS = {
   port: 8129,
   host: "127.0.0.1",
@@ -19,6 +22,8 @@ function parseArgs(argv, env = process.env) {
   options.token = (env.RM_TOKEN ?? "").trim() || null;
   options.dataDir = (env.RM_DATA ?? "").trim() || options.dataDir;
   options.sharesFile = (env.RM_SHARES ?? "").trim() || options.sharesFile;
+  const envInterval = Number.parseInt((env.RM_INTERVAL_MS ?? "").trim(), 10);
+  if (Number.isFinite(envInterval) && envInterval >= 1000) options.intervalMs = envInterval;
   let help = false;
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i];
@@ -36,6 +41,10 @@ function parseArgs(argv, env = process.env) {
       i++;
     } else if (arg === "--data") {
       options.dataDir = next().trim() || options.dataDir;
+      i++;
+    } else if (arg === "--interval") {
+      const ms = Number.parseInt(next(), 10);
+      if (Number.isFinite(ms) && ms >= 1000) options.intervalMs = ms;
       i++;
     } else if (arg === "--shares") {
       options.sharesFile = next().trim() || options.sharesFile;
@@ -74,6 +83,30 @@ async function startResourceManager(overrides = {}) {
   const reads = () => collectReads(collect);
   const refreshReads = () => collectReads({ ...collect, force: true });
   const store = createBookingStore({ dataDir, reads });
+
+  // This node's identity and the State door it reports to: the register answers to a tier, not to a constant.
+  const nodeFile = path.join(process.cwd(), "..", "Menu", "data", "node.json");
+  const nodeCfg = (() => { try { return JSON.parse(fs.readFileSync(nodeFile, "utf8")); } catch { return {}; } })();
+  const ref = options.ref || nodeCfg.ref || process.env.RM_REF || null;
+  const stateUrl = options.stateUrl || process.env.RM_STATE_URL || "http://127.0.0.1:8127";
+  // The baseline is the half of "unusual" that has to be learned: it folds every pass in, then compares the next one
+  // with what this node normally does. A young baseline says "learning" instead of inventing a band.
+  const baseline = createBaseline({ file: path.join(dataDir, "baseline.json"), ref, quiet: options.quiet });
+
+  const loop = startInventoryLoop({ ref, stateUrl, intervalMs: options.intervalMs ?? 30000,
+                                    root: path.join(process.cwd(), "..", ".."), quiet: options.quiet,
+    onSample: async ({ inv }) => {
+      // evaluate FIRST: the band that judges this sample must be the band that existed before the sample happened
+      const verdict = baseline.evaluate(inv);
+      baseline.record(inv, { skipUnusual: verdict.unusual });
+      if (!ref) return;
+      // the anomaly entry exists only while something is unusual: a cleared finding disappears instead of going stale
+      await publishState({ stateUrl, name: `node.${ref}.unusual`, content: verdict.unusual
+        ? { ...verdict, source: 'ResourceManager', learnedFrom: baseline.summarize().metrics }
+        : { at: verdict.at, unusual: false, learning: verdict.learning, findings: [], source: 'ResourceManager' } });
+      await publishState({ stateUrl, name: `node.${ref}.baseline`, content: baseline.summarize() });
+    } });
+
   const api = await startApiServer({
     store,
     reads,
@@ -81,7 +114,13 @@ async function startResourceManager(overrides = {}) {
     port: options.port,
     host: options.host,
     token: options.token,
-    publicDir: path.join(process.cwd(), "public")
+    publicDir: path.join(process.cwd(), "public"),
+    inventory: () => (loop.last() ? { inventory: loop.last().inv } : null),
+    baseline: () => baseline.summarize(),
+    redefine: (body) => baseline.redefine(body || {}),
+    resetBaseline: () => baseline.reset(),
+    apis: () => (loop.last() ? { apis: loop.last().apis } : null),
+    refreshInventory: async () => { await loop.now(); const l = loop.last(); return l ? { inventory: l.inv, apis: l.apis } : {}; }
   });
   if (!options.quiet) {
     console.log(`resource-manager \u2014 the register \xB7 http://${api.url.replace(/^http:\/\//, "")}`);
@@ -89,6 +128,8 @@ async function startResourceManager(overrides = {}) {
     console.log(`  shares    ${sharesFile}${shares.length ? ` \u2014 ${shares.length} declared` : " \u2014 none declared (create it to list Hydra shared folders)"}`);
     console.log("  page      /        \u2014 the machine, the register, the book form");
     console.log("  api       GET /api/resources \xB7 POST /api/book \xB7 POST /api/bookings/:id/pop|clear \xB7 GET /api/bookings");
+    console.log(`  live      GET /api/inventory \xB7 GET /api/apis  \u2014 published to ${stateUrl} as node.${ref ?? "?"}.inventory / .apis`);
+    console.log(`  unusual   GET /api/baseline \xB7 POST /api/baseline/accept|band|reset  \u2014 published as node.${ref ?? "?"}.unusual / .baseline`);
     console.log("  agent     POST /mcp \u2014 rm_resources \xB7 rm_book \xB7 rm_bookings \xB7 rm_pop \xB7 rm_clear");
     console.log("  note      it never locks and never enforces \u2014 it only won't allow double booking (voluntary all the way)");
   }
@@ -97,6 +138,8 @@ async function startResourceManager(overrides = {}) {
     api,
     options,
     stop: async () => {
+      loop.stop();
+      baseline.stop();
       await api.stop();
     }
   };

@@ -169,6 +169,42 @@
   files are right and this page is a bug.</p>
 </section>
 
+<section id="nesting">
+  <h2>Nesting: one book per rung</h2>
+  <p>The operator's rule (2026-11-15): <em>"Scheduler nests like state - there is a node scheduler for what comes next,
+  there is a lan scheduler for the nodes, there is a broker scheduler for the www transactions."</em> The shape is the
+  same at every rung, and a rung never reaches sideways: it reads the rung below it through State, the way a parent reads
+  <code>scope.children</code>.</p>
+  <table>
+    <thead><tr><th>rung</th><th>answers</th><th>book</th><th>state today</th></tr></thead>
+    <tbody>
+      <tr><td><b>node</b> <code>:8132</code></td><td>what does <em>this machine</em> do next</td><td><code>data/jobs.json</code></td><td><b>built</b> — 61 jobs in the book on 123</td></tr>
+      <tr><td><b>lan</b> <code>:8152</code></td><td>which node does it, and when</td><td><code>data/jobs-lan.json</code></td><td><b>built</b> — running, book empty</td></tr>
+      <tr><td><b>broker</b></td><td>which transaction with the outside world, in what order</td><td>its own</td><td><b>not built</b> — declared only (see below)</td></tr>
+    </tbody>
+  </table>
+
+  <h3>What each rung owns, and what it must not</h3>
+  <ul>
+    <li><b>node</b> owns the local queue and the local claim. It is the only rung that may start a process on this box, and
+      it starts it through ProcessWrapper so the row is visible and closable.</li>
+    <li><b>lan</b> owns allocation: which of the nodes in <code>lan.node.&lt;ref&gt;</code> is free, and what it is told to
+      do. It does not run anything itself; it writes the node's own book or asks that node's door.</li>
+    <li><b>broker</b> would own <em>transactions</em>, not processes: a request leaving this LAN and an answer coming back.
+      <b>Karma is priority only</b> — a person with karma is bumped ahead of a free request, and karma is never
+      transferable and never cashed. That is the operator's decision and it matches <code>docs/spec/INTP-1.md</code>.</li>
+  </ul>
+
+  <h3>Why "no queue" and "queued" are not a contradiction</h3>
+  <p>The broker never queues: it answers now, defers with a reason, or refuses. The <em>requester</em> queues — its own node
+  scheduler holds the job and tries again. A free service one-at-a-time therefore costs nothing in the protocol: the
+  pressure lives where the work does, and the broker stays a decision point rather than a backlog.</p>
+
+  <h3>What "not built" means here</h3>
+  <p>There is no broker process, no <code>:8153</code>, no code — and no fake book pretending otherwise. A rung that exists
+  only as a sentence in a document is honest; a rung that exists as an empty book someone can queue into is a trap.</p>
+</section>
+
 <script type="application/json" id="contract">
 {
   "module": "Scheduler",

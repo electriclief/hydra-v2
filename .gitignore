@@ -59,3 +59,11 @@ module/Echidna/data/monitor.json
 data/snapshots/
 module/StateToFile/data/
 module/StateFromFile/data/
+
+# runtime state that belongs to a box, not to the source tree
+module/Access/data/runs.jsonl
+module/MinerState/data/nodes.json
+module/Phoenix/data-lan/
+module/Phoenix/data/receipts/
+module/FirstRun/data/
+module/CommsNode/data/

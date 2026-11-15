@@ -143,8 +143,17 @@ $cards = @(
      can = @('Half-height, single slot, low power - a video out for a small case.', 'Fits miner1''s 4 GB limit and needs no power lead.')
      cannot = @('No Vulkan (Terascale 2), no OpenCL on modern Windows.', 'Cannot mine: 1 GB and a legacy driver.')
      slot = 'SLOT: spare display card (low profile)'
-     note = 'Sticker does not name the model; the Dell part number and the Pegatron silkscreen are what identify it.' }
-)
+     note = 'Sticker does not name the model; the Dell part number and the Pegatron silkscreen are what identify it.' } ,
+  @{ n = 15
+     name = 'MSI GTX 960 GAMING 100ME'
+     vram = '2 GB GDDR5'; die = 'GM206 - Maxwell 2.0'; year = '2015'
+     vulkan = 'YES - final driver branch (580.x)'; verdict = 'DISPLAY + SMALL COMPUTE - 2 GB, not a miner'
+     sticker = @('MSI GTX 960 GAMING 100ME  (100 Million Edition)', 'S/N  602-V320-05SB1501019406', 'PCB  V320  .  8-pin PCIe per MSI spec')
+     can = @('A real 1080p gaming card, and the quietest thing in the box (Twin Frozr V stops its fans at idle).', 'Holds a 1-1.5B model at Q4 entirely on the card in llama.cpp Vulkan.', 'Mines quantus / VerusHash: the dataset is under 1 GB, so 2 GB is enough.')
+     cannot = @('Etchash, Autolykos2 and KawPow all want 2.4-4.6 GB of DAG - a 2 GB card fails every one of them.', 'No 7B model: 4.4 GB does not fit.', 'Maxwell ends at driver 580 - the branch that still covers it is the last one; no further updates.')
+     slot = 'SLOT: compute / display spare - do not put it in a mining slot'
+     note = 'Photo shows the backplate only, so the 8-pin lead is MSI spec, not read off the card. Confirm the PCI id is 10DE:1401 on the bench.' }
+) 
 
 $grandTotal = $cards.Count            # what the page HEADER says: "CARD 2 OF 14" stays true on a single-card reprint
 $onlyNums = @()

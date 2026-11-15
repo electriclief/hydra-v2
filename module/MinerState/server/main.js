@@ -29,6 +29,8 @@ import { readFile, appendFile, mkdir } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { spawn } from 'node:child_process';
+import os from 'node:os';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(HERE, '..');
@@ -117,7 +119,11 @@ function normalise(node, json) {
   // SRBMiner
   const sb = json?.algorithms?.[0];
   if (sb) {
-    const hs = Number(sb?.hashrate?.['1min'] ?? sb?.hashrate?.['15min'] ?? 0);
+    // Some builds (SRBMiner 3.8.0 on richard) publish NO hashrate field at all - the payload is inventory plus
+    // shares, and only the HTML page carries rates. That is a readable miner with an unknown rate, NOT a miner at
+    // zero and not a dead box: `rate_known:false` is what a screen must show as "no rate published".
+    const raw = sb?.hashrate?.['1min'] ?? sb?.hashrate?.['15min'] ?? null;
+    const hs = raw == null ? null : Number(raw);
     return {
       readable: true,
       kind: 'miner',
@@ -126,13 +132,22 @@ function normalise(node, json) {
       host: node.host,
       algo: sb?.name ?? null,
       hashrate_hs: hs,
-      hashrate: fmtRate(hs),
+      hashrate: hs == null ? null : fmtRate(hs),
+      rate_known: hs != null,
       accepted: Number(sb?.shares?.accepted ?? 0),
       rejected: Number(sb?.shares?.rejected ?? 0),
       avg_find_time_s: sb?.shares?.avg_find_time ?? null,
       pool: sb?.pool?.pool ?? null,
       wallet: sb?.pool?.wallet ?? null,
       pool_uptime_s: sb?.pool?.uptime ?? null,
+      // time_connected is a wall-clock STRING ('2026-11-15 09:42:02') on a healthy miner and '0' when it has never
+      // connected - not a number. Number() on the timestamp is NaN, which made every working miner look unconnected.
+      pool_connected: (() => {
+        const tc = sb?.pool?.time_connected;
+        const hasStamp = typeof tc === 'string' && tc.trim() !== '' && tc.trim() !== '0';
+        const hasUptime = Number(sb?.pool?.uptime ?? 0) > 0;
+        return hasStamp || hasUptime;
+      })(),
       miner_uptime_s: json?.mining_time ?? null,
       version: json?.miner_version ?? null,
       cards: (json?.gpu_devices ?? []).map(d => ({
@@ -244,10 +259,47 @@ async function cycle() {
   return { nodes: nodes.length, readable };
 }
 
+// --- algorithm switching ---------------------------------------------------------------------------------------
+// The node owns its miner, so the switch is a file write on the node, not a command to the pool. The supervisor reads
+// C:\AI\miners\desired-algo.txt on every cycle and cycles the miner when it changes, which means one click here lands
+// as a new miner within ~20 s and survives a reboot. Only algorithms that BOTH SRBMiner supports on AMD AND a
+// unMineable host resolves for are offered - the others cannot pay anything, so offering them would be a lie.
+const ALGOS = ['quantus', 'etchash', 'xelishashv3', 'autolykos2', 'ethash', 'pearlhash', 'blake3_decred'];
+const SSH_KEY = process.env.REX_SSH_KEY || join(os.homedir(), '.ssh', 'id_ed25519_echidna');
+
+function run(cmd, args, timeoutMs = 25000) {
+  return new Promise((resolve) => {
+    const child = spawn(cmd, args, { windowsHide: true });
+    let out = '', err = '';
+    const timer = setTimeout(() => { try { child.kill('SIGKILL'); } catch { } resolve({ code: -1, out, err: err + ' (timed out)' }); }, timeoutMs);
+    child.stdout.on('data', (b) => { out += b.toString(); });
+    child.stderr.on('data', (b) => { err += b.toString(); });
+    child.on('error', (e) => { clearTimeout(timer); resolve({ code: -1, out, err: err + e.message }); });
+    child.on('close', (code) => { clearTimeout(timer); resolve({ code, out, err }); });
+  });
+}
+
+async function switchAlgo(node, algo) {
+  if (!ALGOS.includes(algo)) throw new Error(`unknown algorithm '${algo}' - offered: ${ALGOS.join(', ')}`);
+  const remote = `powershell -NoProfile -Command "Set-Content -Path 'C:\\AI\\miners\\desired-algo.txt' -Value ${algo} -Encoding ascii"`;
+  const args = ['-i', SSH_KEY, '-o', 'StrictHostKeyChecking=accept-new', '-o', 'BatchMode=yes', '-o', 'ConnectTimeout=8',
+                `${process.env.REX_SSH_USER || 'user'}@${node.host}`, remote];
+  const r = await run('ssh', args);
+  if (r.code !== 0) throw new Error(`ssh exited ${r.code}: ${(r.err || r.out || '').trim().slice(0, 180)}`);
+  await log(`ALGO SWITCH ${node.ref} -> ${algo} (supervisor cycles the miner within one poll)`);
+  return { ok: true, ref: node.ref, algo, note: 'desired-algo.txt written on the node; the supervisor re-reads it every cycle' };
+}
+
 async function page() {
   const rows = [...state.values()].map(r => r.readable
     ? `<tr><td>${r.node}</td><td>${r.miner}</td><td>${r.algo || ''}</td><td class="n">${r.hashrate}</td><td class="n">${r.accepted}</td><td class="n">${r.rejected}</td><td>${(r.pool || '').split('//').pop()}</td><td>${r.miner_uptime_s ? Math.round(r.miner_uptime_s / 60) + ' min' : ''}</td><td class="via">${r.via || ''}</td></tr>`
     : `<tr class="down"><td>${r.node}</td><td colspan="8">${r.why || 'not readable'}</td></tr>`).join('');
+  const nodes = await loadNodes();
+  const sw = nodes.map(n => {
+    const current = state.get(n.ref)?.algo || '';
+    const btns = ALGOS.map(a => `<button class="b${a === current ? ' on' : ''}" onclick="sw('${n.ref}','${a}')">${a}</button>`).join(' ');
+    return `<div class="swn"><b>${n.ref}</b> ${btns}</div>`;
+  }).join('');
   return `<!doctype html><html><head><meta charset="utf-8"><meta http-equiv="refresh" content="10">
 <title>MinerState</title><style>
  body{margin:0;padding:28px;background:#0f1115;color:#e7e9ee;font:14px/1.6 system-ui,sans-serif}
@@ -256,10 +308,30 @@ async function page() {
  th{color:#8b93a7;font-size:11px;text-transform:uppercase;letter-spacing:.06em}
  .n{text-align:right;font-family:ui-monospace,Consolas,monospace}.via{color:#8b93a7;font-size:11px}
  tr.down td{color:#e2705f}
+ .sw{margin-top:22px;padding-top:16px;border-top:1px solid #2a2f3a}.sw h2{font-size:13px;margin:0 0 4px;color:#8b93a7;text-transform:uppercase;letter-spacing:.06em}
+ .swn{margin:8px 0}.swn b{display:inline-block;width:64px;color:#8b93a7}
+ button.b{background:#1b2029;color:#c9d1e0;border:1px solid #333c4d;border-radius:6px;padding:5px 10px;font:12px system-ui;cursor:pointer}
+ button.b:hover{border-color:#5b8cff;color:#fff}button.b.on{background:#26364f;border-color:#5b8cff;color:#fff}
+ #msg{margin-top:10px;font-size:12px;color:#8b93a7}
 </style></head><body><h1>MinerState</h1>
 <p class="k">reads each miner's own API and publishes <code>node.&lt;ref&gt;.miner</code> into State · refreshes every 10 s</p>
 <table><thead><tr><th>node</th><th>miner</th><th>algo</th><th>rate</th><th>accepted</th><th>rejected</th><th>pool</th><th>uptime</th><th>via</th></tr></thead>
-<tbody>${rows || '<tr><td colspan="9">nothing read yet</td></tr>'}</tbody></table></body></html>`;
+<tbody>${rows || '<tr><td colspan="9">nothing read yet</td></tr>'}</tbody></table>
+<div class="sw"><h2>switch algorithm</h2>
+<p class="k">writes <code>desired-algo.txt</code> on the node · the supervisor cycles the miner within 20 s · safe to press, nothing is formatted or lost</p>
+${sw}<div id="msg"></div></div>
+<script>
+async function sw(ref, algo) {
+  const m = document.getElementById('msg');
+  m.textContent = 'switching ' + ref + ' to ' + algo + '…';
+  try {
+    const r = await fetch('/switch?ref=' + encodeURIComponent(ref) + '&algo=' + encodeURIComponent(algo), { method: 'POST' });
+    const j = await r.json();
+    m.textContent = j.ok ? ('ok — ' + ref + ' → ' + algo + '. The miner restarts with the new algorithm within about 20 s; the table will follow.') : ('refused: ' + j.error);
+    if (j.ok) setTimeout(() => location.reload(), 2500);
+  } catch (e) { m.textContent = 'request failed: ' + e.message; }
+}
+</script></body></html>`;
 }
 
 const server = http.createServer(async (req, res) => {
@@ -281,6 +353,15 @@ const server = http.createServer(async (req, res) => {
       return send(r ? 200 : 404, r || { ok: false, error: `no reading for ${ref}` });
     }
     return send(200, { ok: true, count: state.size, nodes: [...state.values()] });
+  }
+  if (url.pathname === '/switch') {
+    if (req.method !== 'POST') return send(405, { ok: false, error: 'POST only — GET would switch a miner on a page prefetch' });
+    const ref = url.searchParams.get('ref');
+    const algo = url.searchParams.get('algo');
+    const node = (await loadNodes()).find((n) => n.ref === ref);
+    if (!node) return send(404, { ok: false, error: `no declared node '${ref}'` });
+    try { return send(200, await switchAlgo(node, algo)); }
+    catch (e) { return send(400, { ok: false, error: String(e.message || e) }); }
   }
   if (url.pathname === '/' || url.pathname === '/index.html') return send(200, await page(), 'text/html; charset=utf-8');
   return send(404, { ok: false, error: `no route ${url.pathname}` });

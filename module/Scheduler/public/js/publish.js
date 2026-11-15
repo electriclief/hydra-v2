@@ -13,12 +13,13 @@ function refFromNodeJson(root) {
   return null;
 }
 function schedulerPublish(jobs, stats, ref, previously = []) {
+  const PREFIX = process.env.SCHEDULER_PREFIX || `node.${ref}`;
   const entries = {};
   const now = (/* @__PURE__ */ new Date()).toISOString();
   const active = jobs.filter((job) => PUBLISHED.has(job.status));
   const seen = /* @__PURE__ */ new Set();
   for (const job of active) {
-    const name = `node.${ref}.scheduler.booked.${job.id}`;
+    const name = `${PREFIX}.scheduler.booked.${job.id}`;
     seen.add(name);
     entries[name] = {
       id: job.id,
@@ -30,7 +31,7 @@ function schedulerPublish(jobs, stats, ref, previously = []) {
       graph: Array.isArray(job.steps)
     };
   }
-  entries[`node.${ref}.scheduler`] = {
+  entries[`${PREFIX}.scheduler`] = {
     at: now,
     queued: stats.queued,
     running: stats.running,
@@ -41,7 +42,7 @@ function schedulerPublish(jobs, stats, ref, previously = []) {
     booked: active.length,
     nextAt: active.length ? active[0].startedAt ?? active[0].createdAt : null
   };
-  const stale = previously.filter((name) => name.startsWith(`node.${ref}.scheduler.booked.`) && !seen.has(name));
+  const stale = previously.filter((name) => name.startsWith(`${PREFIX}.scheduler.booked.`) && !seen.has(name));
   return { entries, stale };
 }
 async function withTimeout(url, init, timeoutMs = 700) {
@@ -176,8 +177,11 @@ function startPublisher(options, getJobs, getStats, log = () => {
     for (const name of stale) {
       if (await drop(options.stateUrl, name)) published = published.filter((n) => n !== name);
     }
-    const idle = idlePublish(jobs, options.ref, readStandbyPolicy(options.root ?? null), /* @__PURE__ */ new Date(), bootAt);
-    await register(options.stateUrl, idle.name, idle.content);
+    if (!process.env.SCHEDULER_PREFIX) {
+      // idle/standby is a NODE fact ("this box is free for work"); a tier instance has no such thing to report
+      const idle = idlePublish(jobs, options.ref, readStandbyPolicy(options.root ?? null), /* @__PURE__ */ new Date(), bootAt);
+      await register(options.stateUrl, idle.name, idle.content);
+    }
     if (written || stale.length) log(`[publish] ${written} booked entries, ${stale.length} dropped`);
   };
   void tick();

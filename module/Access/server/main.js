@@ -153,6 +153,36 @@ const server = createServer(async (req, res) => {
     return send(res, 200, { ok: true, nodes });
   }
 
+
+// ── the LAN tier ────────────────────────────────────────────────────────────
+// A command run on any node is a fact about the LAN, so it is published where the LAN's state lives: the door's own
+// run log stays on disk, and the tier above gets `lan.access.runs` (newest first) plus `lan.access.last`. Fire and
+// forget with a timeout: an unavailable State must never fail a command that already succeeded on the node.
+const LAN_STATE = (process.env.ACCESS_LAN_STATE || 'http://127.0.0.1:8148').replace(/\/$/, '');
+
+async function recentRuns(limit = 12) {
+  try {
+    const text = await readFile(RUNS, 'utf8');
+    return text.trim().split('\n').filter(Boolean).slice(-limit).reverse()
+      .map((l) => { try { return JSON.parse(l); } catch { return null; } }).filter(Boolean);
+  } catch { return []; }
+}
+
+async function publishRun(entry) {
+  const put = async (name, content) => {
+    const r = await fetch(`${LAN_STATE}/api/state/register`, {
+      method: 'POST', headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ name, content }), signal: AbortSignal.timeout(1500),
+    });
+    if (!r.ok) throw new Error(`${name} HTTP ${r.status}`);
+  };
+  const runs = await recentRuns();
+  await Promise.all([
+    put('lan.access.last', { ...entry, source: 'Access' }),
+    put('lan.access.runs', { at: new Date().toISOString(), count: runs.length, runs, source: 'Access' }),
+  ]);
+}
+
   if (path === '/api/run' && req.method === 'POST') {
     const b = await bodyJson(req);
     if (!b || !b.cmd) return send(res, 400, { ok: false, error: 'body must be {node, cmd, cwd?, timeoutSec?}' });
@@ -164,11 +194,18 @@ const server = createServer(async (req, res) => {
       const r = await call(node, '/exec', { method: 'POST', body: JSON.stringify({ cmd: b.cmd, cwd: b.cwd, timeoutSec }) }, timeoutSec * 1000 + 8000);
       const out = r.json || { ok: false, error: `HTTP ${r.status}: ${r.text.slice(0, 300)}` };
       await record({ at: new Date().toISOString(), node: node.ref, ip: node.ip, cmd: String(b.cmd).slice(0, 2000), exitCode: out.exitCode ?? null, ms: out.ms ?? null, roundTrip: Date.now() - t0, ok: Boolean(out.ok) });
+      publishRun({ at: new Date().toISOString(), node: node.ref, cmd: String(b.cmd).slice(0, 300), ok: Boolean(out.ok), exitCode: out.exitCode ?? null, ms: out.ms ?? null }).catch(() => {});
       return send(res, 200, { ok: Boolean(out.ok), node: node.ref, ip: node.ip, ...out, roundTrip: Date.now() - t0 });
     } catch (err) {
-      const error = err.name === 'AbortError' ? `the node did not answer within ${timeoutSec}s` : String(err.message || err);
+      // A slow box (ReX answers a CIM query in ~38 s) can outlive this door's patience while the command still runs to
+      // completion on the node. Say that, and point at the node's own audit, instead of a bare "bad gateway".
+      const slow = err.name === 'AbortError';
+      const error = slow
+        ? `the node did not answer within ${timeoutSec}s - it may still be running the command; check /api/audit?node=${node.ref}`
+        : String(err.message || err);
       await record({ at: new Date().toISOString(), node: node.ref, ip: node.ip, cmd: String(b.cmd).slice(0, 2000), error, ok: false });
-      return send(res, 502, { ok: false, node: node.ref, ip: node.ip, error });
+      publishRun({ at: new Date().toISOString(), node: node.ref, cmd: String(b.cmd).slice(0, 300), ok: false, error }).catch(() => {});
+      return send(res, slow ? 504 : 502, { ok: false, node: node.ref, ip: node.ip, error, stillRunning: slow });
     }
   }
 

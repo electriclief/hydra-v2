@@ -70,6 +70,57 @@
 
   .tree-heading b { color: var(--text); font-weight: 600; }
 
+  /* This node's own line: who lives here, and whether the machine is behaving like itself. */
+  /* one line, always: the tree column is narrow, and a wrapped status line landed on top of the service list */
+  .selfline { display: block; margin: 2px 8px 8px; font-size: 12px; color: var(--muted);
+              white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+              /* the tree column pins its section headings (position:sticky, z-index:1); this line must never be painted
+                 under them, and it must carry its own background so it reads as one strip */
+              position: relative; z-index: 2; background: inherit; }
+  .selfline b { color: var(--ink); font-weight: 600; }
+  .selfline .bad { color: #e74c3c; font-weight: 600; }
+  .selfline .warn { color: #f5b041; }
+  .selfline .ok { color: #58d68d; }
+
+  /* The two clocks. A cycle decides things at a beat boundary, so the useful question is not "is it healthy" but
+     "how long until it looks again" - drawn as a ring that drains, because a countdown you can see at a glance
+     beats a timestamp you have to subtract from. */
+  .cycles { display: flex; gap: 18px; margin: 0 8px 10px; position: relative; z-index: 2; background: inherit; }
+  .cyc { display: grid; grid-template-columns: 34px auto; grid-template-rows: auto auto; column-gap: 8px;
+         align-items: center; cursor: default; }
+  .cyc svg { grid-row: 1 / span 2; display: block; }
+  .cyc .trk { fill: none; stroke: var(--text); opacity: .13; stroke-width: 3; }
+  .cyc .prg { fill: none; stroke: var(--text); stroke-width: 3; stroke-linecap: round;
+              transition: stroke-dashoffset .25s linear, stroke .5s ease; }
+  .cyc b { font: 600 13px/1.1 ui-monospace, SFMono-Regular, Consolas, monospace; font-variant-numeric: tabular-nums;
+           letter-spacing: .02em; color: var(--text); }
+  .cyc i { font-style: normal; font-size: 9px; line-height: 1.2; letter-spacing: .16em; text-transform: uppercase;
+           color: var(--muted); }
+  .cyc.hot .prg { stroke: #d68910; }
+  .cyc.hot b { color: #d68910; }
+  .cyc.critical .prg { stroke: #e74c3c; }
+  .cyc.critical svg { filter: drop-shadow(0 0 5px rgba(231, 76, 60, .55)); }
+  .cyc.critical b { color: #e74c3c; }
+  .cyc.firing .prg { stroke: #27ae60; animation: cyc-pulse .9s ease-in-out infinite; }
+  .cyc.firing svg { filter: drop-shadow(0 0 6px rgba(39, 174, 96, .6)); }
+  .cyc.firing b { color: #27ae60; }
+  @keyframes cyc-pulse { 0%, 100% { opacity: 1; } 50% { opacity: .3; } }
+
+  /* One page at a time, with the dots underneath. The right panel is a monitor, not a scrollbar: a node that is three
+     screenfuls down is a node nobody looks at. Every page is a whole thought - the fleet, then one machine. */
+  .pager { position: relative; }
+  .page { display: none; animation: page-in .18s ease-out; }
+  .page.active { display: block; }
+  @keyframes page-in { from { opacity: 0; transform: translateY(3px); } to { opacity: 1; transform: none; } }
+  .dots { display: flex; align-items: center; justify-content: center; gap: 7px; padding: 10px 0 2px; flex-wrap: wrap; }
+  .dot { width: 7px; height: 7px; padding: 0; border: 1px solid var(--border); border-radius: 50%;
+         background: transparent; cursor: pointer; transition: background .15s ease, border-color .15s ease, transform .15s ease; }
+  .dot:hover { border-color: var(--muted); transform: scale(1.25); }
+  .dot.on { background: var(--text); border-color: var(--text); }
+  .dot.warn { border-color: #d68910; }
+  .dot.bad { border-color: #e74c3c; }
+  .pageno { font: 11px/1 ui-monospace, Consolas, monospace; color: var(--muted); margin-left: 4px;
+            font-variant-numeric: tabular-nums; }
   .hint {
     margin: 0 8px 10px;
     color: var(--muted);
@@ -86,9 +137,46 @@
     list-style: none;
     margin: 0;
     padding: 0;
+    /* The list is height-capped, and a capped list with overflow:visible SPILLS over whatever is below it - the service
+       rows were drawn on top of the LAN heading and its first node. A capped box must scroll its own contents. */
+    overflow-y: auto;
+    overflow-x: hidden;
   }
 
   .node { margin: 3px 0; }
+
+  /* ── what each node is doing, on one line ──────────────────────────────
+     The operator's ask: one top entry per node that says what is running - "Idle mining quantus 23.1 MH/s acc 3" -
+     and the list of services folded away underneath, because eleven rows per machine is a wall of text when the only
+     question is "is it earning and did it just come back?". */
+  .headline {
+    display: block;
+    font-size: 12px;
+    color: var(--text);
+    opacity: .92;
+    margin: 1px 0 2px 0;
+    font-variant-numeric: tabular-nums;
+  }
+  .headline .hb { font-weight: 600; }
+  .headline .hm { color: var(--muted); }
+  .headline .h-ok { color: #58d68d; }
+  .headline .h-bad { color: #e74c3c; }
+  .headline .h-warn { color: #f5b041; }
+
+  details.svc { margin: 2px 0 0 0; }
+  details.svc > summary {
+    cursor: pointer;
+    font-size: 11.5px;
+    color: var(--muted);
+    padding: 2px 0;
+    list-style: none;
+    user-select: none;
+  }
+  details.svc > summary::-webkit-details-marker { display: none; }
+  details.svc > summary::before { content: '▸ '; display: inline-block; }
+  details.svc[open] > summary::before { content: '▾ '; }
+  details.svc > summary:hover { color: var(--text); }
+  details.svc .lan-list { margin-top: 2px; }
 
   /* ── other nodes on the LAN ────────────────────────────────────────────
      Same tree, repeated per node. Hidden when there is nobody else, so a
@@ -1044,10 +1132,282 @@
     return { who: null, label: 'idle', why: 'idle' };
   }
 
+  // ── MinerState as a second source ────────────────────────────────────────
+  // lan.json's standby block is the node's own opinion of itself; MinerState reads each miner's API directly and is the
+  // only source that can say "unreadable" instead of "idle". For the headline the miner's own row wins when it exists,
+  // which is also what fixes the case where a node reports mode: idle while a 1650 is hashing a TH/s.
+  // The tree reads the LAN TIER, not the pieces: lan.miners is one entry published by Mirror that already merges
+  // MinerState's readings (a box with no State door still appears) with each node's own standby report. MinerState
+  // stays as the fallback for the case where the LAN tier is down.
+  var LAN_MINERS = 'http://127.0.0.1:8148/api/state/pull?name=lan.miners';
+  var MINER_URL = 'http://127.0.0.1:8147/state';
+  var minerRows = {};
+  // This node's own two facts: the machine's learned "unusual" (ResourceManager) and the name it calls its agent
+  // (FirstRun -> Phoenix/data/personality.json). Both are published into local State, so the Menu reads them the same way
+  // it reads everything else - no second source of truth.
+  var SELF_STATE = 'http://127.0.0.1:8127/api/state/pull?name=';
+  var selfRef = null;
+  var selfFacts = { unusual: null, personality: null };
+
+  // ── the two clocks ───────────────────────────────────────────────────────────────────────────────────────
+  // Every fact here comes from Phoenix itself (node.<ref>.upkeep, and the SERVER's lan.cycle) carried through
+  // lan.json. No nextAt means no countdown: a guessed ring is worse than no ring.
+  var CYC_R = 15.5;
+  var CYC_C = 2 * Math.PI * CYC_R;
+  var cycTimer = null;
+
+  function cycCell(label, cyc) {
+    if (!cyc || !cyc.nextAt || !cyc.everyMin) return '';
+    var at = Date.parse(cyc.nextAt);
+    if (!isFinite(at)) return '';
+    // DRESSED AT BIRTH: the arc and the digits are computed here, not after insertion. A placeholder that survives even
+    // one poll interval reads as a broken clock - and the whole point of this widget is that you can trust what it says.
+    var every = Number(cyc.everyMin) * 60000;
+    var left = Math.max(0, at - Date.now());
+    var frac = every > 0 ? Math.min(1, left / every) : 0;
+    var mm = Math.floor(left / 60000), ss = Math.floor((left % 60000) / 1000);
+    var digits = left <= 0 ? '\u00b7\u00b7\u00b7' : (mm + ':' + (ss < 10 ? '0' : '') + ss);
+    var cls = 'cyc' + (left <= 0 ? ' firing' : left <= 30000 ? ' critical' : left <= 90000 ? ' hot' : '');
+    return '<span class="' + cls + '" data-at="' + at + '" data-every="' + Number(cyc.everyMin) + '"'
+      + ' data-beat="' + esc(String(cyc.beat == null ? '?' : cyc.beat)) + '" data-label="' + esc(label) + '"'
+      + ' title="' + esc(label) + ' cycle \u00b7 beat ' + esc(String(cyc.beat == null ? '?' : cyc.beat)) + '">'
+      + '<svg viewBox="0 0 36 36" width="34" height="34" aria-hidden="true">'
+      + '<circle class="trk" cx="18" cy="18" r="' + CYC_R + '"></circle>'
+      + '<circle class="prg" cx="18" cy="18" r="' + CYC_R + '" transform="rotate(-90 18 18)"'
+      + ' style="stroke-dasharray:' + CYC_C.toFixed(2) + 'px;stroke-dashoffset:' + (CYC_C * (1 - frac)).toFixed(2) + 'px"></circle>'
+      + '</svg><b>' + digits + '</b><i>' + esc(label) + '</i></span>';
+  }
+
+  function renderCycles(lan, selfPeer) {
+    // ONE CLOCK. The parent cycle governs; a node's own upkeep is a reflection the parent writes, not a second
+    // timeline. Two rings implied two schedules, and the whole point of the lane is that there is one.
+    var server = lan && lan.serverCycle ? lan.serverCycle : null;
+    var cells = cycCell('cycle', server);
+    if (!cells) return '';
+    return '<div class="cycles" id="cycles">' + cells + '</div>';
+  }
+
+  // 250 ms is enough to look continuous on a ten-minute ring and cheap enough to leave running forever.
+  function paintCycles() {
+    if (!cycTimer) cycTimer = setInterval(paintCycles, 250);
+    var host = document.getElementById('cycles');
+    if (!host) return;
+    var now = Date.now();
+    Array.prototype.forEach.call(host.querySelectorAll('.cyc'), function (el) {
+      var at = Number(el.getAttribute('data-at'));
+      var every = Number(el.getAttribute('data-every')) * 60000;
+      var left = Math.max(0, at - now);
+      var frac = every > 0 ? Math.min(1, left / every) : 0;
+      var prg = el.querySelector('.prg');
+      if (prg) {
+        prg.style.strokeDasharray = CYC_C.toFixed(2);
+        prg.style.strokeDashoffset = (CYC_C * (1 - frac)).toFixed(2);
+      }
+      el.classList.toggle('hot', left <= 90000 && left > 30000);
+      el.classList.toggle('critical', left <= 30000 && left > 0);
+      el.classList.toggle('firing', left <= 0);
+      var t = el.querySelector('b');
+      if (left <= 0) { t.textContent = '···'; }
+      else {
+        var mm = Math.floor(left / 60000), ss = Math.floor((left % 60000) / 1000);
+        t.textContent = mm + ':' + (ss < 10 ? '0' : '') + ss;
+      }
+      var beat = el.getAttribute('data-beat');
+      el.title = el.getAttribute('data-label') + ' cycle · beat ' + beat + ' · '
+        + (left <= 0 ? 'firing - the next beat is due' : Math.ceil(left / 1000) + ' s until the next beat');
+    });
+  }
+
+  function stopCycles() {
+    if (cycTimer) { clearInterval(cycTimer); cycTimer = null; }
+  }
+
+  // ── pages ────────────────────────────────────────────────────────────────────────────────────────────────────
+  // The right panel is a monitor: one page at a time, dots underneath, keyboard too. The page number survives a
+  // re-render (the panel repaints every poll, and snapping back to page 1 mid-read would be its own bug).
+  var PAGE = 0;
+  var PAGE_LABELS = [];
+
+  function pageTone(i, peers) {
+    if (i === 0) return '';
+    var n = peers[i - 1];
+    if (!n) return '';
+    if (n.verdict === 'gone' || n.verdict === 'no state door') return 'warn';
+    if (n.degraded) return 'bad';
+    return '';
+  }
+
+  function renderPages(box, pages, peers, headerHtml) {
+    if (!pages.length) { box.innerHTML = ''; return; }
+    if (PAGE >= pages.length) PAGE = pages.length - 1;
+    if (PAGE < 0) PAGE = 0;
+    // the header (Echidna + the parent clock) stands outside the pages: it is true on every page
+    var html = (headerHtml || '') + '<div class="pager" id="pager">';
+    for (var i = 0; i < pages.length; i++) {
+      html += '<section class="page' + (i === PAGE ? ' active' : '') + '" data-i="' + i + '">' + pages[i] + '</section>';
+    }
+    html += '</div><div class="dots" id="dots" role="tablist">';
+    for (var j = 0; j < pages.length; j++) {
+      var label = j === 0 ? 'fleet' : ((peers[j - 1] && (peers[j - 1].name || peers[j - 1].ref)) || ('page ' + (j + 1)));
+      var tone = pageTone(j, peers);
+      html += '<button class="dot' + (j === PAGE ? ' on' : '') + (tone ? ' ' + tone : '') + '" data-i="' + j + '"'
+        + ' title="' + esc(label) + '" aria-label="' + esc(label) + '"></button>';
+    }
+    html += '<span class="pageno">' + (PAGE + 1) + '/' + pages.length + '</span></div>';
+    box.innerHTML = html;
+    paintCycles();
+  }
+
+  function goPage(i) {
+    var pager = document.getElementById('pager');
+    var dots = document.getElementById('dots');
+    if (!pager || !dots) return;
+    var pages = pager.querySelectorAll('.page');
+    if (!pages.length) return;
+    PAGE = Math.max(0, Math.min(pages.length - 1, i));
+    Array.prototype.forEach.call(pages, function (el, k) { el.classList.toggle('active', k === PAGE); });
+    Array.prototype.forEach.call(dots.querySelectorAll('.dot'), function (el, k) { el.classList.toggle('on', k === PAGE); });
+    var num = dots.querySelector('.pageno');
+    if (num) num.textContent = (PAGE + 1) + '/' + pages.length;
+    // a page change moves the clock into or out of the document: repaint so it is never blank when it becomes visible
+    paintCycles();
+  }
+
+  document.addEventListener('click', function (e) {
+    var dot = e.target && e.target.closest ? e.target.closest('.dot') : null;
+    if (dot && dot.parentNode && dot.parentNode.id === 'dots') { goPage(Number(dot.getAttribute('data-i'))); }
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.altKey || e.ctrlKey || e.metaKey) return;
+    if (e.key === 'ArrowRight' || e.key === 'PageDown') { goPage(PAGE + 1); }
+    if (e.key === 'ArrowLeft' || e.key === 'PageUp') { goPage(PAGE - 1); }
+  });
+
+  // lan.json calls it "gtx-1660" while MinerState calls it "gtx1660": the key has to be punctuation-blind or one of
+  // them silently loses its miner row and gets reported as idle while it is hashing (that exact bug shipped once).
+  function normKey(v) {
+    return String(v == null ? '' : v).toLowerCase().replace(/[^a-z0-9]/g, '');
+  }
+  function keyOf(n) {
+    return normKey(n.ref || n.name || '');
+  }
+
+  function fmtSecs(s) {
+    if (!isFinite(s) || s <= 0) return '';
+    if (s < 90) return Math.round(s) + 's';
+    if (s < 5400) return (s / 60).toFixed(1) + ' min';
+    return (s / 3600).toFixed(1) + ' h';
+  }
+
+  // ── did it just go down, or just come back? ─────────────────────────────
+  // Kept in localStorage so a page reload does not erase the outage you were watching. This is the "see each miner go
+  // down, then back up" requirement: the transition is the news, not the level.
+  var SEEN_KEY = 'hydra.menu.minerState';
+  var seen = {};
+  try { seen = JSON.parse(localStorage.getItem(SEEN_KEY) || '{}') || {}; } catch (e) { seen = {}; }
+
+  function noteState(ref, up) {
+    var now = Date.now();
+    var prev = seen[ref];
+    if (!prev) {
+      // first sight is not news: a page reload must not manufacture six "back up" chips
+      seen[ref] = { up: !!up, firstAt: now, flippedAt: 0 };
+    } else if (!!prev.up !== !!up) {
+      seen[ref] = { up: !!up, firstAt: prev.firstAt || now, flippedAt: now };
+    }
+    try { localStorage.setItem(SEEN_KEY, JSON.stringify(seen)); } catch (e) { /* private mode */ }
+    var s2 = seen[ref] || {};
+    return { flippedS: s2.flippedAt ? Math.round((now - s2.flippedAt) / 1000) : 0, up: !!up };
+  }
+
+  function transitionChip(t) {
+    if (!t || !t.flippedS) return '';
+    if (!t.up) return '<span class="h-bad"> · went down ' + fmtSecs(t.flippedS) + ' ago</span>';
+    return '<span class="h-ok"> · came back ' + fmtSecs(t.flippedS) + ' ago</span>';
+  }
+
+  // ── the one line: what is running, with the numbers that prove it ────────
+  // lan.json and MinerState do not agree on names - "1660" there, "gtx1660" here - so a plain key lookup loses a row
+  // and a machine that is hashing a terahash gets drawn as idle. Match exactly first, then by containment.
+  function minerFor(ref) {
+    var k = normKey(ref);
+    if (!k) return null;
+    if (minerRows[k]) return minerRows[k];
+    var hit = null;
+    Object.keys(minerRows).forEach(function (mk) {
+      if (hit) return;
+      if (Math.min(mk.length, k.length) >= 3 && (mk.indexOf(k) >= 0 || k.indexOf(mk) >= 0)) hit = minerRows[mk];
+    });
+    return hit;
+  }
+
+  function headlineFor(n) {
+    // parked is an instruction, not a fault: the operator took this box out of service on purpose. It is NOT the
+    // same as managed:false (which only means "no Hydra app here") - that conflation drew Richard and miner1 as parked.
+    if (n.intent && n.intent.parked === true) {
+      var why = (n.intent && (n.intent.notes || n.intent.role)) || 'taken out of service';
+      return '<span class="hb hm">parked</span> <span class="hm">· ' + esc(String(why).slice(0, 90)) + '</span>';
+    }
+    var ref = keyOf(n);
+    var m = minerFor(n.ref || n.name);
+    var sb = n.standby || null;
+    var md = (sb && sb.minerDetail) || null;
+
+    // a live miner row outranks everything else
+    if (m && m.readable) {
+      var bits = '<span class="hb">Idle mining</span>';
+      if (m.algo) bits += ' <span class="hm">·</span> ' + esc(m.algo);
+      if (m.hashrate) bits += ' <span class="hm">·</span> ' + esc(m.hashrate);
+      bits += ' <span class="hm">·</span> acc ' + esc(m.accepted == null ? '?' : m.accepted)
+            + ' / rej ' + esc(m.rejected == null ? '?' : m.rejected);
+      if (m.avg_find_time_s) bits += ' <span class="hm">·</span> 1 share / ' + fmtSecs(m.avg_find_time_s);
+      if (m.pool_connected === false) bits += ' <span class="h-bad">· never connected to its pool</span>';
+      if (m.rate_known === false) bits += ' <span class="hm">· no rate published by this miner build</span>';
+      var t = noteState(ref, true);
+      return bits + transitionChip(t);
+    }
+    if (m && m.readable === false) {
+      var t2 = noteState(ref, false);
+      return '<span class="hb h-bad">miner not answering</span> <span class="hm">· ' + esc(m.why || 'no miner API')
+        + '</span>' + transitionChip(t2);
+    }
+    if (sb && !sb.stale && sb.mode === 'mining' && md) {
+      var b2 = '<span class="hb">Idle mining</span>';
+      if (md.algo || md.label) b2 += ' <span class="hm">·</span> ' + esc(md.label || md.algo);
+      if (typeof md.rate === 'number') b2 += ' <span class="hm">·</span> ' + esc(md.rate + ' ' + (md.unit || 'H/s'));
+      if (typeof md.accepted === 'number') b2 += ' <span class="hm">·</span> acc ' + esc(md.accepted) + ' / rej ' + esc(md.rejected || 0);
+      return b2 + transitionChip(noteState(ref, true));
+    }
+    if (sb && !sb.stale && sb.mode === 'ai') {
+      return '<span class="hb">AI work</span> <span class="hm">·</span> ' + esc(sb.ai || 'unnamed process') + transitionChip(noteState(ref, true));
+    }
+    if (sb && sb.stale) {
+      return '<span class="hb h-warn">no report</span> <span class="hm">· last said ' + esc(sb.mode) + ' ' + esc(sb.ageS == null ? '?' : sb.ageS + 's ago') + '</span>' + transitionChip(noteState(ref, false));
+    }
+    if (n.verdict && n.verdict !== 'alive') {
+      return '<span class="hb h-bad">' + esc(n.verdict) + '</span> <span class="hm">· no state door</span>' + transitionChip(noteState(ref, false));
+    }
+    return '<span class="hb hm">idle</span> <span class="hm">· standing by</span>' + transitionChip(noteState(ref, n.verdict === 'alive'));
+  }
+
   function render(lan) {
     // include THIS node: the operator wants to see every card on the LAN, including the one under his desk
     var peers = (lan.nodes || []).filter(function (n) { return n.role === 'self'; })
       .concat((lan.nodes || []).filter(function (n) { return n.role !== 'self'; }));
+
+    // the ref of THIS box, so the two node-level facts can be pulled by name on the next tick
+    var selfPeer = peers.filter(function (n) { return n.role === 'self'; })[0];
+    if (selfPeer && (selfPeer.ref || selfPeer.name)) selfRef = selfPeer.ref || selfPeer.name;
+    absorbSelfFacts(selfPeer);
+
+    // A node with no State door is not a node that is doing nothing: rex and miner1 answer only through their miner's
+    // API. They are added here from MinerState, labelled honestly, so "every miner on the LAN" means every miner.
+    var have = peers.map(function (n) { return normKey(n.ref || n.name); });
+    Object.keys(minerRows).forEach(function (mk) {
+      var covered = have.some(function (h) { return h === mk || (Math.min(h.length, mk.length) >= 3 && (h.indexOf(mk) >= 0 || mk.indexOf(h) >= 0)); });
+      if (covered) return;
+      peers.push({ ref: mk, name: mk, role: 'miner-only', verdict: 'no state door', services: [], standby: null, ip: minerRows[mk].host || '', minerOnly: true });
+    });
     if (!peers.length) { section.hidden = true; return; }
 
     var fleetLine = '';
@@ -1060,8 +1420,33 @@
         : '<p class="hint">Roster ' + esc(lan.fleet.source) + ' is unreadable (' + esc(lan.fleet.error) + ') — roles unknown, not absent</p>';
     }
 
-    box.innerHTML = fleetLine + peers.map(function (n) {
-      var measuredOnly = !!(n.standby && n.standby.source === 'miner-api');
+    // who lives here - and whether this machine is acting like itself. A red line is the whole point of a learned
+    // baseline: it is only red when it is unusually high for THIS box, not when a constant somewhere says so.
+    var selfLine = '';
+    if (selfFacts.personality || selfFacts.unusual) {
+      var who = selfFacts.personality && selfFacts.personality.name ? selfFacts.personality.name : 'this node';
+      // the tone belongs in the tooltip: it is a sentence, and the tree column holds one line
+      var titleText = selfFacts.personality && selfFacts.personality.tone ? String(selfFacts.personality.tone) : '';
+      var bits = [];
+      var un = selfFacts.unusual;
+      if (un && un.unusual && (un.findings || []).length) {
+        var first = un.findings[0];
+        var more = un.findings.length > 1 ? ' (+' + (un.findings.length - 1) + ')' : '';
+        bits.push('<span class="bad">unusual · ' + esc(first.metric) + ' ' + esc(String(first.value)) + ' '
+          + esc(first.direction || '') + ' band ' + esc(String((first.band || {}).low)) + '–' + esc(String((first.band || {}).high)) + more
+          + '</span>');
+      } else if (un && un.learning) {
+        bits.push('<span class="warn">learning what normal is</span>');
+      } else if (un) {
+        bits.push('<span class="ok">normal</span>');
+      }
+      selfLine = '<p class="selfline" title="' + esc(titleText) + '"><b>' + esc(who) + '</b>'
+        + (bits.length ? ' · ' + bits.join(' · ') : '') + '</p>';
+    }
+
+    var cyclesLine = renderCycles(lan, selfPeer);
+    var nodeBlocks = peers.map(function (n) {
+      var measuredOnly = !!n.minerOnly || !!(n.standby && n.standby.source === 'miner-api');
       var chips = [measuredOnly ? 'no state door' : n.verdict];
       if (!measuredOnly) chips.push(n.cycle == null ? 'no cycle' : 'cycle ' + n.cycle);
       if (n.standby && !n.standby.stale && n.standby.mode === 'mining') {
@@ -1070,6 +1455,8 @@
         chips.push(mdChip && (mdChip.label || mdChip.algo) ? 'mining ' + (mdChip.label || mdChip.algo) : 'mining');
       }
       if (n.standby && !n.standby.stale && n.standby.mode === 'ai') chips.push('AI');
+      // ONE CLOCK, stated on the page: this node's beat is the parent's beat, not its own
+      if (n.upkeep && n.upkeep.governed && n.upkeep.beat != null) chips.push('parent beat ' + n.upkeep.beat);
       if (n.misses && !measuredOnly) chips.push(n.misses + ' missed');
       if (n.degraded) chips.push('degraded');
       if (n.seenAt) chips.push(ago(n.seenAt));
@@ -1152,13 +1539,25 @@
         forRow = '<li class="lan-row"><span class="lan-name">For</span><span class="lan-meta">no declaration in the roster</span></li>';
       }
 
+      // ONE LINE PER NODE, THEN THE FOLDED LIST. The headline is the answer to "is it earning and did it just come
+      // back"; the eleven service rows are reference material, so they live behind a summary that says how many there are.
+      var svcCount = (n.services || []).length;
+      var st = seen[keyOf(n)] || {};
+      var openAttr = (st.flippedAt && (Date.now() - st.flippedAt) < 300000) ? ' open' : '';
       return '<div class="node">'
         + '<div class="node-head"><b>' + esc(title) + '</b><span class="chips">'
         + chips.map(function (c) { return '<span class="chip ' + esc(n.verdict) + '">' + esc(c) + '</span>'; }).join('')
         + '</span></div>'
+        + '<div class="headline">' + headlineFor(n) + '</div>'
+        + '<details class="svc"' + openAttr + '>'
+        + '<summary>services (' + svcCount + ')' + (n.intent && n.intent.role ? ' · ' + esc(n.intent.role) : '') + '</summary>'
         + '<ul class="lan-list">' + standbyRow + forRow + rows + booked + '</ul>'
+        + '</details>'
         + '</div>';
-    }).join('') + absentSections(lan);
+    });
+    // page 1 is the fleet itself; then one machine per page. absentSections rides on the fleet page because an absent
+    // node has no state to give a page of its own.
+    renderPages(box, [selfLine + fleetLine + absentSections(lan)].concat(nodeBlocks), peers, selfLine + cyclesLine);
 
     section.hidden = false;
   }
@@ -1168,6 +1567,7 @@
   //   offline   - a Hydra node that is not on the wire right now, greyed with its declared role and the word offline
   function absentSections(lan) {
     var absent = lan.declaredAbsent || [];
+    if (!absent.length) return '';
     var bench = absent.filter(function (a) { return !a.ip; });
     var unmanaged = absent.filter(function (a) { return a.ip && a.managed === false; });
     var offline = absent.filter(function (a) { return a.ip && a.managed !== false; });
@@ -1214,14 +1614,56 @@
           + '</ul></div>';
       }).join('');
     }
-    return out;
+    // ONE FOLD FOR THE WHOLE GROUP. Eight declared machines that are not on the wire were taking eight blocks of the
+    // tree; the useful line is the count plus why each one is missing, not a wall of grey cards.
+    var bits = [];
+    if (offline.length) bits.push(offline.length + ' offline');
+    if (unmanaged.length) bits.push(unmanaged.length + ' ssh only');
+    if (bench.length) bits.push(bench.length + ' no address');
+    return '<details class="svc" style="margin-top:14px"><summary>declared, not here (' + absent.length + ')'
+      + (bits.length ? ' · ' + bits.join(' · ') : '') + '</summary>' + out + '</details>';
+  }
+
+  function loadMiners() {
+    return fetch(LAN_MINERS, { cache: 'no-store' })
+      .then(function (r) { if (!r.ok) throw new Error('' + r.status); return r.json(); })
+      .then(function (j) {
+        var byRef = (j.content && j.content.byRef) || null;
+        if (!byRef) throw new Error('no lan.miners');
+        var map = {};
+        Object.keys(byRef).forEach(function (k) { map[normKey(k)] = byRef[k]; });
+        minerRows = map;
+      })
+      .catch(function () { return loadMinersFromMinerState(); });
+  }
+
+  function loadMinersFromMinerState() {
+    return fetch(MINER_URL, { cache: 'no-store' })
+      .then(function (r) { if (!r.ok) throw new Error('' + r.status); return r.json(); })
+      .then(function (j) {
+        var map = {};
+        (j.nodes || []).forEach(function (row) {
+          if (row && (row.node || row.ref)) map[normKey(row.node || row.ref)] = row;
+        });
+        minerRows = map;
+      })
+      .catch(function () { /* MinerState down: the headline falls back to the node's own standby report */ });
+  }
+
+  // These two facts arrive inside lan.json (Mirror carries node.<ref>.unusual and .personality). They are NOT fetched
+  // from State directly: a page on :8133 cannot read :8127 cross-origin, and a silent CORS refusal looked exactly like
+  // "this node has no personality" for one debugging round.
+  function absorbSelfFacts(peer) {
+    if (!peer) return;
+    selfFacts.unusual = peer.unusual || null;
+    selfFacts.personality = peer.personality || null;
   }
 
   function tick() {
     if (busy) return;
     busy = true;
-    fetch(url, { cache: 'no-store' })
-      .then(function (r) { if (!r.ok) throw new Error('' + r.status); return r.json(); })
+    Promise.all([loadMiners(), fetch(url, { cache: 'no-store' })])
+      .then(function (res) { var r = res[1]; if (!r.ok) throw new Error('' + r.status); return r.json(); })
       .then(function (lan) { render(lan); })
       .catch(function () {
         section.hidden = false;

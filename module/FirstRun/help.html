@@ -1,0 +1,123 @@
+<h1>FirstRun</h1>
+
+<section id="summary">
+  <h2>Summary</h2>
+<p>What happens the first time Hydra meets a machine. It reads the box, proposes, and writes - it does not guess and it
+does not install anything the machine cannot carry. Four questions, in order: <b>is there already an agent here?</b> (if
+yes it is adopted, and it simply learns that in Hydra its name is Echidna), <b>which brain can answer?</b> (probed with one
+real call before it is trusted), <b>which services fit?</b> (the library's declared needs against this machine's measured
+hardware), and <b>is this machine already born?</b> (an existing node.json is refused, not overwritten).</p>
+
+</section>
+<section id="concepts">
+  <h2>Concepts</h2>
+
+<h3>Adopt, do not duplicate</h3>
+<p>The operator's rule: "have your own agent installing? Ok that is Echidna! No agent? Hermes!" So <code>/api/scan</code>
+looks for agents a person may already run - Hermes, Claude Code, Codex, Aider, Gemini CLI - and the first one found is
+the candidate. Nothing is installed in that case. The personality file is the mechanism: it says the name, voice and tone
+this node calls its agent, so an adopted agent is not asked to pretend, it is told what it is called here.</p>
+
+<h3>A brain is not a brain until it answers</h3>
+<p><code>POST /api/probe-brain</code> makes one real call and reports what came back. A candidate with no key reports
+<code>reachable: true, error: "no key"</code> plus the free models it can see - honest about being one account away from
+working, rather than pretending to be configured. A model that cannot answer is never written as the chosen brain.</p>
+
+<h3>"Mostly not enough resources" is a list, not a feeling</h3>
+<p>Every entry in the service library declares <code>needs</code> (gpu, vramGb, ramMb, cores, diskGb). <code>/api/plan</code>
+compares each with the machine's <b>measured</b> hardware - taken from ResourceManager's inventory, which resolves VRAM from
+the registry rather than the 32-bit AdapterRAM field - and marks it fits or does-not-fit <b>with the reason</b>.</p>
+
+<h3>Born once</h3>
+<p>Writing <code>node.json</code> is the moment a machine becomes a node. A second birth would silently rewrite identity,
+so it refuses unless the caller passes <code>force</code>. The reply names the ref and name it found instead.</p>
+
+</section>
+<section id="wiring">
+  <h2>Wiring</h2>
+  <p><b>Doors.</b> <code>GET /api/doors</code> reads every <code>module/&lt;name&gt;/join.json</code> and reports what this
+  node is made of, with three separate states that used to be one: <code>listening</code> (something is there),
+  <code>mine</code> (the health answer names this module) and <code>verified</code>. A port that answers as another module
+  is <code>occupiedBy</code>, never "up" — that distinction found StateFromFile declaring 8152 while the LAN scheduler owned
+  it, and AppPlug declaring 8156 while the LAN cycle owned that. <code>POST /api/doors/start</code> starts the requested
+  doors through ProcessWrapper in dependency order and skips anything already listening, because restarting a live State
+  door costs every publisher its entries for a cycle.</p>
+<table>
+  <tr><th>what</th><th>where</th><th>why</th></tr>
+  <tr><td>door</td><td><code>:8166</code></td><td><code>GET /health</code>, <code>/api/scan</code>, <code>/api/plan</code>, <code>/api/brains</code>, <code>POST /api/probe-brain</code>, <code>POST /api/birth</code></td></tr>
+  <tr><td>hardware</td><td>ResourceManager <code>:8129</code></td><td>measured cores/RAM/VRAM/disk; falls back to <code>os</code> when RM is not up yet</td></tr>
+  <tr><td>service library</td><td><code>library/&lt;name&gt;/service.json</code></td><td>the catalogue whose <code>needs</code> are checked</td></tr>
+  <tr><td>identity</td><td><code>module/Menu/data/node.json</code> (+ Core when present)</td><td>the file every other module reads</td></tr>
+  <tr><td>personality</td><td><code>module/Phoenix/data/personality.json</code></td><td>name, voice, tone - data, so an adopted agent reads it instead of being replaced</td></tr>
+  <tr><td>state of the birth</td><td><code>module/FirstRun/data/plan.json</code>, <code>brain.json</code></td><td>what was decided and what was proven</td></tr>
+</table>
+
+</section>
+<script type="application/json" id="contract">
+{
+  "module": "FirstRun",
+  "port": 8166,
+  "kind": "door",
+  "needs": [
+    {
+      "name": "an agent on this box",
+      "from": "where.exe hermes|claude|codex|aider|gemini",
+      "required": true
+    },
+    {
+      "name": "measured hardware",
+      "from": "ResourceManager :8129 /api/inventory",
+      "required": false
+    },
+    {
+      "name": "the service library",
+      "from": "<hydra>/library/*/service.json",
+      "required": false
+    },
+    {
+      "name": "the state door",
+      "from": ":8127 (to publish the personality)",
+      "required": false
+    }
+  ],
+  "gives": [
+    {
+      "name": "readiness verdict",
+      "route": "GET /api/scan",
+      "shape": "{agents[], agentChosen, verdict, hardware, brain, personality}"
+    },
+    {
+      "name": "fit list",
+      "route": "GET /api/plan",
+      "shape": "{fits, blocked, services[{id,needs,fits,reasons[]}]}"
+    },
+    {
+      "name": "brain probe",
+      "route": "POST /api/probe-brain",
+      "shape": "{ok,id,ms,status|error,answer|models}"
+    },
+    {
+      "name": "birth",
+      "route": "POST /api/birth",
+      "shape": "{ok,born{ref,name},agent,personality,nodeFile} | 409 already born"
+    },
+    {
+      "name": "personality",
+      "route": "GET|POST /api/personality",
+      "shape": "{ok,file,personality,publishedTo}"
+    },
+    {
+      "name": "doors",
+      "route": "GET /api/doors",
+      "shape": "{count,up,verified,unverified,occupied,malformed,collisions[],doors[]}"
+    },
+    {
+      "name": "start doors",
+      "route": "POST /api/doors/start",
+      "shape": "{started,skipped,failed,results[{name,port,action}]}"
+    }
+  ],
+  "rule": "adopts an existing agent, never duplicates it; a brain must answer before it is chosen; a born node is not re-born without force",
+  "version": 1
+}
+</script>

@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hydra — communication portal</title>
+<style>
+  /* THE PORTAL'S FACE. One beat at a time, set as a page you read across a room: a kicker, one large statement, one line
+     under it, and a row of segments that says how far into the story we are. Nothing here is authored twice - every
+     word on this screen comes from /api/show, which is the same record the speaker is playing from. */
+  :root{
+    --paper:#0a0b0d; --ink:#f6f3ee; --muted:#8d8a84; --hair:#23262c; --dim:#3a3e46; --accent:#dfa76a;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%;margin:0;background:var(--paper);color:var(--ink);overflow:hidden}
+  body{font-family:"Segoe UI Variable Display","Segoe UI Variable","Segoe UI",system-ui,-apple-system,sans-serif;
+    -webkit-font-smoothing:antialiased;display:grid;grid-template-rows:auto 1fr auto auto;
+    padding:clamp(22px,3.4vh,44px) clamp(26px,4vw,72px);gap:clamp(10px,1.6vh,20px)}
+
+  /* ---------- header ---------- */
+  header{display:flex;justify-content:space-between;align-items:baseline;gap:24px;
+    padding-bottom:clamp(10px,1.5vh,18px);border-bottom:1px solid var(--hair)}
+  .mark{display:flex;align-items:baseline;gap:clamp(10px,1.2vw,18px)}
+  .mark .name{font-size:clamp(14px,1.15vw,18px);font-weight:600;letter-spacing:.34em;text-transform:uppercase}
+  .mark .rule{width:clamp(24px,4vw,64px);height:1px;background:var(--dim);transform:translateY(-4px)}
+  .mark .what{font-size:clamp(9px,.82vw,12px);letter-spacing:.3em;text-transform:uppercase;color:var(--muted)}
+  .meta{display:flex;align-items:center;gap:clamp(12px,1.6vw,26px);font-size:clamp(9px,.8vw,12px);
+    letter-spacing:.22em;text-transform:uppercase;color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap}
+  .meta b{color:var(--ink);font-weight:600}
+  .led{width:7px;height:7px;border-radius:50%;background:var(--dim);display:inline-block;margin-right:9px;
+    transform:translateY(-1px)}
+  body[data-phase="playing"] .led{background:var(--accent);animation:breathe 1.6s ease-in-out infinite}
+  body[data-phase="done"] .led{background:var(--accent)}
+
+  /* ---------- the beat ---------- */
+  .stage{position:relative;display:grid;align-content:center;min-height:0}
+  .beat{max-width:clamp(30ch,62vw,74ch);transition:opacity .45s ease,transform .45s ease}
+  .beat.out{opacity:0;transform:translateY(10px)}
+  .kicker{margin:0 0 clamp(14px,2.2vh,30px);font-size:clamp(10px,.9vw,13px);letter-spacing:.3em;
+    text-transform:uppercase;color:var(--accent);font-weight:600}
+  h1{margin:0;font-size:clamp(36px,6.4vw,104px);line-height:.98;letter-spacing:-.035em;font-weight:600;
+    text-wrap:balance}
+  /* a long statement gets a smaller setting rather than five ragged lines: the type is sized by the sentence, which is
+     the same rule as sizing it by the room */
+  .beat.long h1{font-size:clamp(30px,4.5vw,74px);line-height:1.04;letter-spacing:-.028em;max-width:20ch}
+  .beat.long .sub{margin-top:clamp(14px,2vh,26px)}
+  .sub{margin:clamp(16px,2.6vh,34px) 0 0;font-size:clamp(15px,1.55vw,26px);line-height:1.42;color:var(--muted);
+    max-width:46ch;font-weight:400;text-wrap:pretty}
+
+  /* the beat number, set as a watermark: hierarchy without another element to read */
+  .ordinal{position:absolute;right:0;top:50%;transform:translateY(-50%);font-size:clamp(90px,17vw,260px);
+    font-weight:200;letter-spacing:-.06em;line-height:.8;color:transparent;-webkit-text-stroke:1px var(--dim);
+    pointer-events:none;user-select:none;font-variant-numeric:tabular-nums;opacity:.75}
+  body[data-phase="playing"] .ordinal{-webkit-text-stroke-color:#33373f}
+
+  /* ---------- standing by / the end ---------- */
+  .idle{display:grid;gap:clamp(12px,2vh,22px);max-width:60ch}
+  .idle .big{font-size:clamp(30px,4.6vw,62px);line-height:1.02;letter-spacing:-.03em;font-weight:600}
+  .idle .small{font-size:clamp(13px,1.1vw,17px);color:var(--muted);line-height:1.5;max-width:52ch}
+  .fault{margin-top:clamp(10px,1.6vh,18px);border-left:2px solid var(--accent);padding:2px 0 2px 14px;
+    font:clamp(11px,1vw,14px)/1.6 ui-monospace,Consolas,monospace;color:var(--muted);max-width:74ch;word-break:break-word}
+
+  /* ---------- progress ---------- */
+  .bar{display:flex;gap:6px;align-items:center}
+  .bar i{flex:1;height:2px;background:var(--hair);border-radius:2px;transition:background .4s ease}
+  .bar i.on{background:var(--ink)}
+  .bar i.here{background:var(--accent);box-shadow:0 0 12px rgba(223,167,106,.55)}
+
+  /* ---------- footer ---------- */
+  footer{display:flex;flex-wrap:wrap;gap:8px clamp(16px,2.2vw,34px);border-top:1px solid var(--hair);
+    padding-top:clamp(10px,1.4vh,16px);font-size:clamp(9px,.8vw,12px);letter-spacing:.18em;text-transform:uppercase;
+    color:var(--muted);font-variant-numeric:tabular-nums}
+  footer b{color:var(--ink);font-weight:600;letter-spacing:.06em}
+  footer .right{margin-left:auto;display:flex;gap:clamp(16px,2.2vw,34px)}
+  footer .mic b{color:var(--muted)}
+  footer .mic.ok b{color:var(--accent)}
+  @keyframes breathe{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.3;transform:scale(.72)}}
+</style>
+</head>
+<body data-phase="idle">
+  <header>
+    <div class="mark">
+      <span class="name">Hydra</span><span class="rule"></span><span class="what">communication portal</span>
+    </div>
+    <div class="meta">
+      <span><span class="led"></span><span id="pill">standing by</span></span>
+      <span>node <b id="ref">—</b></span>
+      <span>beat <b id="pos">00 / 00</b></span>
+    </div>
+  </header>
+
+  <section class="stage">
+    <div class="beat" id="beat">
+      <p class="kicker" id="kicker">portal</p>
+      <h1 id="head">Hydra</h1>
+      <p class="sub" id="sub">The portal is up. The presentation has not started yet.</p>
+      <div class="fault" id="fault" hidden></div>
+    </div>
+    <div class="ordinal" id="ordinal"></div>
+  </section>
+
+  <div class="bar" id="bar"></div>
+
+  <footer>
+    <span>voice <b>piper · local cpu</b></span>
+    <span>speaker <b id="speaker">this laptop</b></span>
+    <span class="mic" id="micwrap">microphone <b id="mic">not tested</b></span>
+    <span class="right">
+      <span>elapsed <b id="elapsed">0:00</b></span>
+      <span id="stamp"></span>
+    </span>
+  </footer>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const pad = (n) => String(n).padStart(2, '0');
+let shown = null, total = 0, startedAt = null, doneStamp = null, finalMs = null;   // finalMs freezes the clock at the end
+
+/* A PROOF PATH WITH NO VOICE. ?preview=3 draws beat 3 from the authored file, so the layout can be checked at every
+   length without starting a presentation at somebody - the alternative is discovering an overflowing headline while the
+   room is listening to it. */
+const Q = new URLSearchParams(location.search);
+const PREVIEW = Q.get('preview');
+
+function elapsedText() {
+  if (!startedAt) return '0:00';
+  const ms = finalMs ?? (Date.now() - Date.parse(startedAt));   // a finished presentation has a duration, not a stopwatch
+  return Math.floor(ms / 60000) + ':' + pad(Math.floor((ms % 60000) / 1000));
+}
+
+function drawBar(beat, ph) {
+  const n = Math.max(total, 1);
+  if ($('bar').childElementCount !== n) {
+    $('bar').innerHTML = '';
+    for (let i = 0; i < n; i++) $('bar').appendChild(document.createElement('i'));
+  }
+  [...$('bar').children].forEach((el, i) => {
+    el.className = ph === 'playing' || ph === 'done' ? (i < beat ? 'on' : (i === beat ? 'here' : '')) : '';
+  });
+}
+
+/* A beat is swapped whole: the old one fades out, the new one is written and rises in. The screen never types text in
+   front of somebody mid-sentence. */
+let fadeTimer = null;
+function setBeat(line, beat, ph) {
+  const key = ph + '|' + (line ? line.id : '-') + '|' + beat;
+  if (key === shown) return;
+  const first = shown === null;
+  shown = key;
+  const write = () => {
+    $('kicker').textContent = line?.kicker ?? '';
+    $('head').textContent = line?.head ?? '';
+    $('sub').textContent = line?.sub ?? '';
+    $('ordinal').textContent = beat >= 0 ? pad(beat + 1) : '';
+    $('beat').classList.toggle('long', (line?.head ?? '').length > 30);
+    $('beat').classList.remove('out');
+  };
+  if (first) return write();
+  $('beat').classList.add('out');
+  clearTimeout(fadeTimer);
+  fadeTimer = setTimeout(write, 220);
+}
+
+function renderIdle(s) {
+  document.body.dataset.phase = s.phase === 'failed' ? 'failed' : 'idle';
+  $('pill').textContent = s.phase === 'failed' ? 'not ready' : (s.phase === 'stopped' ? 'stopped' : 'standing by');
+  $('kicker').textContent = s.title ?? 'portal';
+  $('head').textContent = s.guest ? ('Hi ' + s.guest + '.') : 'Hydra';
+  $('sub').textContent = s.phase === 'stopped'
+    ? 'The presentation was stopped. Nothing is being spoken.'
+    : 'The portal is up, the speaker is ready, and the presentation has not started yet.';
+  $('ordinal').textContent = '';
+  const f = $('fault');
+  const errs = (s.errors || []).filter((e) => e.why);
+  if (errs.length) {
+    f.hidden = false;
+    f.textContent = 'not ready — ' + errs.map((e) => e.why + (e.line ? ' (' + e.line + ')' : '') + (e.wav ? ' ' + e.wav : '')).join(' · ');
+  } else f.hidden = true;
+}
+
+function renderMic(m) {
+  const b = $('mic'), w = $('micwrap');
+  if (!m) { b.textContent = 'not tested'; w.classList.remove('ok'); return; }
+  if (!m.ok) {
+    b.textContent = (m.why || 'no capture') + (m.devices && m.devices.length ? ' · ' + m.devices.length + ' listed' : '');
+    w.classList.remove('ok'); return;
+  }
+  // the device name is usually the literal word "Microphone", which reads as a stutter under a label that already says
+  // microphone - so the footer says what was MEASURED, and the port lives in the tooltip
+  b.textContent = (m.silent ? 'device answered silence' : 'hearing you') + ' · rms ' + m.rms;
+  b.title = (m.device || '') + ' · ' + m.seconds + 's capture · peak ' + m.peak;
+  w.classList.toggle('ok', !m.silent);
+}
+
+async function tick() {
+  if (PREVIEW !== null) return;   // a proof of one beat is not a live board; the poller must not overwrite it
+  let s;
+  try {
+    s = await (await fetch(location.origin + (location.pathname.indexOf('/show') === 0 ? '/api/show' : '/api/show'), { cache: 'no-store' })).json();
+  } catch (e) {
+    document.body.dataset.phase = 'failed';
+    $('pill').textContent = 'no hub';
+    const f = $('fault'); f.hidden = false; f.textContent = 'the hub did not answer at this address';
+    return;
+  }
+  $('ref').textContent = s.ref ?? '—';
+  total = s.total || total;
+  startedAt = s.startedAt || startedAt;
+  if (s.phase === 'playing' || s.phase === 'done') {
+    document.body.dataset.phase = s.phase;
+    $('pill').textContent = s.phase === 'done' ? 'end of the presentation' : 'speaking';
+    $('pos').textContent = pad(Math.max(0, s.beat + 1)) + ' / ' + pad(s.total);
+    $('fault').hidden = true;
+    if (s.line) setBeat(s.line, s.beat, s.phase);
+    drawBar(s.beat, s.phase);
+    if (s.phase === 'done' && !doneStamp) {
+      doneStamp = new Date();
+      finalMs = s.elapsedMs ?? (Date.now() - Date.parse(s.startedAt));
+      $('stamp').textContent = 'finished ' + doneStamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    }
+  } else {
+    renderIdle(s);
+    $('pos').textContent = '00 / ' + pad(s.total || 0);
+    drawBar(-1, s.phase);
+    if (s.total) { $('head').textContent = s.guest ? ('Hi ' + s.guest + '.') : ($('head').textContent); }
+  }
+  $('elapsed').textContent = elapsedText();
+  renderMic(s.mic);
+  if (s.speaker && s.speaker.device) $('speaker').textContent = 'this laptop';
+}
+
+tick();
+setInterval(tick, 400);
+setInterval(() => { $('elapsed').textContent = elapsedText(); }, 1000);
+
+if (PREVIEW !== null) {
+  (async () => {
+    try {
+      const s = await (await fetch(location.origin + '/api/show?lines=1', { cache: 'no-store' })).json();
+      const lines = s.lines || [];
+      const i = Math.max(0, Math.min(lines.length - 1, Number(PREVIEW) || 0));
+      total = lines.length;
+      const l = lines[i];
+      document.body.dataset.phase = 'playing';
+      $('ref').textContent = s.ref ?? '—';
+      $('pill').textContent = 'preview';
+      $('pos').textContent = pad(i + 1) + ' / ' + pad(lines.length);
+      setBeat(l, i, 'preview');
+      drawBar(i, 'playing');
+      $('speaker').textContent = 'this laptop';
+    } catch (e) { }
+  })();
+}
+</script>
+</body>
+</html>

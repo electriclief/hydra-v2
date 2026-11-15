@@ -1,33 +1,7 @@
 import process from "node:process";
 import path from "node:path";
-import { existsSync, readFileSync } from "node:fs";
 import { createEventHandler } from "./eventHandler.js";
 import { startApiServer } from "./apiServer.js";
-
-/**
- * Register the names in data/palette.json. Missing file is normal (a bare node). A name already registered is
- * left alone, so a module that registers itself in-process and a palette entry can coexist.
- */
-function loadPalette(handler, file = path.join(process.cwd(), "data", "palette.json")) {
-  if (!existsSync(file)) return 0;
-  let parsed;
-  try {
-    parsed = JSON.parse(readFileSync(file, "utf8"));
-  } catch {
-    return 0;
-  }
-  let added = 0;
-  for (const ev of Array.isArray(parsed?.events) ? parsed.events : []) {
-    const name = typeof ev?.name === "string" ? ev.name : "";
-    if (!name || handler.has(name)) continue;
-    handler.register(name, () => ({ ok: true }), {
-      description: typeof ev.description === "string" ? ev.description : "",
-      producer: typeof ev.producer === "string" ? ev.producer : "any",
-    });
-    added += 1;
-  }
-  return added;
-}
 function parseArgs(argv, env = process.env) {
   const get = (names) => {
     for (let i = 0; i < argv.length; i++) {
@@ -75,14 +49,6 @@ async function startWrapper(options = {}) {
     retentionHours: full.retentionHours,
     maxBytes: full.maxBytes
   });
-
-  /**
-   * THE PALETTE FROM DISK. An event is a notice that something happened, so its handler here is deliberately a
-   * no-op: the record is the log line. Declaring names in data/palette.json is what lets an OUT-OF-PROCESS
-   * producer fire them - the PowerShell standby guard, the shelf puller - without adding code to this process.
-   */
-  loadPalette(handler);
-
   handler.start();
   const api = await startApiServer({
     handler,

@@ -1,11 +1,12 @@
 {
-  "name": "StateFromFile",
-  "kind": "door",
-  "port": 8152,
-  "start": "\"%LOCALAPPDATA%\\hermes\\node\\node.exe\" src/main.js",
-  "wiredAtBoot": false,
-  "deps": [
-    "State"
-  ],
-  "what": "Replays a snapshot into a registry as registrations. Skips what a live owner already publishes, never restores a role, and answers a torn file with the path instead of an empty LAN."
+ "name": "StateFromFile",
+ "kind": "door",
+ "port": 8167,
+ "start": "\"%LOCALAPPDATA%\\hermes\\node\\node.exe\" src/main.js",
+ "wiredAtBoot": false,
+ "deps": [
+  "State"
+ ],
+ "what": "Replays a snapshot into a registry as registrations. Skips what a live owner already publishes, never restores a role, and answers a torn file with the path instead of an empty LAN.",
+ "note": "port moved 8152 -> 8167: the LAN tier instance owns 8152 at runtime (lansched-8152 / lanphoenix-8156)"
 }
