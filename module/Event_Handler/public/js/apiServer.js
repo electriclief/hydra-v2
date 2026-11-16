@@ -189,6 +189,7 @@ async function runTests() {
   const handler = createEventHandler({ logPath: path.join(dir, "events.log"), purgeIntervalMs: 0 });
   handler.start();
   handler.register("demo", (payload) => ({ got: payload }), { description: "demo event" });
+
   const api = await startApiServer({ handler, port: 0, publicDir: path.join(process.cwd(), "public") });
   const base = api.url;
   const health = await (await fetch(base + "/health")).json();

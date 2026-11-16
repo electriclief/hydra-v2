@@ -50,6 +50,27 @@ async function startWrapper(options = {}) {
     maxBytes: full.maxBytes
   });
   handler.start();
+
+  // ── the version events, as an EVENT and not a hidden cron ───────────────────────────────────────────────────────────
+  // "Is this node on the latest pull from github" is a question anyone may ask: the operator from the Menu, an agent over
+  // MCP, or Phoenix on a beat. It goes through this door so the log records WHO asked and what came back. Join answers it,
+  // because Join owns the shelf - so Join owns "is my shelf current", and it publishes node.<ref>.version either way.
+  const JOIN = (process.env.EH_JOIN ?? "http://127.0.0.1:8131").replace(/\/$/, "");
+  const callJoin = async (pathname) => {
+    const r = await fetch(`${JOIN}${pathname}`, {
+      method: pathname.includes("/pull") ? "POST" : "GET",
+      headers: { "content-type": "application/json" },
+      signal: AbortSignal.timeout(180000)
+    });
+    const body = await r.json().catch(() => ({}));
+    return { status: r.status, ...body };
+  };
+  handler.register("version.check", () => callJoin("/api/version"), {
+    description: "Ask Join what this node runs vs origin/main on github; Join publishes node.<ref>.version."
+  });
+  handler.register("version.pull", () => callJoin("/api/version/pull"), {
+    description: "Fast-forward this node to origin/main and publish node.<ref>.version; refuses on a dirty tree or a conflict."
+  });
   const api = await startApiServer({
     handler,
     port: full.port,

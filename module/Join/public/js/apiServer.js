@@ -3,6 +3,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { execFileSync } from "node:child_process";
 import { createShelf } from "./shelf.js";
 import { createJoinMcpRegistry } from "./mcpTools.js";
 import { loadRoster, resolveDeclared } from "./roster.js";
@@ -42,6 +43,66 @@ async function readJsonBody(req, limit = 64 * 1024) {
 async function startApi(options) {
   const host = options.host ?? "127.0.0.1";
   const publicRoot = options.publicRoot ?? path.resolve(fileURLToPath(new URL("../..", import.meta.url)));
+
+/**
+ * WHAT VERSION IS THIS, AND IS THERE A NEWER ONE ON GITHUB?
+ *
+ * The node answers this itself. Pushing to five machines over ssh is not a version check, it is a chore with a receipt:
+ * each box can ask origin what the latest is, say how far behind it is, and pull when told. Join owns the shelf, so it
+ * owns the question "is my shelf current".
+ */
+function gitRun(root, args, timeout = 20000) {
+  return execFileSync("git", ["-C", root, ...args], { encoding: "utf8", timeout, windowsHide: true }).trim();
+}
+
+function versionOf(root) {
+  const out = { local: null, remote: null, behind: null, dirty: null, error: null, repo: root, checkedAt: (/* @__PURE__ */ new Date()).toISOString() };
+  try {
+    out.local = gitRun(root, ["rev-parse", "--short", "HEAD"]);
+    out.dirty = gitRun(root, ["status", "--porcelain", "--untracked-files=no"]).length > 0;
+  } catch (e) {
+    out.error = "not a git checkout: " + (e instanceof Error ? e.message : String(e)).split("\n")[0];
+    return out;
+  }
+  try { gitRun(root, ["fetch", "--quiet", "origin"]); } catch (e) {
+    // a box with no network is not a box with no version: local is known, remote is not, and that is said out loud
+    out.error = "fetch failed: " + (e instanceof Error ? e.message : String(e)).split("\n")[0];
+  }
+  try { out.remote = gitRun(root, ["rev-parse", "--short", "origin/main"]); } catch { }
+  try { out.behind = Number(gitRun(root, ["rev-list", "--count", "HEAD..origin/main"])); } catch { }
+  return out;
+}
+
+async function publishVersion(stateUrl, ref, body) {
+  if (!stateUrl || !ref) return null;
+  try {
+    const r = await fetch(stateUrl + "/api/state/register", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ name: `node.${ref}.version`, content: body }),
+      signal: AbortSignal.timeout(2000)
+    });
+    return r.status;
+  } catch { return null; }
+}
+
+function repoOf(root) {
+  return path.resolve(root, "..");
+}
+
+function refOf(options) {
+  if (options.ref) return String(options.ref);
+  if (process.env.JOIN_REF) return String(process.env.JOIN_REF);
+  // node.json lives in the Shelf's own tree (module/Menu/data), not at the repo root: getting this wrong made the
+  // version fact unpublishable while the check itself looked healthy.
+  try {
+    const j = JSON.parse(fs.readFileSync(path.join(options.shelf.options.shelfRoot, "Menu", "data", "node.json"), "utf8"));
+    return String(j.ref || j.name || "").trim() || null;
+  } catch { return null; }
+}
+function root2() {
+  return path.resolve(options.shelf.options.shelfRoot, "..");
+}
   const registry = createJoinMcpRegistry(options.shelf);
   const server = http.createServer((req, res) => {
     void (async () => {
@@ -66,6 +127,30 @@ async function startApi(options) {
         }
         if (m === "GET" && p === "/api/shelf") {
           return sendJson(res, 200, { ok: true, ...await options.shelf.all() });
+        }
+        if (m === "GET" && p === "/api/version") {
+          const repo = repoOf(options.shelf.options.shelfRoot);
+          const v = versionOf(repo);
+          const ref = refOf(options);
+          // publish every check: a version nobody asked about is still the answer to "is this box current"
+          const status = await publishVersion(options.stateUrl ?? process.env.JOIN_STATE_URL ?? "http://127.0.0.1:8127", ref, v);
+          return sendJson(res, 200, { ok: !v.error, ref, published: status, ...v });
+        }
+        if (m === "POST" && p === "/api/version/pull") {
+          const repo = repoOf(options.shelf.options.shelfRoot);
+          const before = versionOf(repo);
+          let pulled = null, error = null;
+          try {
+            pulled = gitRun(repo, ["pull", "--ff-only"], 120000);
+          } catch (e) {
+            error = "pull refused: " + (e instanceof Error ? e.message : String(e)).split("\n")[0];
+          }
+          const after = versionOf(repo);
+          const body = { ...after, before: before.local, pulled: pulled ? true : false, error: error ?? after.error,
+            pulledAt: error ? null : (/* @__PURE__ */ new Date()).toISOString() };
+          const ref = refOf(options);
+          const status = await publishVersion(options.stateUrl ?? process.env.JOIN_STATE_URL ?? "http://127.0.0.1:8127", ref, body);
+          return sendJson(res, error ? 409 : 200, { ok: !error, ref, published: status, from: before.local, to: after.local, output: pulled, ...body });
         }
         if (m === "GET" && p === "/api/kinds") {
           return sendJson(res, 200, {
