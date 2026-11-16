@@ -20,6 +20,7 @@
  *
  *   node server/main.js --port 8146 --every 10
  */
+import os from 'node:os';
 import http from 'node:http';
 import fs from 'node:fs';
 import { execFileSync } from 'node:child_process';
@@ -65,13 +66,22 @@ const NODE_STATE_URL = (argOf('node-state', process.env.PHOENIX_NODE_STATE ?? 'h
 const MIRROR = (argOf('mirror', process.env.PHOENIX_MIRROR ?? 'http://127.0.0.1:8137')).replace(/\/$/, '');
 const NODE_STATE_PORT = Number(argOf('node-state-port', process.env.PHOENIX_NODE_STATE_PORT ?? 8127)) || 8127;
 const REF = (argOf('ref', process.env.PHOENIX_REF ?? '')).trim() || readRefFromMenu();
+
+function hostFallback() {
+  // A BOX HAS A NAME EVEN WHEN ITS IDENTITY FILE IS MISSING. Publishing as "unknown" made every such node invisible to
+  // the fleet version check: the controller asked for node.<roster-name>.build while the node wrote node.unknown.build.
+  // The hostname is not the operator's name for the box, but it is a name two machines can agree on, and the controller
+  // tries it after the roster name.
+  try { return os.hostname().toLowerCase(); } catch { return 'unknown'; }
+}
+
 function readRefFromMenu() {
   // same source ResourceManager uses: the node's own identity file. A missing ref is not fatal - the entry is published
   // as node.unknown.upkeep rather than silently skipped, so a nameless box is visible instead of absent.
   try {
     const j = JSON.parse(fs.readFileSync(new URL('../../Menu/data/node.json', import.meta.url), 'utf8'));
-    return (j.ref ?? j.name ?? '').toString().trim() || 'unknown';
-  } catch { return 'unknown'; }
+    return (j.ref ?? j.name ?? '').toString().trim() || hostFallback();
+  } catch { return hostFallback(); }
 }
 
 const log = (...parts) => process.stdout.write(`[phoenix] ${parts.join(' ')}\n`);
@@ -712,17 +722,33 @@ const server = http.createServer(async (req, res) => {
         if (fresh(row)) { remembered.push({ ref: peer.ref, rev: row.rev, ageMin: Math.round((now - Date.parse(row.at)) / 60000) }); }
         else {
           // ask the node: its own version fact, then its build stamp - two names because they arrive at different times
-          let rev = null, err = null;
+          let rev = null, err = null, from = null;
           for (const name of [`node.${peer.ref}.version`, `node.${peer.ref}.build`]) {
             try {
               const r = await fetch(`http://${peer.ip}:${NODE_STATE_PORT}/api/state/pull?name=${name}`, { signal: AbortSignal.timeout(2000) });
               const j = await r.json().catch(() => null);
               const c = j?.content ?? null;
-              if (c && (c.remote || c.local || c.rev)) { rev = c.remote || c.local || c.rev; break; }
+              if (c && (c.remote || c.local || c.rev)) { rev = c.remote || c.local || c.rev; from = name; break; }
             } catch (e) { err = e.message; }
           }
-          mem.nodes[peer.ref] = { rev, at: new Date().toISOString(), askedAt: new Date().toISOString(), error: err };
-          asked.push({ ref: peer.ref, rev, error: err });
+          // A NODE MAY NOT KNOW THE NAME THE LAN CALLS IT. xpsw's own identity file was missing, so its Phoenix published
+          // node.<hostname>.build while the roster calls the box xpsw. Rather than guess a mapping, ask the box what build
+          // entries it has: there is at most one, and it is the truth about that machine.
+          if (!rev) {
+            try {
+              const r = await fetch(`http://${peer.ip}:${NODE_STATE_PORT}/api/state`, { signal: AbortSignal.timeout(3000) });
+              const j = await r.json().catch(() => null);
+              const names = (j?.entries || []).map((x) => x.path).filter((n) => /^node\..+\.build$/.test(String(n)));
+              if (names.length) {
+                const r2 = await fetch(`http://${peer.ip}:${NODE_STATE_PORT}/api/state/pull?name=${names[0]}`, { signal: AbortSignal.timeout(2000) });
+                const j2 = await r2.json().catch(() => null);
+                const c2 = j2?.content ?? null;
+                if (c2 && (c2.rev || c2.local)) { rev = c2.rev || c2.local; from = names[0]; }
+              }
+            } catch (e) { err = err || e.message; }
+          }
+          mem.nodes[peer.ref] = { rev, from, at: new Date().toISOString(), askedAt: new Date().toISOString(), error: err };
+          asked.push({ ref: peer.ref, rev, from, error: err });
         }
         const rev = mem.nodes[peer.ref]?.rev ?? null;
         if (!rev) { still.push({ ref: peer.ref, why: 'no version reported' }); continue; }
