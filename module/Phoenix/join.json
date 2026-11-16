@@ -1,7 +1,9 @@
 {
-  "module": "Phoenix",
-  "door": 8146,
-  "title": "Phoenix Cycle",
+  "name": "Phoenix",
   "kind": "maintenance-registry",
-  "note": "Runs registered upkeep every 10 minutes by default. Not the Scheduler: the Scheduler decides what a node does with its GPU; Phoenix decides what upkeep is due."
+  "port": 8146,
+  "start": "\"%LOCALAPPDATA%\\hermes\\node\\node.exe\" server/main.js --port 8146 --host 0.0.0.0",
+  "wiredAtBoot": true,
+  "what": "The upkeep cycle: registered checks that repair themselves from a declared fix or say so out loud. One clock per LAN - a node's Phoenix reflects the root's beat instead of running a second schedule, so this box publishes node.<ref>.build and (as a child) no beat of its own; a SKEW against the root's build is the only version fault there is. The instance with PHOENIX_STATE set is the root: it publishes lan.cycle and writes every node's beat from the same clock.",
+  "note": "This file used to read {module, door, title}. The shelf reads {name, port, start, wiredAtBoot}, so on every node Phoenix was listed with port null and start null: installed, never wired, never started, and therefore invisible to the fleet version check. That is why five boxes reported no build while their owner knew the module was there."
 }
