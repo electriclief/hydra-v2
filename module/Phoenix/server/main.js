@@ -714,7 +714,7 @@ const server = http.createServer(async (req, res) => {
         if (row.rev) return row.at && now - Date.parse(row.at) < ttlMin * 60000;
         return row.askedAt && now - Date.parse(row.askedAt) < noAnswerMin * 60000;
       };
-      const asked = [], remembered = [], triggered = [], still = [], notes = [];
+      const asked = [], remembered = [], triggered = [], still = [], notes = [], deferred = [];
       mem.nodes = mem.nodes || {};
 
       for (const peer of peers) {
@@ -770,6 +770,12 @@ const server = http.createServer(async (req, res) => {
           });
           const j = await r.json().catch(() => ({}));
           mem.nodes[peer.ref].triggeredAt = new Date().toISOString();
+          // a node that is working says so, and waiting is the correct outcome - not a fault to report
+          if (r.status === 409 && j?.deferred) {
+            mem.nodes[peer.ref].triggerOutcome = `deferred: ${(j.busy || []).join('; ') || 'work in progress'}`;
+            deferred.push({ ref: peer.ref, rev, busy: j.busy || [] });
+            continue;
+          }
           mem.nodes[peer.ref].triggerOutcome = r.ok ? 'asked' : `refused ${r.status}${j?.error?.code ? ' ' + j.error.code : ''}`;
           if (r.ok) {
             triggered.push({ ref: peer.ref, from: rev, to: own });
@@ -789,10 +795,12 @@ const server = http.createServer(async (req, res) => {
       mem.at = new Date().toISOString();
       mem.own = { rev: own, dirty: BUILD.dirty, at: mem.at };
       writeVersions(mem);
-      const verdict = triggered.length
+      const verdict = (triggered.length
         ? `${triggered.length} node(s) told to update: ${triggered.map((t) => `${t.ref} ${t.from}->${t.to}`).join(', ')}`
-        : `in sync with ${own}` + (still.length ? `; ${still.length} unresolved (${still.map((x) => x.ref).join(', ')})` : '');
-      sendJson(res, 200, { ok: true, own, asked: asked.length, remembered: remembered.length, triggered, still, notes, verdict });
+        : `in sync with ${own}`)
+        + (deferred.length ? `; ${deferred.length} waiting for a gap (${deferred.map((x) => x.ref).join(', ')})` : '')
+        + (still.length ? `; ${still.length} unresolved (${still.map((x) => x.ref).join(', ')})` : '');
+      sendJson(res, 200, { ok: true, own, asked: asked.length, remembered: remembered.length, triggered, deferred, still, notes, verdict });
       return;
     }
     if (p === '/api/versions' && method === 'GET') {

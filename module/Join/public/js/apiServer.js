@@ -86,6 +86,44 @@ async function publishVersion(stateUrl, ref, body) {
   } catch { return null; }
 }
 
+/**
+ * IS ANYTHING WORKING RIGHT NOW?
+ *
+ * An update may not stop a job. A render, a transcription or a mining run in progress is work someone waited for; a
+ * pull that restarts the door underneath it turns finished work into lost work. So the node is asked two questions
+ * before it is allowed to move: has a job declared itself busy, and does the Scheduler have anything running.
+ * Both are ordinary state, so anything at all - a script, a service, Echidna - can raise or lower the flag.
+ */
+async function busyNow(stateUrl, ref, schedulerUrl) {
+  const reasons = [];
+  if (stateUrl && ref) {
+    try {
+      const r = await fetch(`${stateUrl}/api/state/pull?name=node.${ref}.busy`, { signal: AbortSignal.timeout(1500) });
+      const j = await r.json().catch(() => null);
+      const c = j?.content ?? null;
+      if (c && c.busy === true) reasons.push(String(c.what || c.reason || 'a job declared itself busy'));
+    } catch { /* a state door that cannot be asked is not evidence of work */ }
+  }
+  try {
+    const r = await fetch(`${schedulerUrl}/health`, { signal: AbortSignal.timeout(1500) });
+    const j = await r.json().catch(() => null);
+    const running = Number(j?.stats?.running ?? 0);
+    if (running > 0) reasons.push(`${running} scheduler job(s) running`);
+  } catch { /* no scheduler here: nothing to wait for */ }
+  return reasons;
+}
+
+async function publishUpdate(stateUrl, ref, body) {
+  if (!stateUrl || !ref) return null;
+  try {
+    const r = await fetch(stateUrl + "/api/state/register", {
+      method: "POST", headers: { "content-type": "application/json" },
+      body: JSON.stringify({ name: `node.${ref}.update`, content: body }), signal: AbortSignal.timeout(2000)
+    });
+    return r.status;
+  } catch { return null; }
+}
+
 function repoOf(root) {
   return path.resolve(root, "..");
 }
@@ -138,6 +176,19 @@ function root2() {
         }
         if (m === "POST" && p === "/api/version/pull") {
           const repo = repoOf(options.shelf.options.shelfRoot);
+          const ref = refOf(options);
+          const stateUrl = options.stateUrl ?? process.env.JOIN_STATE_URL ?? "http://127.0.0.1:8127";
+          let body0 = {};
+          try { body0 = await readJsonBody(req); } catch { body0 = {}; }
+          const busy = await busyNow(stateUrl, ref, options.schedulerUrl ?? process.env.JOIN_SCHEDULER_URL ?? "http://127.0.0.1:8132");
+          if (busy.length && body0.force !== true) {
+            // NOT A FAILURE: a job is running and the update waits its turn. It says so out loud, with the reason, so the
+            // cycle can leave it alone instead of retrying into a render every ten minutes.
+            const deferred = { state: 'deferred', rev: null, busy, at: (/* @__PURE__ */ new Date()).toISOString(),
+              why: 'work in progress - the update waits for the gap between jobs' };
+            const published = await publishUpdate(stateUrl, ref, deferred);
+            return sendJson(res, 409, { ok: false, deferred: true, ref, published, ...deferred });
+          }
           const before = versionOf(repo);
           let pulled = null, error = null;
           try {
@@ -148,9 +199,11 @@ function root2() {
           const after = versionOf(repo);
           const body = { ...after, before: before.local, pulled: pulled ? true : false, error: error ?? after.error,
             pulledAt: error ? null : (/* @__PURE__ */ new Date()).toISOString() };
-          const ref = refOf(options);
-          const status = await publishVersion(options.stateUrl ?? process.env.JOIN_STATE_URL ?? "http://127.0.0.1:8127", ref, body);
-          return sendJson(res, error ? 409 : 200, { ok: !error, ref, published: status, from: before.local, to: after.local, output: pulled, ...body });
+          const status = await publishVersion(stateUrl, ref, body);
+          const out = await publishUpdate(stateUrl, ref, { state: error ? 'failed' : 'pulled', from: before.local, to: after.local,
+            rev: after.local, pulled: !error, error: error ?? null, at: (/* @__PURE__ */ new Date()).toISOString(),
+            restart: error ? null : 'pending - the running doors are still the old code until they restart in a gap or at boot' });
+          return sendJson(res, error ? 409 : 200, { ok: !error, ref, published: status, update: out, from: before.local, to: after.local, output: pulled, ...body });
         }
         if (m === "GET" && p === "/api/kinds") {
           return sendJson(res, 200, {
