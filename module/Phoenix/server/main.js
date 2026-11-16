@@ -754,6 +754,11 @@ const server = http.createServer(async (req, res) => {
         if (!rev) { still.push({ ref: peer.ref, why: 'no version reported' }); continue; }
         if (rev === own) continue;
 
+        // THE ROOT IS NOT A NODE IT MAINTAINS. Telling itself to pull mid-beat would rewrite the code it is currently
+        // running, so a behind root is REPORTED (`self`) and left to the operator: a cycle must never update the thing
+        // that is executing it.
+        if (peer.ref === REF) { still.push({ ref: peer.ref, rev, why: 'self is behind - update the controller by hand' }); continue; }
+
         // out of sync: trigger THAT NODE's own update, which is a logged event on its own door, not a push from here
         const last = mem.nodes[peer.ref]?.triggeredAt ? Date.parse(mem.nodes[peer.ref].triggeredAt) : 0;
         if (now - last < retriggerMin * 60000) { still.push({ ref: peer.ref, rev, why: 'triggered recently, waiting' }); continue; }
