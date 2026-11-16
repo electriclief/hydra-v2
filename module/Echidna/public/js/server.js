@@ -99,6 +99,20 @@ function createServer(options) {
     monitor.index = monitor.stack.length - 1;
     saveMonitor();
   };
+
+  /** How much of her window is she holding? Published, so a beat can act on it instead of guessing. */
+  const publishSession = async (facts) => {
+    if (options.readOnly || !options.stateUrl || !options.nodeRef) return;
+    try {
+      await fetch(`${options.stateUrl.replace(/\/$/, "")}/api/state/register`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ name: `node.${options.nodeRef}.session`, content: { ...facts, at: (/* @__PURE__ */ new Date()).toISOString() } }),
+        signal: AbortSignal.timeout(2000)
+      });
+    } catch { /* a session fact that cannot be published must never break the answer someone is waiting for */ }
+  };
+
   const publish = async () => {
     if (options.readOnly) return;
     try {
@@ -563,6 +577,12 @@ ${run.text}`.trim(),
             pushCard({ kind: "output", title: "Echidna", text: run.text.slice(0, 900), at: (/* @__PURE__ */ new Date()).toISOString() });
           }
           await publish();
+          // THE SESSION CYCLE NEEDS A MEASUREMENT, NOT A FEELING. Her context fills turn by turn, and the only way a
+          // Phoenix beat can know she is near the end of the window is if she says how much of it she is holding.
+          // node.<ref>.session is that number: one entry, cheap, and impossible to infer from the thread.
+          await publishSession({ sessionId: run.sessionId ?? null, tokens: run.tokens ?? null,
+            turns: (() => { try { return thread.read(1000).length; } catch { return null; } })(),
+            lastAt: (/* @__PURE__ */ new Date()).toISOString() });
           frame("done", { turn: reply, ms: run.ms, sessionId: run.sessionId, tokens: run.tokens ?? null, ok: run.ok });
         } catch (error) {
           frame("fail", { error: String(error?.message ?? error) });

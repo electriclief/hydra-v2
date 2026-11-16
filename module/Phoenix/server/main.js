@@ -688,6 +688,68 @@ const server = http.createServer(async (req, res) => {
     // ARE THE CHILDREN ON MY VERSION? One answer for the whole fleet, because the honest alternative is asking eight
     // boxes by hand and comparing strings. Missing build = not on this version (a node that never reported cannot
     // match), and a dirty tree is called out: "same commit" is not the same code if the files on disk differ.
+    // ── SESSION CYCLE: the moment an update is safe ────────────────────────────────────────────────────────────────
+    // Echidna's context fills turn by turn. When it is near the end of her window, the cycle tells Mom - one tell, one
+    // handoff, then she starts a new session - and a fresh session id is the gap an update has been waiting for. Nothing
+    // here kills a conversation: it reports, and the gap is observed rather than created.
+    if (p === '/api/session/cycle' && (method === 'GET' || method === 'POST')) {
+      // a query override exists so the threshold can be exercised without editing env on a live controller
+      const qMax = Number(new URL(req.url ?? '/', 'http://localhost').searchParams.get('max'));
+      const max = qMax > 0 ? qMax : (Number(argOf('context-max', process.env.PHOENIX_CONTEXT_MAX ?? 120000)) || 120000);
+      const tellmom = (process.env.PHOENIX_TELLMOM ?? 'http://127.0.0.1:8139').replace(/\/$/, '');
+      const SESSIONS = path.join(DATA, 'session.json');
+      let mem = {};
+      try { mem = JSON.parse(fs.readFileSync(SESSIONS, 'utf8')); } catch { mem = {}; }
+      let fact = null;
+      try {
+        const r = await fetch(`${NODE_STATE_URL}/api/state/pull?name=node.${REF}.session`, { signal: AbortSignal.timeout(2500) });
+        const j = await r.json().catch(() => null);
+        fact = j?.content ?? null;
+      } catch { fact = null; }
+      if (!fact) { sendJson(res, 200, { ok: true, state: 'unknown', why: 'she has not published a session yet', max }); return; }
+
+      const tokens = Number(fact.tokens) || 0;
+      const sessionId = fact.sessionId || null;
+      let state = 'ok', told = null;
+
+      if (mem.askedFor && sessionId && mem.askedFor !== sessionId) {
+        // A NEW SESSION: this is the gap. Record it once, so an update can use it instead of inventing a window.
+        mem.window = { state: 'open', from: mem.askedFor, to: sessionId, at: new Date().toISOString() };
+      }
+      if (tokens >= max && sessionId && mem.askedFor !== sessionId) {
+        try {
+          const r = await fetch(`${tellmom}/api/tell`, {
+            method: 'POST', headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({
+              subject: 'Echidna session cycle',
+              body: `Her context is at ${tokens.toLocaleString()} tokens (limit ${max.toLocaleString()}). Write the handoff, log out, and start a new session - that gap is the safe moment for a pending update.`,
+              severity: 'note', by: 'phoenix', wants: 'handoff', dedupeKey: `session-${sessionId}`,
+            }),
+            signal: AbortSignal.timeout(4000),
+          });
+          const j = await r.json().catch(() => ({}));
+          told = { status: r.status, delivered: j?.delivered ?? null, deduped: j?.deduped ?? null };
+          mem.askedFor = sessionId;
+          mem.askedAt = new Date().toISOString();
+          mem.window = { state: 'handoff_requested', sessionId, tokens, at: mem.askedAt };
+          state = 'handoff_requested';
+        } catch (e) { state = 'could_not_tell_mom'; told = { error: e.message }; }
+      } else if (tokens >= max) {
+        state = 'handoff_already_asked';
+      }
+      mem.session = { sessionId, tokens, max, at: new Date().toISOString() };
+      try { fs.mkdirSync(DATA, { recursive: true }); fs.writeFileSync(SESSIONS, JSON.stringify(mem, null, 2)); } catch { }
+      try {
+        await fetch(`${NODE_STATE_URL}/api/state/register`, {
+          method: 'POST', headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ name: `node.${REF}.session.window`, content: { ...(mem.window || {}), state, tokens, max, sessionId, at: new Date().toISOString() } }),
+          signal: AbortSignal.timeout(2000),
+        });
+      } catch { }
+      sendJson(res, 200, { ok: true, state, tokens, max, sessionId, told, window: mem.window || null });
+      return;
+    }
+
     // ── VERSION SYNC: match the number, act on the difference, remember the answer ───────────────────────────────────
     // One entry in the cycle calls this. It is NOT a fetch loop: it compares this instance's build against what each
     // managed node last said, remembers that in data/versions.json, and only asks a node again when the memory has aged
