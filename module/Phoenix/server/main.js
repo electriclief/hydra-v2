@@ -35,6 +35,10 @@ const REGISTRY = path.join(DATA, 'registry.json');
 const CLOCK = path.join(DATA, 'clock.json');
 const HASHES = path.join(DATA, 'hashes.json');
 const RECEIPTS = path.join(DATA, 'receipts');
+// WHAT THE CYCLE REMEMBERS ABOUT VERSIONS. The operator's rule: match the number, and if it is out of sync trigger the
+// node's own update - but do not ask the same question every ten minutes. A version changes a few times a day at most,
+// so a remembered answer is good until the node is asked to update or the memory ages out.
+const VERSIONS = path.join(DATA, 'versions.json');
 
 const args = process.argv.slice(2);
 const argOf = (name, fallback) => {
@@ -74,6 +78,14 @@ const log = (...parts) => process.stdout.write(`[phoenix] ${parts.join(' ')}\n`)
 
 // WHICH CODE IS THIS? A beat is only worth trusting if you know which build produced it, and the fleet question
 // "are the children on the same version as me" needs an answer that does not depend on anybody remembering to ask.
+
+function readVersions() {
+  try { return JSON.parse(fs.readFileSync(VERSIONS, 'utf8')); } catch { return { at: null, own: null, nodes: {} }; }
+}
+function writeVersions(v) {
+  try { fs.mkdirSync(DATA, { recursive: true }); fs.writeFileSync(VERSIONS, JSON.stringify(v, null, 2)); } catch { /* a cache that cannot be written must not stop a cycle */ }
+}
+
 function buildInfo() {
   const root = (() => { try { return fileURLToPath(new URL('../../..', import.meta.url)); } catch { return null; } })();
   let rev = process.env.PHOENIX_REV || null, dirty = null;
@@ -636,10 +648,122 @@ const server = http.createServer(async (req, res) => {
       sendJson(res, 200, { ok: true, entry, replaced: at >= 0 });
       return;
     }
+    // AN ENTRY YOU CANNOT REMOVE IS A DECISION YOU CANNOT REVERSE. Registering was the only verb, so a superseded check
+    // lived in the cycle for ever and its failing receipt had to be explained by hand each time it came round.
+    if (p === '/api/unregister' && method === 'POST') {
+      const payload = JSON.parse((await readBody(req)) || '{}');
+      const id = String(payload.id || '').trim();
+      const raw = readJson(REGISTRY, { version: 1, entries: [] });
+      const before = Array.isArray(raw.entries) ? raw.entries.length : 0;
+      raw.entries = (raw.entries || []).filter((e) => e.id !== id);
+      if (raw.entries.length === before) { sendJson(res, 404, { ok: false, error: `no such entry: ${id}` }); return; }
+      fs.writeFileSync(REGISTRY, JSON.stringify(raw, null, 2));
+      try { const clock = readJson(CLOCK, {}); delete clock[id]; fs.writeFileSync(CLOCK, JSON.stringify(clock, null, 2)); } catch { /* the clock line dies with the entry or not at all */ }
+      sendJson(res, 200, { ok: true, removed: id, entries: raw.entries.length });
+      return;
+    }
+    // TURNING ONE OFF IS NOT DELETING IT: `enabled:false` keeps the entry and its history, and the beat skips it.
+    if (p === '/api/enable' && method === 'POST') {
+      const payload = JSON.parse((await readBody(req)) || '{}');
+      const id = String(payload.id || '').trim();
+      const raw = readJson(REGISTRY, { version: 1, entries: [] });
+      const entry = (raw.entries || []).find((e) => e.id === id);
+      if (!entry) { sendJson(res, 404, { ok: false, error: `no such entry: ${id}` }); return; }
+      entry.enabled = payload.enabled !== false;
+      fs.writeFileSync(REGISTRY, JSON.stringify(raw, null, 2));
+      sendJson(res, 200, { ok: true, entry });
+      return;
+    }
 
     // ARE THE CHILDREN ON MY VERSION? One answer for the whole fleet, because the honest alternative is asking eight
     // boxes by hand and comparing strings. Missing build = not on this version (a node that never reported cannot
     // match), and a dirty tree is called out: "same commit" is not the same code if the files on disk differ.
+    // ── VERSION SYNC: match the number, act on the difference, remember the answer ───────────────────────────────────
+    // One entry in the cycle calls this. It is NOT a fetch loop: it compares this instance's build against what each
+    // managed node last said, remembers that in data/versions.json, and only asks a node again when the memory has aged
+    // out or when it has just told that node to update (because then the answer is known to be stale).
+    if ((p === '/api/version/sync' && (method === 'GET' || method === 'POST')) || (p === '/api/version/memory' && method === 'GET')) {
+      const ttlMin = Number(argOf('version-ttl-min', process.env.PHOENIX_VERSION_TTL_MIN ?? 720)) || 720;
+      const retriggerMin = Number(process.env.PHOENIX_VERSION_RETRIGGER_MIN ?? 30) || 30;
+      const mem = readVersions();
+      const own = BUILD.rev;
+      if (p === '/api/version/memory') { sendJson(res, 200, { ok: true, own, ...mem }); return; }
+
+      let peers = [];
+      try {
+        const j = await (await fetch(`${MIRROR}/api/lan.json`, { signal: AbortSignal.timeout(6000) })).json();
+        peers = (j.nodes || []).filter((n) => n && n.ref && n.ip && n.hydra !== false).map((n) => ({ ref: n.ref, ip: n.ip }));
+      } catch (e) { sendJson(res, 503, { ok: false, error: `mirror unreachable: ${e.message}`, own }); return; }
+
+      const noAnswerMin = Number(process.env.PHOENIX_VERSION_NOANSWER_MIN ?? 30) || 30;
+      const now = Date.now();
+      // "nobody answered" is itself an answer worth remembering - otherwise five machines with no door are re-asked every
+      // ten minutes for the rest of the year, and a cycle that talks to the void is a cycle nobody trusts.
+      const fresh = (row) => {
+        if (!row) return false;
+        if (row.rev) return row.at && now - Date.parse(row.at) < ttlMin * 60000;
+        return row.askedAt && now - Date.parse(row.askedAt) < noAnswerMin * 60000;
+      };
+      const asked = [], remembered = [], triggered = [], still = [], notes = [];
+      mem.nodes = mem.nodes || {};
+
+      for (const peer of peers) {
+        const row = mem.nodes[peer.ref];
+        if (fresh(row)) { remembered.push({ ref: peer.ref, rev: row.rev, ageMin: Math.round((now - Date.parse(row.at)) / 60000) }); }
+        else {
+          // ask the node: its own version fact, then its build stamp - two names because they arrive at different times
+          let rev = null, err = null;
+          for (const name of [`node.${peer.ref}.version`, `node.${peer.ref}.build`]) {
+            try {
+              const r = await fetch(`http://${peer.ip}:${NODE_STATE_PORT}/api/state/pull?name=${name}`, { signal: AbortSignal.timeout(2000) });
+              const j = await r.json().catch(() => null);
+              const c = j?.content ?? null;
+              if (c && (c.remote || c.local || c.rev)) { rev = c.remote || c.local || c.rev; break; }
+            } catch (e) { err = e.message; }
+          }
+          mem.nodes[peer.ref] = { rev, at: new Date().toISOString(), askedAt: new Date().toISOString(), error: err };
+          asked.push({ ref: peer.ref, rev, error: err });
+        }
+        const rev = mem.nodes[peer.ref]?.rev ?? null;
+        if (!rev) { still.push({ ref: peer.ref, why: 'no version reported' }); continue; }
+        if (rev === own) continue;
+
+        // out of sync: trigger THAT NODE's own update, which is a logged event on its own door, not a push from here
+        const last = mem.nodes[peer.ref]?.triggeredAt ? Date.parse(mem.nodes[peer.ref].triggeredAt) : 0;
+        if (now - last < retriggerMin * 60000) { still.push({ ref: peer.ref, rev, why: 'triggered recently, waiting' }); continue; }
+        try {
+          const r = await fetch(`http://${peer.ip}:8126/api/events/trigger`, {
+            method: 'POST', headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({ name: 'version.pull', source: 'process', payload: { asked_by: `phoenix:${own}`, from: rev, to: own } }),
+            signal: AbortSignal.timeout(5000),
+          });
+          const j = await r.json().catch(() => ({}));
+          mem.nodes[peer.ref].triggeredAt = new Date().toISOString();
+          mem.nodes[peer.ref].triggerOutcome = r.ok ? 'asked' : `refused ${r.status}${j?.error?.code ? ' ' + j.error.code : ''}`;
+          if (r.ok) {
+            triggered.push({ ref: peer.ref, from: rev, to: own });
+            // the node is about to change, so what we remember is now a lie: force a re-read next cycle
+            delete mem.nodes[peer.ref].at;
+            if (mem.nodes[peer.ref].rev) mem.nodes[peer.ref].rev = rev;
+          } else {
+            still.push({ ref: peer.ref, rev, why: mem.nodes[peer.ref].triggerOutcome });
+          }
+        } catch (e) {
+          mem.nodes[peer.ref].triggeredAt = new Date().toISOString();
+          mem.nodes[peer.ref].triggerOutcome = `no door: ${e.message}`;
+          still.push({ ref: peer.ref, rev, why: mem.nodes[peer.ref].triggerOutcome });
+        }
+      }
+
+      mem.at = new Date().toISOString();
+      mem.own = { rev: own, dirty: BUILD.dirty, at: mem.at };
+      writeVersions(mem);
+      const verdict = triggered.length
+        ? `${triggered.length} node(s) told to update: ${triggered.map((t) => `${t.ref} ${t.from}->${t.to}`).join(', ')}`
+        : `in sync with ${own}` + (still.length ? `; ${still.length} unresolved (${still.map((x) => x.ref).join(', ')})` : '');
+      sendJson(res, 200, { ok: true, own, asked: asked.length, remembered: remembered.length, triggered, still, notes, verdict });
+      return;
+    }
     if (p === '/api/versions' && method === 'GET') {
       let peers = [];
       let sshOnly = [];
@@ -711,7 +835,7 @@ const server = http.createServer(async (req, res) => {
       return;
     }
 
-    sendJson(res, 404, { ok: false, error: 'no such path', paths: ['/health', '/api/entries', '/api/register', '/api/tick', '/api/receipts'] });
+    sendJson(res, 404, { ok: false, error: 'no such path', paths: ['/health', '/api/entries', '/api/register', '/api/unregister', '/api/enable', '/api/tick', '/api/receipts', '/api/version/sync', '/api/version/memory'] });
   } catch (error) {
     sendJson(res, 400, { ok: false, error: error.message });
   }
